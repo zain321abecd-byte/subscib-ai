@@ -1,0 +1,28 @@
+<svg width="320" height="320" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="autoBg" x1="58" y1="42" x2="260" y2="270" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E2328"/>
+      <stop offset="0.55" stop-color="#0F1015"/>
+      <stop offset="1" stop-color="#07080B"/>
+    </linearGradient>
+    <linearGradient id="autoLine" x1="84" y1="82" x2="232" y2="226" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#49A9FF"/>
+      <stop offset="0.5" stop-color="#FF7A3D"/>
+      <stop offset="1" stop-color="#32D583"/>
+    </linearGradient>
+    <filter id="autoShadow" x="34" y="36" width="252" height="252" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+  <g filter="url(#autoShadow)">
+    <rect x="58" y="50" width="204" height="204" rx="38" fill="url(#autoBg)" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="2"/>
+    <path d="M113 114H153C165 114 175 124 175 136V184C175 196 185 206 197 206H218" stroke="url(#autoLine)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M208 182L232 206L208 230" stroke="url(#autoLine)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="84" y="88" width="58" height="58" rx="18" fill="#FF4A17"/>
+    <rect x="130" y="132" width="58" height="58" rx="18" fill="#49A9FF"/>
+    <rect x="188" y="176" width="58" height="58" rx="18" fill="#32D583"/>
+    <circle cx="113" cy="117" r="10" fill="white"/>
+    <circle cx="159" cy="161" r="10" fill="white"/>
+    <circle cx="217" cy="205" r="10" fill="white"/>
+  </g>
+</svg>

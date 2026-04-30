@@ -1,0 +1,26 @@
+<svg width="320" height="320" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="courseBg" x1="58" y1="42" x2="260" y2="270" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22262D"/>
+      <stop offset="0.56" stop-color="#101116"/>
+      <stop offset="1" stop-color="#07080B"/>
+    </linearGradient>
+    <linearGradient id="courseMain" x1="82" y1="84" x2="236" y2="230" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#32D583"/>
+      <stop offset="0.48" stop-color="#49A9FF"/>
+      <stop offset="1" stop-color="#FF7A3D"/>
+    </linearGradient>
+    <filter id="courseShadow" x="34" y="36" width="252" height="252" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+  <g filter="url(#courseShadow)">
+    <rect x="58" y="50" width="204" height="204" rx="38" fill="url(#courseBg)" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="2"/>
+    <path d="M88 124L160 88L232 124L160 160L88 124Z" fill="url(#courseMain)"/>
+    <path d="M112 142V184C112 199 133 214 160 214C187 214 208 199 208 184V142" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M232 126V176" stroke="#FFB86B" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="232" cy="190" r="13" fill="#FFB86B"/>
+    <path d="M126 124L160 141L194 124" stroke="white" stroke-opacity="0.82" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M126 228H194" stroke="#49A9FF" stroke-width="10" stroke-linecap="round"/>
+  </g>
+</svg>

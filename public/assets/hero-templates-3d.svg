@@ -1,0 +1,25 @@
+<svg width="320" height="320" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="templateBg" x1="58" y1="42" x2="260" y2="270" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#24252B"/>
+      <stop offset="0.58" stop-color="#101116"/>
+      <stop offset="1" stop-color="#07080B"/>
+    </linearGradient>
+    <linearGradient id="templateTile" x1="92" y1="84" x2="226" y2="228" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#49A9FF"/>
+      <stop offset="0.5" stop-color="#FF4A17"/>
+      <stop offset="1" stop-color="#FFB86B"/>
+    </linearGradient>
+    <filter id="templateShadow" x="34" y="36" width="252" height="252" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+  <g filter="url(#templateShadow)">
+    <rect x="58" y="50" width="204" height="204" rx="38" fill="url(#templateBg)" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="2"/>
+    <rect x="86" y="84" width="68" height="68" rx="18" fill="url(#templateTile)"/>
+    <rect x="166" y="84" width="68" height="68" rx="18" fill="#1E293B" stroke="#49A9FF" stroke-width="4"/>
+    <rect x="86" y="164" width="68" height="68" rx="18" fill="#1E293B" stroke="#FF7A3D" stroke-width="4"/>
+    <rect x="166" y="164" width="68" height="68" rx="18" fill="url(#templateTile)"/>
+    <path d="M106 118H134M186 118H214M106 198H134M186 198H214" stroke="white" stroke-width="10" stroke-linecap="round"/>
+  </g>
+</svg>

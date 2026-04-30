@@ -1,0 +1,26 @@
+<svg width="320" height="320" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chatBg" x1="54" y1="42" x2="264" y2="278" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#23262C"/>
+      <stop offset="0.5" stop-color="#111318"/>
+      <stop offset="1" stop-color="#06070A"/>
+    </linearGradient>
+    <linearGradient id="chatGlow" x1="82" y1="86" x2="236" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF6A2A"/>
+      <stop offset="0.54" stop-color="#FF3F16"/>
+      <stop offset="1" stop-color="#49A9FF"/>
+    </linearGradient>
+    <filter id="softShadow" x="34" y="36" width="252" height="252" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#000000" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+  <rect width="320" height="320" rx="52" fill="transparent"/>
+  <g filter="url(#softShadow)">
+    <rect x="58" y="50" width="204" height="204" rx="38" fill="url(#chatBg)" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="2"/>
+    <circle cx="102" cy="96" r="36" fill="#FF4A17" opacity="0.22"/>
+    <circle cx="218" cy="212" r="44" fill="#49A9FF" opacity="0.18"/>
+    <path d="M94 130C94 103.49 115.49 82 142 82H178C204.51 82 226 103.49 226 130V150C226 176.51 204.51 198 178 198H158L126 224V198H142C115.49 198 94 176.51 94 150V130Z" fill="url(#chatGlow)"/>
+    <path d="M128 127H192M128 151H178" stroke="white" stroke-width="12" stroke-linecap="round"/>
+    <text x="160" y="178" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="36" font-weight="800">GPT</text>
+  </g>
+</svg>
