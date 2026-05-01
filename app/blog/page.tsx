@@ -1,78 +1,7 @@
 import Link from "next/link";
+import { POSTS, type Post } from "@/lib/blog";
 
 export const metadata = { title: "Blog · SubscribAI" };
-
-type Post = {
-  slug: string;
-  title: string;
-  excerpt: string;
-  date: string;
-  readMins: number;
-  tag: "Guide" | "Compare" | "Automation" | "News";
-  author: string;
-  authorInitials: string;
-  authorColor: string;
-  featured?: boolean;
-};
-
-const POSTS: Post[] = [
-  {
-    slug: "ai-for-pakistani-businesses",
-    title: "AI for Pakistani businesses: where to start without burning rupees",
-    excerpt: "A practical playbook for picking your first AI tool — what it should do for you in week one, and which to skip until later.",
-    date: "Apr 22, 2026",
-    readMins: 8,
-    tag: "Guide",
-    author: "Ali Raza",
-    authorInitials: "AR",
-    authorColor: "var(--brand-soft)",
-    featured: true,
-  },
-  {
-    slug: "chatgpt-vs-claude",
-    title: "ChatGPT Plus vs Claude Pro: which $20 to spend",
-    excerpt: "Side-by-side on writing, code, vision, file uploads, and Pakistan-specific quirks like Urdu support.",
-    date: "Apr 14, 2026",
-    readMins: 6,
-    tag: "Compare",
-    author: "Sara Hashmi",
-    authorInitials: "SH",
-    authorColor: "var(--accent-soft)",
-  },
-  {
-    slug: "make-com-flows",
-    title: "5 Make.com flows every freelancer should set up",
-    excerpt: "Lead capture, client onboarding, invoice nudges, content recycling, weekly metrics — built once, runs forever.",
-    date: "Apr 02, 2026",
-    readMins: 9,
-    tag: "Automation",
-    author: "Usman Khan",
-    authorInitials: "UK",
-    authorColor: "var(--info-soft)",
-  },
-  {
-    slug: "midjourney-prompts-pk",
-    title: "Midjourney prompts that actually look Pakistani",
-    excerpt: "How to nudge the model toward authentic local visuals — clothing, cities, light, and color palettes.",
-    date: "Mar 25, 2026",
-    readMins: 5,
-    tag: "Guide",
-    author: "Sara Hashmi",
-    authorInitials: "SH",
-    authorColor: "var(--accent-soft)",
-  },
-  {
-    slug: "subscribai-jazzcash-launch",
-    title: "We're now live with JazzCash and Easypaisa",
-    excerpt: "After three months of integration testing, you can pay locally without a single international transaction.",
-    date: "Mar 12, 2026",
-    readMins: 3,
-    tag: "News",
-    author: "SubscribAI Team",
-    authorInitials: "SA",
-    authorColor: "var(--warning-soft)",
-  },
-];
 
 const TAG_COLORS: Record<Post["tag"], { c: string; bg: string; icon: string }> = {
   Guide:      { c: "var(--brand-300)",   bg: "var(--brand-soft)",   icon: "fa-book-open" },

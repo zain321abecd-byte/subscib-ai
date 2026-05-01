@@ -30,12 +30,15 @@ export default function Footer() {
           <Link href="/blog">Blog</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/prices">Pricing</Link>
+          <Link href="/faq">FAQ</Link>
         </div>
 
         <div>
           <h4>Help</h4>
-          <Link href="/terms">Terms &amp; conditions</Link>
+          <Link href="/faq">FAQ</Link>
           <Link href="/refund">Refund policy</Link>
+          <Link href="/terms">Terms &amp; conditions</Link>
+          <Link href="/privacy">Privacy policy</Link>
           <a href="https://wa.me/15550132026"><i className="fa-brands fa-whatsapp"></i> WhatsApp</a>
           <a href="mailto:contact@subscribai.com"><i className="fa-solid fa-envelope"></i> Email</a>
         </div>

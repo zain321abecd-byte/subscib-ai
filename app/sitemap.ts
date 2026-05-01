@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { PRODUCTS } from "@/lib/products";
+import { POSTS } from "@/lib/blog";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 
@@ -8,14 +9,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   // Static high-value pages
   const staticPages: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/`,         lastModified: now, changeFrequency: "daily",  priority: 1.0 },
-    { url: `${SITE_URL}/shop`,     lastModified: now, changeFrequency: "daily",  priority: 0.9 },
-    { url: `${SITE_URL}/prices`,   lastModified: now, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${SITE_URL}/freebies`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
-    { url: `${SITE_URL}/blog`,     lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${SITE_URL}/`,         lastModified: now, changeFrequency: "daily",   priority: 1.0 },
+    { url: `${SITE_URL}/shop`,     lastModified: now, changeFrequency: "daily",   priority: 0.9 },
+    { url: `${SITE_URL}/prices`,   lastModified: now, changeFrequency: "weekly",  priority: 0.8 },
+    { url: `${SITE_URL}/freebies`, lastModified: now, changeFrequency: "weekly",  priority: 0.7 },
+    { url: `${SITE_URL}/blog`,     lastModified: now, changeFrequency: "weekly",  priority: 0.7 },
+    { url: `${SITE_URL}/faq`,      lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/contact`,  lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE_URL}/refund`,   lastModified: now, changeFrequency: "yearly",  priority: 0.3 },
     { url: `${SITE_URL}/terms`,    lastModified: now, changeFrequency: "yearly",  priority: 0.3 },
+    { url: `${SITE_URL}/privacy`,  lastModified: now, changeFrequency: "yearly",  priority: 0.3 },
   ];
 
   // Per-product pages — high priority since these are the buying pages
@@ -26,5 +29,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: p.featured ? 0.9 : 0.8,
   }));
 
-  return [...staticPages, ...productPages];
+  // Per-blog-post pages
+  const blogPages: MetadataRoute.Sitemap = POSTS.map((p) => ({
+    url: `${SITE_URL}/blog/${p.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: p.featured ? 0.7 : 0.6,
+  }));
+
+  return [...staticPages, ...productPages, ...blogPages];
 }
