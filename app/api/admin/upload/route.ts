@@ -30,7 +30,11 @@ export async function POST(req: Request) {
   const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
   const api_key = process.env.CLOUDINARY_API_KEY;
   const api_secret = process.env.CLOUDINARY_API_SECRET;
-  const upload_preset = process.env.CLOUDINARY_UPLOAD_PRESET || "ml_default";
+  // The preset is OPTIONAL. Default presets like `ml_default` are unsigned and
+  // are incompatible with our signed (server-side) uploads — supplying them
+  // can cause Cloudinary to return a URL that 404s. Only honour the env value
+  // if the admin has explicitly set a SIGNED preset.
+  const upload_preset = process.env.CLOUDINARY_UPLOAD_PRESET?.trim();
   if (!cloud_name || !api_key || !api_secret) {
     return NextResponse.json({ error: "Cloudinary is not configured." }, { status: 503 });
   }
@@ -55,11 +59,16 @@ export async function POST(req: Request) {
   const dataUri = `data:${(file as any).type || "image/png"};base64,${buf.toString("base64")}`;
 
   try {
-    const result = await cloudinary.uploader.upload(dataUri, {
+    // Build options conditionally so we don't accidentally pass an unsigned
+    // preset (which silently breaks signed uploads).
+    const uploadOptions: Record<string, unknown> = {
       folder,
-      upload_preset,
       resource_type: "auto",
-    });
+    };
+    if (upload_preset && upload_preset !== "ml_default") {
+      uploadOptions.upload_preset = upload_preset;
+    }
+    const result = await cloudinary.uploader.upload(dataUri, uploadOptions);
     return NextResponse.json({ url: result.secure_url, public_id: result.public_id });
   } catch (e: any) {
     return NextResponse.json(
