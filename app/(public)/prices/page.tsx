@@ -1,0 +1,266 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { useFx } from "@/lib/fx";
+
+type BillingCycle = "monthly" | "yearly";
+
+type Tier = {
+  icon: string;
+  name: string;
+  desc: string;
+  /** monthly USD; yearly is auto-derived as monthly × 12 × 0.8 (20% off) */
+  monthlyUsd: number | null;
+  features: string[];
+  cta: string;
+  href: string;
+  primary?: boolean;
+  featured?: boolean;
+};
+
+const TIERS: Tier[] = [
+  {
+    icon: "fa-seedling", name: "Creator", desc: "Solo creators & freelancers", monthlyUsd: 29,
+    features: [
+      "2 AI subscriptions of your choice",
+      "Prompt vault (200+ curated prompts)",
+      "Weekly drops & tips",
+      "Email support",
+    ],
+    cta: "Choose Creator", href: "/shop",
+  },
+  {
+    icon: "fa-rocket", name: "Growth", desc: "Teams scaling content & ops", monthlyUsd: 59,
+    features: [
+      "4 AI subscriptions of your choice",
+      "All automation packs included",
+      "Prompt vault + workflow library",
+      "WhatsApp priority support (under 1 hr)",
+      "Monthly office-hours call",
+    ],
+    cta: "Choose Growth", href: "/shop", primary: true, featured: true,
+  },
+  {
+    icon: "fa-building", name: "Business", desc: "Agencies & established teams", monthlyUsd: null,
+    features: [
+      "Unlimited AI subscriptions",
+      "Custom automation builds",
+      "Dedicated account manager",
+      "Onboarding & training",
+      "Invoice billing & purchase orders",
+    ],
+    cta: "Contact sales", href: "/contact",
+  },
+];
+
+// What's in each tier — for the comparison table
+type FeatureRow = { label: string; values: [string | boolean, string | boolean, string | boolean] };
+const COMPARE: { group: string; rows: FeatureRow[] }[] = [
+  {
+    group: "AI Tools",
+    rows: [
+      { label: "AI subscriptions included",           values: ["2",        "4",        "Unlimited"] },
+      { label: "Premium models (GPT-4, Claude, etc)", values: [true,       true,       true] },
+      { label: "Image AI (Midjourney/Leonardo)",      values: ["1 of 2",   "Both",     "All available"] },
+      { label: "Voice AI (ElevenLabs)",               values: [false,     true,       true] },
+    ],
+  },
+  {
+    group: "Resources",
+    rows: [
+      { label: "Prompt vault (200+ prompts)",          values: [true,  true,           true] },
+      { label: "Workflow library",                     values: [false, true,           true] },
+      { label: "All automation packs",                 values: [false, true,           true] },
+      { label: "Custom automation builds",             values: [false, false,          true] },
+    ],
+  },
+  {
+    group: "Support",
+    rows: [
+      { label: "Email support",                        values: [true,             true,             true] },
+      { label: "WhatsApp priority support",            values: [false,            "<1 hour reply",  "<15 min reply"] },
+      { label: "Monthly office-hours call",            values: [false,            true,             true] },
+      { label: "Dedicated account manager",            values: [false,            false,            true] },
+      { label: "Onboarding & training",                values: [false,            false,            true] },
+    ],
+  },
+  {
+    group: "Billing",
+    rows: [
+      { label: "Pay in PKR via JazzCash / Easypaisa", values: [true,  true,            true] },
+      { label: "Pay by local card",                   values: [true,  true,            true] },
+      { label: "Invoice billing & POs",               values: [false, false,           true] },
+      { label: "Cancel any time",                     values: [true,  true,            true] },
+    ],
+  },
+];
+
+function priceForCycle(monthlyUsd: number | null, cycle: BillingCycle): number | null {
+  if (monthlyUsd === null) return null;
+  return cycle === "yearly" ? Math.round(monthlyUsd * 12 * 0.8) : monthlyUsd;
+}
+
+export default function PricesPage() {
+  const { usdToPkr, ready } = useFx();
+  const [cycle, setCycle] = useState<BillingCycle>("monthly");
+
+  return (
+    <section className="v2-section">
+      <div className="v2-container">
+        <header className="v2-section-head">
+          <p className="v2-eyebrow">Bundles</p>
+          <h2>Save more with a bundle</h2>
+          <p>Pre-mixed packs for creators, growing teams, and businesses. Cancel any time. Prices shown in USD with PKR conversion at today&rsquo;s rate.</p>
+        </header>
+
+        {/* Billing-cycle toggle */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "var(--space-7)" }}>
+          <div style={{
+            display: "inline-flex", padding: 4,
+            background: "var(--surface-soft)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius-pill)",
+          }}>
+            {(["monthly", "yearly"] as BillingCycle[]).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCycle(c)}
+                aria-pressed={cycle === c}
+                style={{
+                  padding: "10px 20px", border: "none", cursor: "pointer",
+                  background: cycle === c ? "var(--brand-500)" : "transparent",
+                  color: cycle === c ? "#fff" : "var(--text-soft)",
+                  borderRadius: "var(--radius-pill)",
+                  fontWeight: 600, fontSize: "var(--fs-sm)",
+                  transition: "all var(--dur)",
+                }}
+              >
+                {c === "monthly" ? "Monthly" : "Yearly"}
+                {c === "yearly" && (
+                  <span style={{
+                    marginLeft: 8, padding: "2px 8px",
+                    background: cycle === c ? "rgba(255,255,255,0.20)" : "var(--accent-soft)",
+                    color: cycle === c ? "#fff" : "var(--accent-300)",
+                    borderRadius: "var(--radius-pill)",
+                    fontSize: "var(--fs-xs)", fontWeight: 700,
+                  }}>SAVE 20%</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tier cards */}
+        <div className="v2-pricing-grid reveal reveal-stagger">
+          {TIERS.map((t) => {
+            const usd = priceForCycle(t.monthlyUsd, cycle);
+            const pkr = usd !== null ? Math.round(usd * usdToPkr).toLocaleString("en-PK") : null;
+            const cycleLabel = cycle === "monthly" ? "/ month" : "/ year";
+            return (
+              <article key={t.name} className={`surface-card v2-tier ${t.featured ? "is-featured" : ""}`}>
+                {t.featured && <span className="v2-tier-flag">Most popular</span>}
+                <header>
+                  <span className="v2-tier-icon"><i className={`fa-solid ${t.icon}`}></i></span>
+                  <h3>{t.name}</h3>
+                  <p>{t.desc}</p>
+                </header>
+                <div className="v2-tier-price">
+                  {usd !== null ? (
+                    <>
+                      <strong>${usd}</strong>
+                      <span>{cycleLabel}</span>
+                      {ready && (
+                        <div style={{ marginTop: 4, color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
+                          ≈ Rs {pkr} {cycleLabel}
+                        </div>
+                      )}
+                      {cycle === "yearly" && t.monthlyUsd && (
+                        <div style={{ marginTop: 4, color: "var(--accent-300)", fontSize: "var(--fs-xs)", fontWeight: 600 }}>
+                          You save ${Math.round(t.monthlyUsd * 12 * 0.2)} a year
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <strong>Custom</strong>
+                      <span>volume pricing</span>
+                    </>
+                  )}
+                </div>
+                <ul>
+                  {t.features.map((f) => <li key={f}><i className="fa-solid fa-check"></i> {f}</li>)}
+                </ul>
+                <Link className={`btn ${t.primary ? "btn-primary" : "btn-outline"}`} href={t.href}>{t.cta}</Link>
+              </article>
+            );
+          })}
+        </div>
+
+        {/* Comparison table */}
+        <div style={{ marginTop: "var(--space-9)" }}>
+          <header className="v2-section-head">
+            <p className="v2-eyebrow">Compare</p>
+            <h2>Plan comparison</h2>
+            <p>Every feature, side by side.</p>
+          </header>
+
+          <div className="surface-card" style={{ overflow: "auto", padding: 0 }}>
+            <table className="prices-table">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Creator</th>
+                  <th className="prices-th-featured">Growth</th>
+                  <th>Business</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARE.map((group) => (
+                  <>
+                    <tr key={`g-${group.group}`} className="prices-row-group">
+                      <td colSpan={4}>{group.group}</td>
+                    </tr>
+                    {group.rows.map((row) => (
+                      <tr key={row.label}>
+                        <td>{row.label}</td>
+                        {row.values.map((v, i) => (
+                          <td key={i} className={i === 1 ? "prices-td-featured" : ""}>
+                            {typeof v === "boolean"
+                              ? v
+                                ? <i className="fa-solid fa-check" style={{ color: "var(--accent-500)" }} aria-label="Included"></i>
+                                : <span style={{ color: "var(--text-muted)" }}>—</span>
+                              : <span style={{ color: "var(--text)" }}>{v}</span>
+                            }
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        .prices-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+        .prices-table th, .prices-table td {
+          padding: 14px 16px; text-align: center;
+          border-bottom: 1px solid var(--border);
+        }
+        .prices-table th { color: var(--text); font-weight: 600; background: var(--bg-elevated); position: sticky; top: 0; }
+        .prices-table th:first-child, .prices-table td:first-child { text-align: left; color: var(--text-soft); }
+        .prices-table th.prices-th-featured { color: var(--brand-300); background: var(--brand-soft); }
+        .prices-table td.prices-td-featured { background: rgba(255, 122, 26, 0.04); }
+        .prices-table .prices-row-group td {
+          background: var(--surface-soft);
+          color: var(--text-muted); font-weight: 600; font-size: var(--fs-xs);
+          text-transform: uppercase; letter-spacing: 0.06em;
+          text-align: left !important;
+        }
+      `}</style>
+    </section>
+  );
+}

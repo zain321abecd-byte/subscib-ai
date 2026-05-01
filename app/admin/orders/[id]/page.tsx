@@ -1,0 +1,110 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getSupabaseServer } from "@/lib/supabase/server";
+import StatusPill from "../../StatusPill";
+import OrderControls from "./OrderControls";
+import type { OrderRow } from "@/lib/supabase/types";
+
+export const dynamic = "force-dynamic";
+
+function fmtPKR(n: number | null | undefined) {
+  if (n == null) return "—";
+  return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", maximumFractionDigits: 0 }).format(Number(n));
+}
+
+export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await getSupabaseServer();
+  const isUuid = /^[0-9a-f-]{36}$/i.test(id);
+  const filterCol = isUuid ? "id" : "order_number";
+  const { data, error } = await supabase.from("orders").select("*").eq(filterCol, id).maybeSingle();
+  if (error || !data) notFound();
+  const order = data as OrderRow;
+
+  const items = Array.isArray(order.items) ? order.items : [];
+  const fmtPhone = order.customer_phone ? order.customer_phone.replace(/^\+/, "") : null;
+  const whatsappLink = fmtPhone ? `https://wa.me/${fmtPhone}` : null;
+
+  return (
+    <>
+      <header className="admin-page-head">
+        <div>
+          <p style={{ margin: 0 }}><Link href="/admin/orders" style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>← Orders</Link></p>
+          <h1>Order <code style={{ fontSize: "0.7em" }}>{order.order_number}</code></h1>
+          <p>
+            Placed {new Date(order.created_at).toLocaleString()} · <StatusPill status={order.status} />
+          </p>
+        </div>
+      </header>
+
+      <div className="admin-order-grid">
+        <div style={{ display: "grid", gap: 14 }}>
+          <div className="admin-card">
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", color: "var(--text)", margin: "0 0 12px" }}>Items</h3>
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+                <tbody>
+                  {items.map((it: any, i: number) => (
+                    <tr key={`${it.id}-${i}`}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: "var(--text)" }}>{it.name}</div>
+                        <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}><code>{it.id}</code></div>
+                      </td>
+                      <td>{it.qty}</td>
+                      <td>${Number(it.price).toFixed(2)}</td>
+                      <td>${(Number(it.price) * Number(it.qty || 1)).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={3} style={{ textAlign: "right", color: "var(--text-muted)" }}>Subtotal (USD)</td>
+                    <td>${Number(order.subtotal_usd).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan={3} style={{ textAlign: "right", color: "var(--text-muted)" }}>Charged (PKR)</td>
+                    <td>{fmtPKR(order.subtotal_pkr)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <div className="admin-card">
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", color: "var(--text)", margin: "0 0 12px" }}>Customer</h3>
+            <dl style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "8px 18px", margin: 0 }}>
+              <dt style={{ color: "var(--text-muted)" }}>Email</dt>
+              <dd style={{ margin: 0 }}><a href={`mailto:${order.customer_email}`}>{order.customer_email}</a></dd>
+              {order.customer_name && (<>
+                <dt style={{ color: "var(--text-muted)" }}>Name</dt>
+                <dd style={{ margin: 0 }}>{order.customer_name}</dd>
+              </>)}
+              {order.customer_phone && (<>
+                <dt style={{ color: "var(--text-muted)" }}>Phone</dt>
+                <dd style={{ margin: 0 }}>
+                  {order.customer_phone}{" "}
+                  {whatsappLink && <a href={whatsappLink} target="_blank" rel="noopener" style={{ marginLeft: 6 }}>WhatsApp →</a>}
+                </dd>
+              </>)}
+              {order.payment_method && (<>
+                <dt style={{ color: "var(--text-muted)" }}>Method</dt>
+                <dd style={{ margin: 0, textTransform: "capitalize" }}>{order.payment_method}</dd>
+              </>)}
+              {order.transaction_id && (<>
+                <dt style={{ color: "var(--text-muted)" }}>Txn ID</dt>
+                <dd style={{ margin: 0 }}><code style={{ fontSize: "0.85em" }}>{order.transaction_id}</code></dd>
+              </>)}
+              {order.delivered_at && (<>
+                <dt style={{ color: "var(--text-muted)" }}>Delivered</dt>
+                <dd style={{ margin: 0 }}>{new Date(order.delivered_at).toLocaleString()}</dd>
+              </>)}
+            </dl>
+          </div>
+        </div>
+
+        <OrderControls order={order} />
+      </div>
+    </>
+  );
+}

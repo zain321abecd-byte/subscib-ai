@@ -1,5 +1,5 @@
-// Sample product catalog. In production, replace with a fetch from an API,
-// CMS, or database. The shape matches what ProductCard expects.
+import { getSupabaseServer } from "@/lib/supabase/server";
+import type { ProductRow } from "@/lib/supabase/types";
 
 export type Product = {
   id: string;
@@ -14,9 +14,24 @@ export type Product = {
   mediaClass: "media-green" | "media-blue" | "media-pink" | "media-orange";
   category: "ai-subscriptions" | "design-tools" | "productivity" | "automation" | "courses";
   featured?: boolean;
+  /** Cloudinary or external image, set via admin panel. Optional. */
+  imageUrl?: string;
+  /** Additional gallery images (cover stays in imageUrl). */
+  gallery?: string[];
+  /** false when admin marks it out of stock. */
+  inStock?: boolean;
+  /** When false, this product is hidden from "You may also like" sections. */
+  showInRelated?: boolean;
+  /** If non-empty, the admin has hand-picked these specific products to recommend
+      on this product's page. Otherwise fall back to category-based suggestions. */
+  relatedProductIds?: string[];
 };
 
-export const PRODUCTS: Product[] = [
+// ─────────────────────────────────────────────────────────────────────────────
+// Static fallback. Used as the seed source AND as a safety net so the site
+// keeps rendering if Supabase is unreachable or env vars aren't set yet.
+// ─────────────────────────────────────────────────────────────────────────────
+export const STATIC_PRODUCTS: Product[] = [
   // ── AI Subscriptions ────────────────────────────────────────────────
   { id: "chatgpt-plus", name: "ChatGPT Plus Plan", tag: "Popular", price: 19, brand: "openai", iconClass: "fa-solid fa-robot", mediaClass: "media-orange", category: "ai-subscriptions", featured: true, description: "Priority access to the latest models, vision and voice features, file uploads, and longer context windows." },
   { id: "claude-pro", name: "Claude Pro Plan", tag: "AI", price: 18, brand: "anthropic", iconClass: "fa-solid fa-bolt", mediaClass: "media-blue", category: "ai-subscriptions", description: "5× more usage than free, priority capacity during peak hours, longer outputs and bigger context." },
@@ -46,10 +61,83 @@ export const PRODUCTS: Product[] = [
   { id: "automation-bootcamp", name: "Automation Bootcamp", tag: "Course", price: 59, iconClass: "fa-solid fa-screwdriver-wrench", mediaClass: "media-orange", category: "courses", description: "Twelve-hour deep-dive on Make.com, Zapier, and n8n with 25 ready-to-import templates." },
 ];
 
+// Backwards-compat: some files still import PRODUCTS. Keep it as the static fallback.
+export const PRODUCTS = STATIC_PRODUCTS;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DB row → Product shape mapping
+// ─────────────────────────────────────────────────────────────────────────────
+function rowToProduct(row: ProductRow): Product {
+  return {
+    id: row.id,
+    name: row.name,
+    tag: row.tag ?? "",
+    price: Number(row.price),
+    description: row.description ?? undefined,
+    brand: row.brand ?? undefined,
+    iconClass: row.icon_class ?? "fa-solid fa-cube",
+    mediaClass: (row.media_class as Product["mediaClass"]) ?? "media-blue",
+    category: row.category as Product["category"],
+    featured: row.featured,
+    imageUrl: row.image_url ?? undefined,
+    gallery: Array.isArray(row.gallery) ? row.gallery.filter((u) => typeof u === "string") : undefined,
+    inStock: row.in_stock,
+    // Default true if the column hasn't been added yet (graceful before migration).
+    showInRelated: row.show_in_related ?? true,
+    relatedProductIds: Array.isArray(row.related_product_ids)
+      ? row.related_product_ids.filter((id) => typeof id === "string")
+      : undefined,
+  };
+}
+
+function supabaseConfigured(): boolean {
+  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Async DB-backed getters (fall back to STATIC_PRODUCTS when DB unavailable)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getAllProducts(): Promise<Product[]> {
+  if (!supabaseConfigured()) return STATIC_PRODUCTS;
+  try {
+    const supabase = await getSupabaseServer();
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false });
+    if (error || !data || data.length === 0) return STATIC_PRODUCTS;
+    return (data as ProductRow[]).map(rowToProduct);
+  } catch {
+    return STATIC_PRODUCTS;
+  }
+}
+
+export async function getProduct(id: string): Promise<Product | undefined> {
+  if (!supabaseConfigured()) return STATIC_PRODUCTS.find((p) => p.id === id);
+  try {
+    const supabase = await getSupabaseServer();
+    const { data, error } = await supabase.from("products").select("*").eq("id", id).maybeSingle();
+    if (error || !data) return STATIC_PRODUCTS.find((p) => p.id === id);
+    return rowToProduct(data as ProductRow);
+  } catch {
+    return STATIC_PRODUCTS.find((p) => p.id === id);
+  }
+}
+
+export async function getFeaturedProducts(limit = 4): Promise<Product[]> {
+  const all = await getAllProducts();
+  return all.filter((p) => p.featured).slice(0, limit);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Synchronous helpers — DEPRECATED but preserved for places that haven't been
+// migrated yet (sitemap, etc.). They operate on the static fallback only.
+// ─────────────────────────────────────────────────────────────────────────────
 export function findProduct(id: string): Product | undefined {
-  return PRODUCTS.find((p) => p.id === id);
+  return STATIC_PRODUCTS.find((p) => p.id === id);
 }
 
 export function featuredProducts(limit = 4): Product[] {
-  return PRODUCTS.filter((p) => p.featured).slice(0, limit);
+  return STATIC_PRODUCTS.filter((p) => p.featured).slice(0, limit);
 }

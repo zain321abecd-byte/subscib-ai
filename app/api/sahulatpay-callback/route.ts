@@ -1,11 +1,31 @@
 import { NextResponse } from "next/server";
 import { normalizePaymentStatus } from "@/lib/sahulatpay";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 // SECURITY: This endpoint accepts inbound callbacks at face value. Before
 // treating a callback as authoritative (e.g. fulfilling an order), re-verify
 // by hitting /api/payment-status against SahulatPay using the order_id.
+
+async function syncOrderStatus(transactionId: string, paymentStatus: string) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+  if (!transactionId) return;
+  // Map gateway payment_status to our order.status enum.
+  const status =
+    paymentStatus === "paid" ? "paid" :
+    paymentStatus === "failed" ? "failed" :
+    paymentStatus === "pending" ? "pending" : null;
+  if (!status) return;
+  try {
+    await getSupabaseAdmin()
+      .from("orders")
+      .update({ status })
+      .eq("transaction_id", transactionId);
+  } catch (e) {
+    console.error("[sahulatpay-callback] order status sync failed", e);
+  }
+}
 
 async function handle(payload: Record<string, any>, method: string) {
   const orderId = String(payload.order_id || payload.orderId || payload.transactionId || "").trim();
@@ -18,6 +38,8 @@ async function handle(payload: Record<string, any>, method: string) {
     paymentStatus,
     rawStatus: String(rawStatus).slice(0, 80),
   });
+
+  await syncOrderStatus(orderId, paymentStatus);
 
   return NextResponse.json({
     received: true,

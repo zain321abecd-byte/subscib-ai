@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
+import CurrencySwitcher from "@/components/CurrencySwitcher";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -48,6 +49,7 @@ export default function Header() {
         </nav>
 
         <div className="v2-header-actions">
+          <CurrencySwitcher />
           <Link className="v2-icon-btn" href="/cart" aria-label="Cart">
             <i className="fa-solid fa-cart-shopping"></i>
             <span className="v2-cart-count" {...(ready && count > 0 ? {} : { "data-empty": true })}>{count}</span>

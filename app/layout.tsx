@@ -1,15 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
-import { CartProvider } from "@/lib/cart";
-import { FxProvider } from "@/lib/fx";
-import { ToastProvider } from "@/lib/toast";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import PageProgress from "@/components/PageProgress";
-import NavigationProgress from "@/components/NavigationProgress";
-import RevealOnScroll from "@/components/RevealOnScroll";
-import WhatsAppFab from "@/components/WhatsAppFab";
 
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--next-font-body", display: "swap" });
 const poppins = Poppins({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--next-font-heading", display: "swap" });
@@ -69,9 +60,7 @@ export const metadata: Metadata = {
     images: ["/assets/subscribai-logo-transparent-full.png"],
   },
   icons: {
-    icon: [
-      { url: "/assets/favicon.png", type: "image/png" },
-    ],
+    icon: [{ url: "/assets/favicon.png", type: "image/png" }],
     apple: "/assets/favicon.png",
   },
   manifest: "/manifest.webmanifest",
@@ -89,39 +78,6 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // JSON-LD Organization schema — helps Google understand who you are.
-  const orgJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: SITE_NAME,
-    url: SITE_URL,
-    logo: `${SITE_URL}/assets/subscribai-logo.png`,
-    sameAs: [
-      // Add social profiles here when you create them
-    ],
-    contactPoint: [{
-      "@type": "ContactPoint",
-      contactType: "customer support",
-      availableLanguage: ["en", "ur"],
-      url: `${SITE_URL}/contact`,
-    }],
-    address: {
-      "@type": "PostalAddress",
-      addressCountry: "PK",
-    },
-  };
-  const websiteJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: SITE_NAME,
-    url: SITE_URL,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/shop?q={search_term_string}` },
-      "query-input": "required name=search_term_string",
-    },
-  };
-
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
       <head>
@@ -132,24 +88,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
         />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
       </head>
-      <body className="v2 home-v2">
-        <FxProvider>
-          <ToastProvider>
-            <CartProvider>
-              <PageProgress />
-              <NavigationProgress />
-              <RevealOnScroll />
-              <Header />
-              <main>{children}</main>
-              <Footer />
-              <WhatsAppFab />
-            </CartProvider>
-          </ToastProvider>
-        </FxProvider>
-      </body>
+      {/* Body className is set by the section layout via `data-shell` so each
+          surface (public vs admin) controls its own visual reset without
+          forcing the root layout to read request headers. */}
+      <body className="v2">{children}</body>
     </html>
   );
 }

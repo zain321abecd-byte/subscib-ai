@@ -1,3 +1,6 @@
+import { getSupabaseServer } from "@/lib/supabase/server";
+import type { BlogPostRow } from "@/lib/supabase/types";
+
 export type Post = {
   slug: string;
   title: string;
@@ -145,6 +148,49 @@ Saturated reds and golds for festivals, muted earth tones for everyday street sc
 Add a few comparable artists or styles ("inspired by South Asian photojournalism") rather than naming Pakistani artists directly — model coverage of named local artists is patchy. The full Midjourney Mastery course in our shop walks through fifty proven prompt patterns.`,
   },
   {
+    slug: "best-ai-tools-for-students",
+    title: "Best AI tools for students in Pakistan (and how to actually pay for them)",
+    excerpt: "A no-nonsense list of which AI subscriptions are worth your stipend money — and how to subscribe from Pakistan without a foreign card.",
+    date: "Apr 28, 2026",
+    readMins: 7,
+    tag: "Guide",
+    author: "Sara Hashmi",
+    authorInitials: "SH",
+    authorColor: "var(--accent-soft)",
+    body: `If you&rsquo;re a student in Pakistan, AI tools can save you days of work — research, writing, design, problem-solving. The catch: most charge in dollars, on cards your bank may not let you use. Here&rsquo;s a tight starter pack and how to actually get them.
+
+## The shortlist for students
+
+You don&rsquo;t need ten subscriptions. Pick one or two from this list based on what you actually study.
+
+- **ChatGPT Plus or Claude Pro** — for everything text-based. Essays, summarising readings, fixing your code, explaining things you missed in class. Pick Claude if you write a lot or do programming; pick ChatGPT if you want a friendlier all-rounder.
+- **Perplexity Pro** — when your work needs cited sources. Better than a vanilla LLM for research papers.
+- **Notion AI** — if you already use Notion for notes. The summarise and rewrite features pay for themselves the night before exams.
+- **Canva Pro** — if you do any visual work (presentations, posters, society events). Saves hours of fiddling with slide layouts.
+
+That&rsquo;s a $20&ndash;$40 stack a month. Way less than the time it saves.
+
+## What to skip in your first month
+
+Image AI (Midjourney, Leonardo) is gorgeous but rarely critical for coursework. Voice AI (ElevenLabs) is fun but specialised. Automation packs (Make.com / Zapier) are powerful but the learning curve doesn&rsquo;t pay off until you have a regular workflow to automate. Add these later when you have a clear use case.
+
+## How to pay from Pakistan
+
+The standard route — international credit card — fails for most local debit cards and many credit cards. Even when it works, you&rsquo;re paying forex on top of the subscription price.
+
+Local AI resellers (like SubscribAI) solve this by handling the international payment on your behalf, then taking PKR from you via JazzCash, Easypaisa, or any local card. End result: same subscription, same login, paid in rupees, no forex hassle.
+
+## Tips that actually save money
+
+- **Buy yearly when you&rsquo;re sure.** Most tools give a meaningful discount on yearly plans. SubscribAI&rsquo;s Growth bundle is 20% cheaper if you commit for a year.
+- **Pool with classmates.** Many AI tools allow shared access on team plans. Three people splitting a Growth bundle pay roughly $20 each.
+- **Cancel between exams.** If you only need ChatGPT during finals, subscribe for one month and cancel. Local resellers don&rsquo;t auto-charge — you confirm renewals manually.
+
+## One last thing
+
+Don&rsquo;t pay sketchy sellers on Discord or Facebook for cracked accounts. They get banned, you lose access, and there&rsquo;s no one to complain to. Buy from a reseller that has a real WhatsApp number, replacement guarantees, and a public refund policy. The savings aren&rsquo;t worth the headache.`,
+  },
+  {
     slug: "subscribai-jazzcash-launch",
     title: "We're now live with JazzCash and Easypaisa",
     excerpt: "After three months of integration testing, you can pay locally without a single international transaction.",
@@ -180,4 +226,63 @@ If anything goes sideways during checkout, message us on WhatsApp — we monitor
 
 export function findPost(slug: string): Post | undefined {
   return POSTS.find((p) => p.slug === slug);
+}
+
+// Backwards-compat alias: STATIC_POSTS is what the static array represents now.
+export const STATIC_POSTS = POSTS;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DB-backed getters with static fallback
+// ─────────────────────────────────────────────────────────────────────────────
+function rowToPost(row: BlogPostRow): Post {
+  return {
+    slug: row.slug,
+    title: row.title,
+    excerpt: row.excerpt,
+    body: row.body,
+    date: row.date,
+    readMins: row.read_mins,
+    tag: row.tag as Post["tag"],
+    author: row.author,
+    authorInitials: row.author_initials,
+    authorColor: row.author_color,
+    featured: row.featured,
+  };
+}
+
+function supabaseConfigured(): boolean {
+  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}
+
+export async function getAllPosts(): Promise<Post[]> {
+  if (!supabaseConfigured()) return STATIC_POSTS;
+  try {
+    const supabase = await getSupabaseServer();
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("published", true)
+      .order("date", { ascending: false });
+    if (error || !data || data.length === 0) return STATIC_POSTS;
+    return (data as BlogPostRow[]).map(rowToPost);
+  } catch {
+    return STATIC_POSTS;
+  }
+}
+
+export async function getPost(slug: string): Promise<Post | undefined> {
+  if (!supabaseConfigured()) return STATIC_POSTS.find((p) => p.slug === slug);
+  try {
+    const supabase = await getSupabaseServer();
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("slug", slug)
+      .eq("published", true)
+      .maybeSingle();
+    if (error || !data) return STATIC_POSTS.find((p) => p.slug === slug);
+    return rowToPost(data as BlogPostRow);
+  } catch {
+    return STATIC_POSTS.find((p) => p.slug === slug);
+  }
 }

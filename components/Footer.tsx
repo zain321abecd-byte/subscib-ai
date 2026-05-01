@@ -1,7 +1,19 @@
 import Link from "next/link";
 import Image from "next/image";
+import { getSiteSettings } from "@/lib/site-settings";
 
-export default function Footer() {
+export default async function Footer() {
+  const s = await getSiteSettings();
+  const wa = s.whatsapp_number || "15550132026";
+  const email = s.contact_email || "contact@subscribai.com";
+
+  const socials: { key: string; icon: string; label: string }[] = [
+    { key: "social_instagram", icon: "fa-brands fa-instagram", label: "Instagram" },
+    { key: "social_facebook",  icon: "fa-brands fa-facebook",  label: "Facebook" },
+    { key: "social_tiktok",    icon: "fa-brands fa-tiktok",    label: "TikTok" },
+    { key: "social_youtube",   icon: "fa-brands fa-youtube",   label: "YouTube" },
+  ].filter((sn) => !!s[sn.key]);
+
   return (
     <footer className="v2-footer">
       <div className="v2-container v2-footer-grid">
@@ -13,6 +25,15 @@ export default function Footer() {
             <span><i className="fa-solid fa-mobile-screen"></i> Easypaisa</span>
             <span><i className="fa-solid fa-credit-card"></i> Card</span>
           </div>
+          {socials.length > 0 && (
+            <div className="v2-social-row" style={{ display: "flex", gap: 12, marginTop: 12 }}>
+              {socials.map((sn) => (
+                <a key={sn.key} href={s[sn.key]} target="_blank" rel="noopener" aria-label={sn.label}>
+                  <i className={sn.icon}></i>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
@@ -39,8 +60,8 @@ export default function Footer() {
           <Link href="/refund">Refund policy</Link>
           <Link href="/terms">Terms &amp; conditions</Link>
           <Link href="/privacy">Privacy policy</Link>
-          <a href="https://wa.me/15550132026"><i className="fa-brands fa-whatsapp"></i> WhatsApp</a>
-          <a href="mailto:contact@subscribai.com"><i className="fa-solid fa-envelope"></i> Email</a>
+          <a href={`https://wa.me/${wa}`}><i className="fa-brands fa-whatsapp"></i> WhatsApp</a>
+          <a href={`mailto:${email}`}><i className="fa-solid fa-envelope"></i> Email</a>
         </div>
       </div>
 

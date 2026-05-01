@@ -31,13 +31,20 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <article className="product-card" data-product-id={product.id}>
       <Link className={`product-media ${product.mediaClass}`} href={`/product/${product.id}`} aria-label={`View ${product.name}`}>
-        {product.brand
-          ? <span className="product-media-brand"><BrandIcon name={product.brand} size={48} color="ffffff" /></span>
-          : <i className={product.iconClass}></i>
-        }
+        {product.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={product.imageUrl} alt={product.name} className="product-media-img" loading="lazy" />
+        ) : product.brand ? (
+          <span className="product-media-brand"><BrandIcon name={product.brand} size={48} color="ffffff" /></span>
+        ) : (
+          <i className={product.iconClass}></i>
+        )}
       </Link>
       <div className="product-content">
-        <span className="product-tag">{product.tag}</span>
+        {(() => {
+          const first = (product.tag || "").split(",").map((s) => s.trim()).filter(Boolean)[0];
+          return first ? <span className="product-tag">{first}</span> : null;
+        })()}
         <h3>{product.name}</h3>
         <div className="product-bottom">
           <div className="product-card-price">

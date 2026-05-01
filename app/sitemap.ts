@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
-import { PRODUCTS } from "@/lib/products";
-import { POSTS } from "@/lib/blog";
+import { getAllProducts } from "@/lib/products";
+import { getAllPosts } from "@/lib/blog";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [PRODUCTS, POSTS] = await Promise.all([getAllProducts(), getAllPosts()]);
   const now = new Date();
 
   // Static high-value pages
