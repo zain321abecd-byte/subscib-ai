@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirm your email · SubscribAI</title>
+  <style>
+    /* Reset (defensive — most clients strip <style> but Gmail honours it) */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    a { color: #FF7A1A; text-decoration: none; }
+
+    .wrapper { width: 100%; background-color: #0A0A0E; padding: 32px 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .card     { max-width: 540px; margin: 0 auto; background-color: #15151B; border: 1px solid #25252E; border-radius: 18px; overflow: hidden; }
+    .header   { padding: 32px 32px 0; text-align: left; }
+    .brand    { display: inline-flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; color: #FFFFFF; }
+    .brand-mark { display: inline-block; width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #FF7A1A, #E66A0A); color: #FFF; text-align: center; line-height: 36px; font-weight: 800; font-size: 18px; vertical-align: middle; margin-right: 4px; }
+
+    .hero     { padding: 28px 32px 8px; text-align: center; }
+    .hero-icon{ width: 78px; height: 78px; border-radius: 999px; background: rgba(255, 122, 26, 0.14); border: 1.5px solid rgba(255, 122, 26, 0.45); color: #FF9F4D; line-height: 78px; font-size: 32px; display: inline-block; margin-bottom: 18px; }
+    .h1       { font-size: 26px; line-height: 1.2; letter-spacing: -0.01em; color: #FFFFFF; margin: 0 0 8px; font-weight: 700; }
+    .lede     { font-size: 15px; line-height: 1.6; color: #A0A0AC; margin: 0 0 28px; }
+
+    .cta-row  { padding: 0 32px 24px; text-align: center; }
+    .cta      { display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #FF7A1A, #E66A0A); color: #FFFFFF !important; font-weight: 600; font-size: 15px; border-radius: 12px; text-decoration: none; box-shadow: 0 8px 22px -6px rgba(255, 122, 26, 0.55); }
+    .cta:hover{ filter: brightness(1.05); }
+
+    .alt-link { padding: 0 32px 24px; font-size: 13px; color: #6B6B78; line-height: 1.6; word-break: break-all; }
+    .alt-link a { color: #FF9F4D; text-decoration: underline; }
+
+    .divider  { height: 1px; background: #25252E; margin: 0 32px; }
+    .footer   { padding: 22px 32px 28px; font-size: 12px; color: #6B6B78; line-height: 1.6; text-align: left; }
+    .footer p { margin: 0 0 6px; }
+    .footer a { color: #A0A0AC; }
+
+    @media only screen and (max-width: 480px) {
+      .header, .hero, .cta-row, .alt-link, .footer { padding-left: 22px !important; padding-right: 22px !important; }
+      .h1 { font-size: 22px !important; }
+      .cta { display: block !important; width: 100% !important; box-sizing: border-box; }
+    }
+  </style>
+</head>
+<body>
+  <table role="presentation" class="wrapper" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tr>
+      <td>
+        <table role="presentation" class="card" cellpadding="0" cellspacing="0" border="0" align="center">
+          <tr>
+            <td class="header">
+              <div class="brand">
+                <span class="brand-mark">S</span>
+                SubscribAI
+              </div>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="hero">
+              <div class="hero-icon">✉</div>
+              <h1 class="h1">Confirm your email</h1>
+              <p class="lede">
+                Welcome aboard! Just one quick step before you can place your first order — tap the button below to verify your email address.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="cta-row">
+              <a class="cta" href="{{ .ConfirmationURL }}" target="_blank" rel="noopener">
+                Verify my email
+              </a>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="alt-link">
+              Or copy and paste this link into your browser:<br />
+              <a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a>
+            </td>
+          </tr>
+
+          <tr><td><div class="divider"></div></td></tr>
+
+          <tr>
+            <td class="footer">
+              <p><strong>Didn&rsquo;t sign up?</strong> No problem — just ignore this email and your address won&rsquo;t be added to SubscribAI.</p>
+              <p>This link expires in 24 hours.</p>
+              <p style="margin-top: 14px;">
+                Need help? Reply to this email or message us on
+                <a href="https://wa.me/15550132026">WhatsApp</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

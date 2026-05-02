@@ -11254,3 +11254,28 @@ body.admin-body::after {
   font-size: 0.78rem;
   color: var(--text-muted);
 }
+
+/* /auth/confirm hero icon */
+.confirm-hero {
+  width: 80px; height: 80px;
+  border-radius: 999px;
+  margin: 0 auto 18px;
+  display: grid; place-items: center;
+  font-size: 2.4rem;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.20), rgba(34, 197, 94, 0.06));
+  border: 1.5px solid rgba(34, 197, 94, 0.40);
+  color: #34d399;
+  animation: confirm-pop .35s ease-out;
+}
+.confirm-hero-error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.20), rgba(239, 68, 68, 0.06));
+  border-color: rgba(239, 68, 68, 0.40);
+  color: #f87171;
+}
+@keyframes confirm-pop {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.confirm-hero ~ h1 { text-align: center; }
+.confirm-hero ~ .auth-tagline { text-align: center; }
+.confirm-hero ~ .auth-submit { width: 100%; justify-content: center; }

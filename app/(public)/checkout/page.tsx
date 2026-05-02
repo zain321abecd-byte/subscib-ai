@@ -308,7 +308,7 @@ export default function CheckoutPage() {
 
   async function checkStatusNow() {
     if (!orderId) return;
-    setMessage("Checking with SahulatPay…");
+    setMessage("Checking payment status…");
     try {
       const r = await fetch(`/api/payment-status?orderId=${encodeURIComponent(orderId)}&transactionId=${encodeURIComponent(transactionId || orderId)}&provider=${provider}`);
       const data = await r.json();
@@ -447,11 +447,17 @@ export default function CheckoutPage() {
             <div style={{ paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "baseline", color: "var(--text)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-lg)" }}>
               <span>Total</span>
               <span style={{ textAlign: "right" }}>
-                <span>Rs {pkrFormatted}</span>
-                <small style={{ display: "block", color: "var(--text-muted)", fontSize: "var(--fs-xs)", fontWeight: 500, fontFamily: "var(--font-body)", marginTop: 2 }}>≈ ${cart.subtotal.toFixed(2)} USD</small>
+                {isPK ? (
+                  <>
+                    <span>Rs {pkrFormatted}</span>
+                    <small style={{ display: "block", color: "var(--text-muted)", fontSize: "var(--fs-xs)", fontWeight: 500, fontFamily: "var(--font-body)", marginTop: 2 }}>≈ ${cart.subtotal.toFixed(2)} USD</small>
+                  </>
+                ) : (
+                  <span>${cart.subtotal.toFixed(2)} USD</span>
+                )}
               </span>
             </div>
-            {fxReady && (
+            {fxReady && isPK && (
               <p style={{ marginTop: 10, fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
                 <i className="fa-solid fa-circle-info" style={{ marginRight: 6 }}></i>
                 Charged in PKR at today&rsquo;s rate (1 USD ≈ Rs {Math.round(usdToPkr).toLocaleString("en-PK")}).
@@ -474,7 +480,7 @@ export default function CheckoutPage() {
               style={{ width: "100%", justifyContent: "center", marginTop: "var(--space-5)" }}
               disabled={!fxReady || status === "submitting" || status === "pending" || status === "paid"}
             >
-              {fxReady ? `Pay Rs ${pkrFormatted}` : "Loading rate…"} <i className="fa-solid fa-arrow-right"></i>
+              {!fxReady ? "Loading…" : isPK ? `Pay Rs ${pkrFormatted}` : `Pay $${cart.subtotal.toFixed(2)}`} <i className="fa-solid fa-arrow-right"></i>
             </button>
 
             {status === "pending" && (
@@ -490,7 +496,7 @@ export default function CheckoutPage() {
             )}
 
             <ul style={{ listStyle: "none", padding: 0, margin: "var(--space-5) 0 0", color: "var(--text-muted)", fontSize: "var(--fs-xs)", display: "grid", gap: 6 }}>
-              <li><i className="fa-solid fa-shield-halved" style={{ color: "var(--accent-600)" }}></i> Encrypted SahulatPay gateway</li>
+              <li><i className="fa-solid fa-shield-halved" style={{ color: "var(--accent-600)" }}></i> Encrypted secure payment gateway</li>
               <li><i className="fa-solid fa-lock" style={{ color: "var(--accent-600)" }}></i> Card details never touch our server</li>
             </ul>
           </aside>

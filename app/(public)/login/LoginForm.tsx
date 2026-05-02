@@ -37,15 +37,24 @@ export default function LoginForm() {
       const supabase = getSupabaseBrowser();
 
       if (mode === "signup") {
+        // Build the redirect URL from the current origin so production users
+        // never get bounced to localhost. The query param lets the post-confirm
+        // page show a friendly "you're verified" message.
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        const emailRedirectTo = `${origin}/auth/confirm?next=${encodeURIComponent(next)}`;
+
         const { data, error: err } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { full_name: name.trim() } },
+          options: {
+            data: { full_name: name.trim() },
+            emailRedirectTo,
+          },
         });
         if (err) throw err;
         // If email confirmation is enabled in Supabase, no session yet.
         if (!data.session) {
-          setInfo("Check your inbox to confirm your email, then sign in.");
+          setInfo("Check your inbox to confirm your email — we sent a verification link.");
           setMode("signin");
           return;
         }
