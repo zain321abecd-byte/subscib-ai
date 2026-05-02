@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import ProductGallery from "@/components/ProductGallery";
 import Reviews, { REVIEWS } from "@/components/Reviews";
-import AddToCartButton from "./AddToCartButton";
+import PackageBuy from "./PackageBuy";
 import { STATIC_PRODUCTS, getAllProducts, getProduct } from "@/lib/products";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
@@ -100,17 +100,17 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <div className="v2-container">
-        {/* Breadcrumb */}
-        <nav style={{ marginBottom: "var(--space-5)", color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
-          <Link href="/" style={{ color: "inherit" }}>Home</Link>
-          <span style={{ margin: "0 8px" }}>/</span>
-          <Link href="/shop" style={{ color: "inherit" }}>Shop</Link>
-          <span style={{ margin: "0 8px" }}>/</span>
-          <span style={{ color: "var(--text-soft)" }}>{product.name}</span>
+        {/* Refined breadcrumb */}
+        <nav className="product-detail-breadcrumb" aria-label="Breadcrumb">
+          <Link href="/">Home</Link>
+          <i className="fa-solid fa-chevron-right"></i>
+          <Link href="/shop">Shop</Link>
+          <i className="fa-solid fa-chevron-right"></i>
+          <span className="current">{product.name}</span>
         </nav>
 
         {/* Detail */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-7)", alignItems: "start" }} className="product-detail-grid">
+        <div className="product-detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", alignItems: "start" }}>
           {(() => {
             const allImages = [
               ...(product.imageUrl ? [product.imageUrl] : []),
@@ -126,39 +126,39 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           })()}
 
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-3)", flexWrap: "wrap" }}>
+            <div className="product-detail-meta">
               {(product.tag || "").split(",").map((t) => t.trim()).filter(Boolean).map((t) => (
                 <span key={t} className="badge badge-brand">{t}</span>
               ))}
               <span className="stock-pill">In stock · ready to deliver</span>
             </div>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-3xl)", color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: "var(--space-3)" }}>
+
+            <h1 className="product-detail-title" style={{ marginBottom: "var(--space-3)" }}>
               {product.name}
             </h1>
-            <p style={{ color: "var(--text-soft)", fontSize: "var(--fs-lg)", marginBottom: "var(--space-5)" }}>
+
+            <p className="product-detail-tagline">
               {product.description || "Premium AI tool delivered instantly to your inbox after payment."}
             </p>
 
-            <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: "var(--space-5)" }}>
-              <strong style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-4xl)", color: "var(--text)", letterSpacing: "-0.04em" }}>${product.price}</strong>
-              <span style={{ color: "var(--text-muted)" }}>one-time / month</span>
-            </div>
+            <PackageBuy product={product} />
 
-            <ul style={{ listStyle: "none", padding: 0, marginBottom: "var(--space-6)", display: "grid", gap: 10 }}>
-              {[
-                "Activated within 30 minutes",
-                "Replacement guarantee for the full subscription period",
-                "WhatsApp + email support",
-                "Pay with JazzCash, Easypaisa, or Card",
-              ].map((line) => (
-                <li key={line} style={{ display: "flex", gap: 12, alignItems: "center", color: "var(--text-soft)" }}>
-                  <i className="fa-solid fa-check" style={{ color: "var(--accent-600)", background: "var(--accent-soft)", width: 22, height: 22, borderRadius: "var(--radius-pill)", display: "inline-grid", placeItems: "center", fontSize: 11 }}></i>
-                  {line}
+            <ul className="product-features-pro">
+              {(product.features && product.features.length > 0
+                ? product.features
+                : [
+                    "Activated within 30 minutes",
+                    "Replacement guarantee for the full subscription period",
+                    "WhatsApp + email support",
+                    "Pay with JazzCash, Easypaisa, or Card",
+                  ]
+              ).map((line) => (
+                <li key={line}>
+                  <i className="fa-solid fa-check"></i>
+                  <span>{line}</span>
                 </li>
               ))}
             </ul>
-
-            <AddToCartButton product={product} />
           </div>
         </div>
 

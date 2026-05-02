@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { useFx } from "@/lib/fx";
+import { readAttribution } from "@/components/TrafficCapture";
+import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
 type Provider = "jazzcash" | "easypaisa" | "card";
 type StatusPill = "idle" | "submitting" | "pending" | "paid" | "failed";
@@ -82,6 +84,39 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const pollRef = useRef<number | null>(null);
 
+  // Client-side auth check. Customers must be signed in to place an order.
+  // We resolve the session on mount and listen for changes (sign-in/out).
+  const [authState, setAuthState] = useState<"loading" | "signed-in" | "signed-out">("loading");
+  const [userId, setUserId] = useState<string | null>(null);
+  useEffect(() => {
+    const supabase = getSupabaseBrowser();
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (cancelled) return;
+      if (user) {
+        setAuthState("signed-in");
+        setUserId(user.id);
+        // Pre-fill from the auth profile.
+        if (user.email) setEmail(user.email);
+        const fullName = (user.user_metadata as any)?.full_name;
+        if (fullName) setName(fullName);
+      } else {
+        setAuthState("signed-out");
+      }
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (session?.user) {
+        setAuthState("signed-in");
+        setUserId(session.user.id);
+        if (session.user.email) setEmail(session.user.email);
+      } else {
+        setAuthState("signed-out");
+        setUserId(null);
+      }
+    });
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+  }, []);
+
   // SahulatPay's gateway charges in PKR. Convert USD subtotal → PKR using the
   // live FX rate at checkout time, lock it in, and that's what we send.
   const pkrTotal = Math.round(cart.subtotal * usdToPkr);
@@ -138,6 +173,16 @@ export default function CheckoutPage() {
 
     // Best-effort: record the order to Supabase (non-blocking — payment proceeds
     // even if the DB write fails, so a Supabase outage can't break checkout).
+    // Also attach traffic attribution captured at first landing.
+    const attribution = readAttribution();
+    // Detect package tier from cart item ids (we encoded "<id>::shared|private" in PackageBuy).
+    const tiers = new Set<string>();
+    for (const i of orderItemsSnapshot) {
+      const m = String(i.id).match(/::(shared|private)$/);
+      if (m) tiers.add(m[1]);
+    }
+    const package_tier = tiers.size === 1 ? [...tiers][0] : tiers.size > 1 ? "mixed" : null;
+
     fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -145,9 +190,17 @@ export default function CheckoutPage() {
         items: orderItemsSnapshot.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: i.price })),
         customer_email: email,
         customer_phone: phone,
+        customer_name: name,
         subtotal_pkr: pkrTotal,
         payment_method: provider,
         transaction_id: id,
+        utm_source: attribution.utm_source ?? null,
+        utm_medium: attribution.utm_medium ?? null,
+        utm_campaign: attribution.utm_campaign ?? null,
+        referrer: attribution.referrer ?? null,
+        landing_page: attribution.landing_page ?? null,
+        package_tier,
+        user_id: userId,
       }),
     }).catch(() => {});
 
@@ -264,6 +317,45 @@ export default function CheckoutPage() {
     } catch (e: any) {
       setMessage("Couldn't reach the gateway. Check your connection and try again.");
     }
+  }
+
+  // Sign-in gate — block the form when the customer isn't authenticated.
+  if (authState === "loading") {
+    return (
+      <section className="v2-section">
+        <div className="v2-container" style={{ display: "grid", placeItems: "center", padding: "60px 0" }}>
+          <span className="admin-spinner lg" style={{ color: "var(--brand-300)" }} />
+        </div>
+      </section>
+    );
+  }
+
+  if (authState === "signed-out") {
+    return (
+      <section className="v2-section">
+        <div className="v2-container">
+          <div className="surface-card checkout-auth-gate">
+            <div className="checkout-auth-icon"><i className="fa-solid fa-lock"></i></div>
+            <h2>Sign in to place your order</h2>
+            <p>
+              To track your purchases and get instant credentials delivered to your inbox, please
+              sign in or create a free account first.
+            </p>
+            <div className="checkout-auth-actions">
+              <Link href="/login?next=/checkout" className="btn btn-primary btn-large">
+                <i className="fa-solid fa-right-to-bracket"></i> Sign in
+              </Link>
+              <Link href="/login?mode=signup&next=/checkout" className="btn btn-outline btn-large">
+                Create account
+              </Link>
+            </div>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 18 }}>
+              Your cart is saved — it&rsquo;ll be waiting after you sign in.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (

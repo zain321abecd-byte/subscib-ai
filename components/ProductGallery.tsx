@@ -50,6 +50,7 @@ export default function ProductGallery({ images, alt, autoMs = 5000 }: Props) {
     >
       <div className="product-gallery-stage">
         {images.map((src, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             key={src + i}
             src={src}
@@ -57,7 +58,6 @@ export default function ProductGallery({ images, alt, autoMs = 5000 }: Props) {
             className={`product-gallery-img ${i === active ? "is-active" : ""}`}
             loading={i === 0 ? "eager" : "lazy"}
             decoding="async"
-            // eslint-disable-next-line @next/next/no-img-element
           />
         ))}
 

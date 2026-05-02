@@ -9,6 +9,7 @@ import PageProgress from "@/components/PageProgress";
 import NavigationProgress from "@/components/NavigationProgress";
 import RevealOnScroll from "@/components/RevealOnScroll";
 import WhatsAppFab from "@/components/WhatsAppFab";
+import TrafficCapture from "@/components/TrafficCapture";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 const SITE_NAME = "SubscribAI";
@@ -58,6 +59,7 @@ export default async function PublicLayout({ children }: { children: React.React
           <PageProgress />
           <NavigationProgress />
           <RevealOnScroll />
+          <TrafficCapture />
           <Header />
           <main>{children}</main>
           <Footer />

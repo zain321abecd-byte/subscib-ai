@@ -6,11 +6,14 @@ type Props = {
   value: string;
   onChange: (url: string) => void;
   folder?: string;
+  /** Background applied behind the image (e.g. the selected card colour) so
+      the admin can preview how the image will look on the shop card. */
+  tintBackground?: string;
 };
 
 // Click anywhere on the preview area to choose a file. While uploading, a
 // translucent overlay with a spinner + progress bar covers the area.
-export default function ImagePicker({ value, onChange, folder = "uploads" }: Props) {
+export default function ImagePicker({ value, onChange, folder = "uploads", tintBackground }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -76,6 +79,7 @@ export default function ImagePicker({ value, onChange, folder = "uploads" }: Pro
         onDrop={onDrop}
         aria-label={value ? "Change image" : "Upload image"}
         disabled={busy}
+        style={value && tintBackground ? { background: tintBackground } : undefined}
       >
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element

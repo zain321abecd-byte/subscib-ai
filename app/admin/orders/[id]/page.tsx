@@ -74,6 +74,25 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <div className="admin-card">
             <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", color: "var(--text)", margin: "0 0 12px" }}>Customer</h3>
             <dl style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "8px 18px", margin: 0 }}>
+              <dt style={{ color: "var(--text-muted)" }}>Account</dt>
+              <dd style={{ margin: 0 }}>
+                {order.user_id ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span className="admin-pill admin-pill-paid" title={order.user_id}>
+                      <i className="fa-solid fa-user-check" style={{ marginRight: 4 }}></i>
+                      Signed-in customer
+                    </span>
+                    <code style={{ fontSize: "0.75em", color: "var(--text-muted)" }}>
+                      {order.user_id.slice(0, 8)}…
+                    </code>
+                  </span>
+                ) : (
+                  <span className="admin-pill admin-pill-pending">
+                    <i className="fa-solid fa-user-slash" style={{ marginRight: 4 }}></i>
+                    Guest
+                  </span>
+                )}
+              </dd>
               <dt style={{ color: "var(--text-muted)" }}>Email</dt>
               <dd style={{ margin: 0 }}><a href={`mailto:${order.customer_email}`}>{order.customer_email}</a></dd>
               {order.customer_name && (<>
@@ -99,8 +118,45 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <dt style={{ color: "var(--text-muted)" }}>Delivered</dt>
                 <dd style={{ margin: 0 }}>{new Date(order.delivered_at).toLocaleString()}</dd>
               </>)}
+              {order.package_tier && (<>
+                <dt style={{ color: "var(--text-muted)" }}>Package</dt>
+                <dd style={{ margin: 0, textTransform: "capitalize" }}>{order.package_tier}</dd>
+              </>)}
             </dl>
           </div>
+
+          {/* Traffic attribution */}
+          {(order.utm_source || order.referrer || order.landing_page) && (
+            <div className="admin-card">
+              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", color: "var(--text)", margin: "0 0 12px" }}>Traffic source</h3>
+              <dl style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "8px 18px", margin: 0 }}>
+                {order.utm_source && (<>
+                  <dt style={{ color: "var(--text-muted)" }}>Source</dt>
+                  <dd style={{ margin: 0 }}>{order.utm_source}</dd>
+                </>)}
+                {order.utm_medium && (<>
+                  <dt style={{ color: "var(--text-muted)" }}>Medium</dt>
+                  <dd style={{ margin: 0 }}>{order.utm_medium}</dd>
+                </>)}
+                {order.utm_campaign && (<>
+                  <dt style={{ color: "var(--text-muted)" }}>Campaign</dt>
+                  <dd style={{ margin: 0 }}>{order.utm_campaign}</dd>
+                </>)}
+                {order.referrer && (<>
+                  <dt style={{ color: "var(--text-muted)" }}>Referrer</dt>
+                  <dd style={{ margin: 0, wordBreak: "break-all" }}>
+                    <a href={order.referrer} target="_blank" rel="noopener" style={{ color: "var(--brand-300)" }}>
+                      {order.referrer}
+                    </a>
+                  </dd>
+                </>)}
+                {order.landing_page && (<>
+                  <dt style={{ color: "var(--text-muted)" }}>Landing</dt>
+                  <dd style={{ margin: 0, wordBreak: "break-all", fontSize: "0.85rem" }}>{order.landing_page}</dd>
+                </>)}
+              </dl>
+            </div>
+          )}
         </div>
 
         <OrderControls order={order} />

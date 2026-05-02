@@ -20,6 +20,13 @@ export type ProductRow = {
   show_in_related: boolean;
   /** Admin-curated list of product IDs to feature in this product's "You may also like". */
   related_product_ids: string[] | null;
+  /** Optional second-tier "Private" package. Null/0 → only shared tier shows. */
+  private_price: number | null;
+  private_description: string | null;
+  shared_label: string | null;
+  private_label: string | null;
+  /** Custom bullet lines shown under the price. Empty → fallback defaults. */
+  features: string[] | null;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -64,6 +71,16 @@ export type OrderRow = {
   transaction_id: string | null;
   notes: string | null;
   delivered_at: string | null;
+  /** Traffic attribution captured at first landing. */
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  referrer: string | null;
+  landing_page: string | null;
+  /** Which package tier the customer purchased — "shared" | "private". */
+  package_tier: string | null;
+  /** Supabase Auth user_id of the customer who placed the order (null for guests). */
+  user_id: string | null;
   created_at: string;
   updated_at: string;
 };

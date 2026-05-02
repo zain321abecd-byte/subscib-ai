@@ -17,3 +17,49 @@ alter table products
 -- products that have show_in_related = true.
 alter table products
   add column if not exists related_product_ids jsonb not null default '[]'::jsonb;
+
+-- Two-tier package pricing. The existing `price` + `description` represent the
+-- SHARED tier. These optional fields enable a second PRIVATE tier shown on the
+-- product page side-by-side. If `private_price` is null, only the shared tier
+-- is displayed.
+alter table products
+  add column if not exists private_price       numeric(10, 2);
+alter table products
+  add column if not exists private_description text;
+alter table products
+  add column if not exists shared_label        text default 'Shared';
+alter table products
+  add column if not exists private_label       text default 'Private';
+
+-- Per-product feature bullets shown under the price (e.g.
+-- "Activated within 30 minutes"). Empty array → fall back to the four built-in
+-- defaults so older products keep their existing bullets.
+alter table products
+  add column if not exists features jsonb not null default '[]'::jsonb;
+
+-- Traffic attribution captured when a customer first lands on the site, then
+-- attached to whichever order they place.
+alter table orders
+  add column if not exists utm_source    text;
+alter table orders
+  add column if not exists utm_medium    text;
+alter table orders
+  add column if not exists utm_campaign  text;
+alter table orders
+  add column if not exists referrer      text;
+alter table orders
+  add column if not exists landing_page  text;
+alter table orders
+  add column if not exists package_tier  text;  -- "shared" | "private"
+
+-- Link each order to the customer (Supabase Auth user) who placed it.
+-- Anonymous orders left over from earlier remain (user_id stays null).
+alter table orders
+  add column if not exists user_id uuid references auth.users(id) on delete set null;
+create index if not exists orders_user_id_idx on orders(user_id);
+
+-- Allow each customer to read their own orders (admins continue to see all
+-- via the existing is_admin() policy).
+drop policy if exists "orders read own" on orders;
+create policy "orders read own" on orders
+  for select using (auth.uid() = user_id);

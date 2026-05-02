@@ -25,6 +25,13 @@ export type Product = {
   /** If non-empty, the admin has hand-picked these specific products to recommend
       on this product's page. Otherwise fall back to category-based suggestions. */
   relatedProductIds?: string[];
+  /** Optional second-tier "Private" package. Falsy → only shared tier shows. */
+  privatePrice?: number;
+  privateDescription?: string;
+  sharedLabel?: string;
+  privateLabel?: string;
+  /** Custom bullet lines shown under the price on the product detail page. */
+  features?: string[];
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -86,6 +93,13 @@ function rowToProduct(row: ProductRow): Product {
     showInRelated: row.show_in_related ?? true,
     relatedProductIds: Array.isArray(row.related_product_ids)
       ? row.related_product_ids.filter((id) => typeof id === "string")
+      : undefined,
+    privatePrice: row.private_price != null ? Number(row.private_price) : undefined,
+    privateDescription: row.private_description ?? undefined,
+    sharedLabel: row.shared_label ?? undefined,
+    privateLabel: row.private_label ?? undefined,
+    features: Array.isArray(row.features)
+      ? row.features.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
       : undefined,
   };
 }

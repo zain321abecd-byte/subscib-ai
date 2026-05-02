@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -49,10 +50,25 @@ export async function POST(req: Request) {
   const supabase = getSupabaseAdmin();
   const order_number = shortOrderNumber();
 
+  const cleanStr = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 500) : null);
+
+  // Resolve the calling customer's user_id from their auth cookie. We don't
+  // trust whatever user_id the client puts in the body — only the session.
+  // (If unauthenticated, user_id stays null and the order is anonymous.)
+  let userId: string | null = null;
+  try {
+    const ssr = await getSupabaseServer();
+    const { data: { user } } = await ssr.auth.getUser();
+    if (user) userId = user.id;
+  } catch {
+    // ignore — proceed with null
+  }
+
   const { data, error } = await supabase
     .from("orders")
     .insert({
       order_number,
+      user_id: userId,
       customer_email: String(body.customer_email).trim().toLowerCase(),
       customer_phone: typeof body.customer_phone === "string" ? body.customer_phone.trim() : null,
       customer_name: typeof body.customer_name === "string" ? body.customer_name.trim() : null,
@@ -62,6 +78,12 @@ export async function POST(req: Request) {
       status: "pending",
       payment_method: typeof body.payment_method === "string" ? body.payment_method : null,
       transaction_id: typeof body.transaction_id === "string" ? body.transaction_id : null,
+      utm_source: cleanStr(body.utm_source),
+      utm_medium: cleanStr(body.utm_medium),
+      utm_campaign: cleanStr(body.utm_campaign),
+      referrer: cleanStr(body.referrer),
+      landing_page: cleanStr(body.landing_page),
+      package_tier: cleanStr(body.package_tier),
     })
     .select("id, order_number")
     .single();

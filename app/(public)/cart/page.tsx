@@ -98,20 +98,7 @@ export default function CartPage() {
               Proceed to checkout <i className="fa-solid fa-arrow-right"></i>
             </Link>
 
-            {/* WhatsApp order alternative — for users who prefer manual confirmation */}
-            <a
-              href={(() => {
-                const lines = cart.items.map((i) => `• ${i.name} × ${i.qty} ($${(i.price * i.qty).toFixed(2)})`);
-                const msg = `Hi! I'd like to order:\n\n${lines.join("\n")}\n\nTotal: $${cart.subtotal.toFixed(2)}`;
-                return `https://wa.me/15550132026?text=${encodeURIComponent(msg)}`;
-              })()}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-outline"
-              style={{ width: "100%", justifyContent: "center", marginTop: "var(--space-3)", borderColor: "rgba(37, 211, 102, 0.4)", color: "#25D366" }}
-            >
-              <i className="fa-brands fa-whatsapp"></i> Order via WhatsApp instead
-            </a>
+
 
             <Link href="/shop" className="btn btn-outline" style={{ width: "100%", justifyContent: "center", marginTop: "var(--space-3)" }}>
               Continue shopping

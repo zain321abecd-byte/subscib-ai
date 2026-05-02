@@ -24,7 +24,7 @@ export default async function HomePage() {
         <div className="v2-hero-bg" aria-hidden />
         <div className="v2-container v2-hero-grid">
           <div className="v2-hero-copy">
-            <span className="badge badge-brand"><i className="fa-solid fa-location-dot"></i> Made in Pakistan · Trusted by 12,000+ creators</span>
+            <span className="badge badge-brand"><i className="fa-solid fa-heart"></i> Made with Love · Trusted by 12,000+ creators</span>
             <h1>
               {heroHeadline}<br />
               <Typewriter

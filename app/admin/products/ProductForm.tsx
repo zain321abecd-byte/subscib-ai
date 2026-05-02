@@ -6,7 +6,9 @@ import ImagePicker from "../ImagePicker";
 import MultiImagePicker from "../MultiImagePicker";
 import Select from "@/components/Select";
 import TagInput from "../TagInput";
+import FeaturesInput from "../FeaturesInput";
 import RelatedProductsPicker from "./RelatedProductsPicker";
+import ProductReviewsInput, { type ReviewDraft } from "./ProductReviewsInput";
 import { createProduct, updateProduct } from "./actions";
 import type { ProductRow } from "@/lib/supabase/types";
 
@@ -32,12 +34,20 @@ const TAG_SUGGESTIONS = ["Popular", "Best Seller", "New", "AI", "Design", "Produ
 type CategoryValue = "ai-subscriptions" | "design-tools" | "productivity" | "automation" | "courses";
 type MediaValue    = "media-orange" | "media-blue" | "media-pink" | "media-green";
 
+const STEPS: { key: string; label: string; hint: string; icon: string }[] = [
+  { key: "visual",  label: "Visual",  hint: "Cover image, gallery, card colour",                        icon: "fa-image" },
+  { key: "details", label: "Details", hint: "Name, pricing tiers, what's included",                     icon: "fa-feather" },
+  { key: "publish", label: "Publish", hint: "Visibility, recommendations, customer reviews",            icon: "fa-rocket" },
+];
+
 export default function ProductForm({
   product,
   availableProducts = [],
+  productReviews = [],
 }: {
   product?: ProductRow;
   availableProducts?: AvailableProduct[];
+  productReviews?: ReviewDraft[];
 }) {
   const isEdit = !!product;
   const [isPending, startTransition] = useTransition();
@@ -46,6 +56,18 @@ export default function ProductForm({
   const [gallery, setGallery] = useState<string[]>(Array.isArray(product?.gallery) ? product!.gallery! : []);
   const [category, setCategory] = useState<CategoryValue>((product?.category as CategoryValue) ?? "ai-subscriptions");
   const [mediaClass, setMediaClass] = useState<MediaValue>((product?.media_class as MediaValue) ?? "media-blue");
+
+  // Wizard step state. Furthest reached step is tracked so steps the user has
+  // already filled in are clickable in the stepper.
+  const [step, setStep] = useState(0);
+  const [maxReached, setMaxReached] = useState(0);
+  const isLast = step === STEPS.length - 1;
+
+  function goTo(i: number) {
+    if (i < 0 || i >= STEPS.length) return;
+    if (i > maxReached) setMaxReached(i);
+    setStep(i);
+  }
 
   function handleSubmit(formData: FormData) {
     if (imageUrl) formData.set("image_url", imageUrl);
@@ -62,20 +84,53 @@ export default function ProductForm({
     <form action={handleSubmit} className="admin-form admin-form-narrow">
       {isEdit && <input type="hidden" name="__original_id" value={product!.id} />}
 
+      {/* STEPPER */}
+      <ol className="admin-stepper-pro" role="tablist">
+        {STEPS.map((s, i) => {
+          const status = i === step ? "is-active" : i < step ? "is-done" : "is-future";
+          const clickable = i <= maxReached;
+          return (
+            <li key={s.key} className={`admin-stepper-pro-item ${status}`}>
+              <button
+                type="button"
+                className="admin-stepper-pro-card"
+                onClick={() => clickable && goTo(i)}
+                disabled={!clickable}
+                aria-current={i === step ? "step" : undefined}
+              >
+                <span className="admin-stepper-pro-dot">
+                  {i < step ? <i className="fa-solid fa-check"></i> : <i className={`fa-solid ${s.icon}`}></i>}
+                </span>
+                <span className="admin-stepper-pro-text">
+                  <span className="admin-stepper-pro-num">Step {i + 1} of {STEPS.length}</span>
+                  <strong>{s.label}</strong>
+                  <small>{s.hint}</small>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+
       {error && (
         <div className="admin-card" style={{ background: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)", color: "#fca5a5" }}>
           {error}
         </div>
       )}
 
-      {/* SECTION 1 — Cover image (now first) */}
-      <section className="admin-card">
+      {/* STEP 1 — VISUAL: Cover image + gallery + card colour */}
+      <section className="admin-card" hidden={step !== 0}>
         <header className="admin-section-head">
           <h3>Cover image</h3>
           <p>This is what shows up on the shop card and the product page.</p>
         </header>
 
-        <ImagePicker value={imageUrl} onChange={setImageUrl} folder="products" />
+        <ImagePicker
+          value={imageUrl}
+          onChange={setImageUrl}
+          folder="products"
+          tintBackground={MEDIA_OPTIONS.find((m) => m.value === mediaClass)?.swatch}
+        />
         <input type="hidden" name="image_url" value={imageUrl} />
 
         <div style={{ marginTop: 18 }}>
@@ -111,11 +166,11 @@ export default function ProductForm({
         <input type="hidden" name="icon_class" value={product?.icon_class ?? "fa-solid fa-cube"} />
       </section>
 
-      {/* SECTION 2 — Basics */}
-      <section className="admin-card">
+      {/* STEP 2 — DETAILS: Basics */}
+      <section className="admin-card" hidden={step !== 1}>
         <header className="admin-section-head">
           <h3>Basics</h3>
-          <p>Name, description, and how it&rsquo;s priced.</p>
+          <p>Name, description, and category.</p>
         </header>
 
         <div className="admin-form-stack">
@@ -131,19 +186,7 @@ export default function ProductForm({
             )}
           </div>
 
-          <div>
-            <label className="admin-label" htmlFor="description">Description</label>
-            <textarea id="description" name="description" className="admin-textarea" defaultValue={product?.description ?? ""} placeholder="One- or two-line pitch shown on the shop card and product page." />
-          </div>
-
           <div className="admin-row cols-2">
-            <div>
-              <label className="admin-label" htmlFor="price">Price (USD)</label>
-              <div className="admin-input-prefix">
-                <span>$</span>
-                <input id="price" name="price" type="number" min="0" step="0.01" required defaultValue={product?.price ?? ""} placeholder="19" />
-              </div>
-            </div>
             <div>
               <label className="admin-label">Category</label>
               <Select<CategoryValue>
@@ -154,24 +197,114 @@ export default function ProductForm({
               />
               <input type="hidden" name="category" value={category} />
             </div>
-          </div>
-
-          <div>
-            <label className="admin-label">Tags</label>
-            <TagInput
-              name="tag"
-              defaultValue={product?.tag ?? ""}
-              placeholder="Type a tag and press comma…"
-              suggestions={TAG_SUGGESTIONS}
-              ariaLabel="Tags"
-            />
-            <p className="admin-help">Press <kbd>,</kbd> or <kbd>Enter</kbd> after each tag. Backspace on empty input removes the last one.</p>
+            <div>
+              <label className="admin-label">Tags</label>
+              <TagInput
+                name="tag"
+                defaultValue={product?.tag ?? ""}
+                placeholder="Type a tag and press comma…"
+                suggestions={TAG_SUGGESTIONS}
+                ariaLabel="Tags"
+              />
+              <p className="admin-help">Press <kbd>,</kbd> or <kbd>Enter</kbd> after each tag.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* SECTION 3 — Visibility */}
-      <section className="admin-card">
+      {/* STEP 2 — DETAILS: Pricing & packages */}
+      <section className="admin-card" hidden={step !== 1}>
+        <header className="admin-section-head">
+          <h3>Pricing &amp; packages</h3>
+          <p>Two tiers shown side-by-side on the product page. Leave the Private tier empty if you only sell shared.</p>
+        </header>
+
+        <div className="admin-row cols-2">
+          {/* Shared tier (uses the existing price + description columns) */}
+          <div className="admin-package-card">
+            <div className="admin-package-card-head">
+              <i className="fa-solid fa-users"></i>
+              <input
+                type="text"
+                name="shared_label"
+                className="admin-package-label"
+                defaultValue={product?.shared_label ?? "Shared"}
+                placeholder="Shared"
+                aria-label="Shared tier label"
+              />
+            </div>
+            <label className="admin-label" htmlFor="price">Price (USD)</label>
+            <div className="admin-input-prefix">
+              <span>$</span>
+              <input id="price" name="price" type="number" min="0" step="0.01" required defaultValue={product?.price ?? ""} placeholder="19" />
+            </div>
+            <label className="admin-label" htmlFor="description" style={{ marginTop: 12 }}>Description / what&rsquo;s included</label>
+            <textarea
+              id="description"
+              name="description"
+              className="admin-textarea"
+              defaultValue={product?.description ?? ""}
+              placeholder="Shared account login. Best for solo users."
+              rows={4}
+            />
+          </div>
+
+          {/* Private tier (optional, uses new private_* columns) */}
+          <div className="admin-package-card admin-package-card-alt">
+            <div className="admin-package-card-head">
+              <i className="fa-solid fa-shield-halved"></i>
+              <input
+                type="text"
+                name="private_label"
+                className="admin-package-label"
+                defaultValue={product?.private_label ?? "Private"}
+                placeholder="Private"
+                aria-label="Private tier label"
+              />
+            </div>
+            <label className="admin-label" htmlFor="private_price">Price (USD) — optional</label>
+            <div className="admin-input-prefix">
+              <span>$</span>
+              <input
+                id="private_price"
+                name="private_price"
+                type="number"
+                min="0"
+                step="0.01"
+                defaultValue={product?.private_price ?? ""}
+                placeholder="49"
+              />
+            </div>
+            <label className="admin-label" htmlFor="private_description" style={{ marginTop: 12 }}>Description / what&rsquo;s included</label>
+            <textarea
+              id="private_description"
+              name="private_description"
+              className="admin-textarea"
+              defaultValue={product?.private_description ?? ""}
+              placeholder="Dedicated account, only you have access. Replacement guarantee for full period."
+              rows={4}
+            />
+            <p className="admin-help">Leave price empty / 0 to hide the Private tier.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* STEP 2 — DETAILS: Features (bullet lines under the price) */}
+      <section className="admin-card" hidden={step !== 1}>
+        <header className="admin-section-head">
+          <h3>What&rsquo;s included</h3>
+          <p>Bullet lines shown under the price on the product page. Drag to reorder.</p>
+        </header>
+        <FeaturesInput
+          name="features"
+          defaultValue={Array.isArray(product?.features) ? product!.features! : []}
+          placeholder="Activated within 30 minutes"
+          max={12}
+        />
+      </section>
+
+      {/* STEP 3 — PUBLISH: Visibility */}
+      <section className="admin-card" hidden={step !== 2}>
         <header className="admin-section-head">
           <h3>Visibility</h3>
           <p>Where this product shows up and in what order.</p>
@@ -212,8 +345,8 @@ export default function ProductForm({
         </div>
       </section>
 
-      {/* SECTION 4 — Related products (admin-curated) */}
-      <section className="admin-card">
+      {/* STEP 3 — PUBLISH: Related products (admin-curated) */}
+      <section className="admin-card" hidden={step !== 2}>
         <header className="admin-section-head">
           <h3>You may also like</h3>
           <p>Pick the exact products to recommend on this product&rsquo;s detail page. Leave empty to fall back to category-based suggestions.</p>
@@ -227,18 +360,45 @@ export default function ProductForm({
         />
       </section>
 
-      <div className="admin-form-actions admin-form-actions-sticky">
+      {/* STEP 3 — PUBLISH: Reviews (per-product) */}
+      <section className="admin-card" hidden={step !== 2}>
+        <header className="admin-section-head">
+          <h3>Customer reviews</h3>
+          <p>Reviews shown on this product&rsquo;s detail page. Add as many as you like.</p>
+        </header>
+
+        <ProductReviewsInput name="product_reviews" defaultValue={productReviews} />
+      </section>
+
+      {/* STEP NAV */}
+      <div className="admin-step-nav">
         <Link href="/admin/products" className="admin-btn admin-btn-ghost">Cancel</Link>
-        <button type="submit" className="admin-btn admin-btn-primary" disabled={isPending}>
-          {isPending ? (
-            <>
-              <span className="admin-spinner" />
-              {isEdit ? "Saving…" : "Creating…"}
-            </>
-          ) : (
-            isEdit ? "Save changes" : "Create product"
-          )}
-        </button>
+        <div className="admin-step-nav-spacer" />
+        {step > 0 && (
+          <button type="button" className="admin-btn admin-btn-ghost" onClick={() => goTo(step - 1)} disabled={isPending}>
+            <i className="fa-solid fa-arrow-left"></i> Back
+          </button>
+        )}
+        {!isLast && (
+          <button type="button" className="admin-btn admin-btn-primary" onClick={() => goTo(step + 1)}>
+            Next <i className="fa-solid fa-arrow-right"></i>
+          </button>
+        )}
+        {isLast && (
+          <button type="submit" className="admin-btn admin-btn-primary" disabled={isPending}>
+            {isPending ? (
+              <>
+                <span className="admin-spinner" />
+                {isEdit ? "Saving…" : "Creating…"}
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-check"></i>
+                {isEdit ? " Save changes" : " Create product"}
+              </>
+            )}
+          </button>
+        )}
       </div>
     </form>
   );

@@ -10,14 +10,24 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const supabase = await getSupabaseServer();
 
-  const [{ data, error }, { data: allProducts }] = await Promise.all([
+  const [{ data, error }, { data: allProducts }, { data: existingReviews }] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).maybeSingle(),
     supabase.from("products").select("id, name, category, image_url").order("name", { ascending: true }),
+    supabase.from("reviews").select("id, name, initials, color, rating, text, approved").eq("product_id", id).order("created_at", { ascending: false }),
   ]);
 
   if (error || !data) notFound();
   const product = data as ProductRow;
   const availableProducts = (allProducts ?? []) as { id: string; name: string; category: string; image_url: string | null }[];
+  const productReviews = (existingReviews ?? []).map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    initials: r.initials,
+    color: r.color || "var(--brand-soft)",
+    rating: r.rating,
+    text: r.text,
+    approved: r.approved !== false,
+  }));
 
   return (
     <>
@@ -32,7 +42,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
           </p>
         </div>
       </header>
-      <ProductForm product={product} availableProducts={availableProducts} />
+      <ProductForm product={product} availableProducts={availableProducts} productReviews={productReviews} />
     </>
   );
 }

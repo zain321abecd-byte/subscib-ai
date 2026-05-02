@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
+import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -19,6 +20,7 @@ const NAV = [
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [authed, setAuthed] = useState<boolean | null>(null);
   const pathname = usePathname();
   const { count, ready } = useCart();
 
@@ -27,6 +29,23 @@ export default function Header() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Track customer auth state — Header re-renders on sign-in/sign-out.
+  useEffect(() => {
+    let cancelled = false;
+    try {
+      const supabase = getSupabaseBrowser();
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!cancelled) setAuthed(!!user);
+      });
+      const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+        setAuthed(!!session?.user);
+      });
+      return () => { cancelled = true; sub.subscription.unsubscribe(); };
+    } catch {
+      setAuthed(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -54,7 +73,11 @@ export default function Header() {
             <i className="fa-solid fa-cart-shopping"></i>
             <span className="v2-cart-count" {...(ready && count > 0 ? {} : { "data-empty": true })}>{count}</span>
           </Link>
-          <Link className="btn btn-outline btn-small" href="/account">Account</Link>
+          {authed ? (
+            <Link className="btn btn-outline btn-small" href="/account"><i className="fa-solid fa-user"></i> Account</Link>
+          ) : (
+            <Link className="btn btn-outline btn-small" href="/login">Sign in</Link>
+          )}
           <Link className="btn btn-primary btn-small" href="/shop">Start now</Link>
           <button
             className="v2-burger"
