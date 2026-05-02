@@ -6,16 +6,21 @@ import Reviews from "@/components/Reviews";
 import TrustBadges from "@/components/TrustBadges";
 import { getFeaturedProducts } from "@/lib/products";
 import { getSiteSettings } from "@/lib/site-settings";
+import { getRegion } from "@/lib/region";
 
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [featured, settings] = await Promise.all([
+  const [featured, settings, region] = await Promise.all([
     getFeaturedProducts(4),
     getSiteSettings(),
+    getRegion(),
   ]);
+  const isPK = region === "PK";
   const heroHeadline = settings.hero_headline || "Premium AI tools,";
-  const heroSubtext  = settings.hero_subtext  || "Pay in PKR via JazzCash, Easypaisa, or any local card. Activated to your inbox within 30 minutes, backed by replacement guarantees and real WhatsApp support.";
+  const heroSubtext = settings.hero_subtext || (isPK
+    ? "Pay locally with JazzCash, Easypaisa, or any card. Activated to your inbox within 30 minutes, backed by replacement guarantees and real WhatsApp support."
+    : "Activated to your inbox within 30 minutes. Backed by replacement guarantees and real human support — pay securely with any major card.");
 
   return (
     <>
@@ -28,11 +33,16 @@ export default async function HomePage() {
             <h1>
               {heroHeadline}<br />
               <Typewriter
-                phrases={[
+                phrases={isPK ? [
                   "ready in 30 min.",
                   "billed in PKR.",
                   "backed by humans.",
                   "without the forex.",
+                ] : [
+                  "ready in 30 min.",
+                  "billed in USD.",
+                  "backed by humans.",
+                  "no surprises.",
                 ]}
                 typingMs={75}
                 holdMs={2000}
@@ -40,7 +50,7 @@ export default async function HomePage() {
               />
             </h1>
             <p className="v2-lede">
-              <strong>SubscribAI is Pakistan&rsquo;s local store for premium AI subscriptions.</strong> Browse 60+ tools &mdash; from ChatGPT Plus and Claude Pro to Midjourney, Canva, and Notion AI &mdash; alongside automation packs and full courses, curated for creators, students, and small teams.
+              <strong>SubscribAI is your one-stop store for premium AI subscriptions.</strong> Browse 60+ tools &mdash; from ChatGPT Plus and Claude Pro to Midjourney, Canva, and Notion AI &mdash; alongside automation packs and full courses, curated for creators, students, and small teams.
             </p>
             <p className="v2-lede v2-lede-secondary">
               {heroSubtext}
@@ -50,7 +60,7 @@ export default async function HomePage() {
               <Link className="btn btn-outline btn-large" href="/prices">View pricing</Link>
             </div>
             <ul className="v2-trust-row">
-              <li><i className="fa-solid fa-shield-halved"></i> Secure SahulatPay gateway</li>
+              <li><i className="fa-solid fa-shield-halved"></i> Secure payment gateway</li>
               <li><i className="fa-solid fa-clock"></i> Activated in &lt; 30 min</li>
               <li><i className="fa-brands fa-whatsapp"></i> WhatsApp support</li>
             </ul>
@@ -95,7 +105,9 @@ export default async function HomePage() {
         <div className="v2-container v2-value-grid">
           {[
             { i: "fa-mobile-screen-button", t: "1. Browse & pick", d: "Pick from 60+ AI tools, courses & automation packs in our shop." },
-            { i: "fa-money-bill-transfer", t: "2. Pay in PKR", d: "JazzCash, Easypaisa, or local card via the SahulatPay gateway." },
+            isPK
+              ? { i: "fa-money-bill-transfer", t: "2. Pay in PKR", d: "JazzCash, Easypaisa, or any card via our secure gateway." }
+              : { i: "fa-money-bill-transfer", t: "2. Pay securely", d: "Any major card, processed through our secure payment gateway." },
             { i: "fa-envelope-circle-check", t: "3. Get access in 30 min", d: "Login details delivered to your email — usually in under 15 minutes." },
           ].map((step) => (
             <div key={step.t} className="v2-value-item">
@@ -176,12 +188,14 @@ export default async function HomePage() {
         <div className="v2-container">
           <header className="v2-section-head">
             <p className="v2-eyebrow">Why SubscribAI</p>
-            <h2>Built for buyers in Pakistan</h2>
-            <p>We solve the three things that make foreign subscriptions a pain locally — payment, delivery, and support.</p>
+            <h2>{isPK ? "Built for buyers like you" : "The fastest way to access premium AI"}</h2>
+            <p>We solve the three things that make AI subscriptions a pain — payment, delivery, and support.</p>
           </header>
           <div className="v2-why-grid reveal reveal-stagger">
             {[
-              { icon: "fa-money-bill-transfer", t: "Pay in PKR", d: "JazzCash, Easypaisa, and local cards via SahulatPay. No forex, no rejected international transactions.", c: "var(--brand-600)", bg: "var(--brand-soft)" },
+              isPK
+                ? { icon: "fa-money-bill-transfer", t: "Pay in PKR", d: "JazzCash, Easypaisa, and any card. No forex hassle, no rejected international transactions.", c: "var(--brand-600)", bg: "var(--brand-soft)" }
+                : { icon: "fa-credit-card", t: "Pay your way", d: "Any major card, processed through a secure gateway. Receipts emailed instantly.", c: "var(--brand-600)", bg: "var(--brand-soft)" },
               { icon: "fa-bolt", t: "Instant activation", d: "Most subscriptions go live in under 30 minutes. Digital downloads arrive immediately via email.", c: "var(--accent-600)", bg: "var(--accent-soft)" },
               { icon: "fa-rotate", t: "Easy renewals", d: "Renewal reminders before expiry. Replacements within 24 hours if anything goes wrong with a subscription.", c: "var(--info-500)", bg: "var(--info-soft)" },
               { icon: "fa-whatsapp", t: "Real human support", d: "WhatsApp + email support, 24/7. Average reply time under 15 minutes during the day.", c: "var(--success-500)", bg: "var(--success-soft)", brand: true },
@@ -202,7 +216,7 @@ export default async function HomePage() {
       <Reviews
         eyebrow="Reviews"
         title="What our customers say"
-        intro="Real Pakistani creators, students, and small teams using SubscribAI today."
+        intro="Real creators, students, and small teams using SubscribAI today."
       />
 
       {/* STATS */}
@@ -223,8 +237,10 @@ export default async function HomePage() {
           </header>
           <div className="v2-faq reveal reveal-stagger">
             {[
-              ["How fast do I get my subscription after paying?", "Most AI subscription accounts are activated within 30 minutes during business hours (9 AM – 11 PM PKT), and within a few hours overnight. You'll receive your login by email and a WhatsApp confirmation."],
-              ["What payment methods do you accept?", "JazzCash, Easypaisa, and any local debit or credit card via the SahulatPay secure gateway. We do not store any card details — payment is handled entirely by SahulatPay."],
+              ["How fast do I get my subscription after paying?", "Most AI subscription accounts are activated within 30 minutes during business hours, and within a few hours overnight. You'll receive your login by email and a WhatsApp confirmation."],
+              isPK
+                ? ["What payment methods do you accept?", "JazzCash, Easypaisa, and any debit or credit card via our secure payment gateway. We never store card details — payment is handled entirely by the gateway."]
+                : ["What payment methods do you accept?", "Any major debit or credit card via our secure payment gateway. We never store card details — payment is handled entirely by the gateway."],
               ["Are these legitimate accounts?", "Yes — every subscription is from an authorized reseller channel, family-plan slot, or our own bulk-purchase pool. We don't sell cracked or shared logins from sketchy sources."],
               ["What if my account stops working?", "Tell us on WhatsApp or email and we'll replace it within 24 hours. Subscriptions come with full-period replacement guarantees."],
               ["Can I cancel a bundle anytime?", "Yes — bundle subscriptions are month-to-month with no contracts. Cancel any time before your renewal date and you won't be charged again."],

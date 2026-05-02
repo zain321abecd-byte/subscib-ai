@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 
 export type Currency = "PKR" | "USD";
 export type CurrencyMode = "auto" | "always_pkr" | "always_usd" | "dual";
+export type Region = "PK" | "OTHER";
 
 type FxState = {
   /** Live (or admin-overridden) FX rate. */
@@ -14,6 +15,8 @@ type FxState = {
   currency: Currency;
   /** Admin-configured display mode. */
   mode: CurrencyMode;
+  /** Detected geo region for the visitor — drives copy + payment options. */
+  region: Region;
   /** Switch the active currency (writes a cookie so it persists). */
   setCurrency: (c: Currency) => void;
 };
@@ -23,6 +26,7 @@ const FxCtx = createContext<FxState>({
   ready: false,
   currency: "USD",
   mode: "auto",
+  region: "OTHER",
   setCurrency: () => {},
 });
 
@@ -37,6 +41,7 @@ export function FxProvider({
   initialCurrency,
   mode,
   fxOverride,
+  region = "OTHER",
 }: {
   children: ReactNode;
   /** Resolved on the server in the layout, used as the initial value. */
@@ -45,6 +50,8 @@ export function FxProvider({
   mode: CurrencyMode;
   /** Optional manual FX rate from admin settings (0/undefined → use live API). */
   fxOverride?: number;
+  /** Detected region — drives copy + payment-method visibility. */
+  region?: Region;
 }) {
   const [usdToPkr, setUsdToPkr] = useState(fxOverride && fxOverride > 0 ? fxOverride : 280);
   const [ready, setReady] = useState(!!fxOverride && fxOverride > 0);
@@ -76,7 +83,7 @@ export function FxProvider({
   }
 
   return (
-    <FxCtx.Provider value={{ usdToPkr, ready, currency, mode, setCurrency }}>
+    <FxCtx.Provider value={{ usdToPkr, ready, currency, mode, region, setCurrency }}>
       {children}
     </FxCtx.Provider>
   );

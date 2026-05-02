@@ -104,7 +104,7 @@ export default function CartPage() {
               Continue shopping
             </Link>
             <ul style={{ listStyle: "none", padding: 0, margin: "var(--space-5) 0 0", color: "var(--text-muted)", fontSize: "var(--fs-xs)", display: "grid", gap: 6 }}>
-              <li><i className="fa-solid fa-shield-halved" style={{ color: "var(--accent-600)" }}></i> Secure SahulatPay checkout</li>
+              <li><i className="fa-solid fa-shield-halved" style={{ color: "var(--accent-600)" }}></i> Secure encrypted checkout</li>
               <li><i className="fa-solid fa-clock" style={{ color: "var(--accent-600)" }}></i> Activated in &lt; 30 min</li>
               <li><i className="fa-solid fa-rotate" style={{ color: "var(--accent-600)" }}></i> Replacement guarantee</li>
             </ul>

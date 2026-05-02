@@ -29,7 +29,7 @@ export default function ThankYouPage() {
           </h2>
           <ol style={{ listStyle: "none", padding: 0, display: "grid", gap: "var(--space-4)" }}>
             {[
-              { n: 1, t: "We verify your payment", d: "SahulatPay confirms the transaction on our end. You'll get a confirmation email within minutes." },
+              { n: 1, t: "We verify your payment", d: "Our payment gateway confirms the transaction on our end. You'll get a confirmation email within minutes." },
               { n: 2, t: "We provision your subscription", d: "For wallet/card subscriptions, we activate or share login details. For digital downloads, the file/link is in your inbox." },
               { n: 3, t: "Anything wrong? Reach us", d: "WhatsApp is the fastest. Replacements within 24 hours if a subscription doesn't work." },
             ].map((s) => (

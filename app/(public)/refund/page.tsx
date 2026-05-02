@@ -51,7 +51,7 @@ export default function RefundPage() {
             <ul style={UL}>
               <li><strong>Order never delivered.</strong> If 24 hours pass after a confirmed payment and you have nothing in your inbox, we issue a full refund or, if you&rsquo;d rather, the order.</li>
               <li><strong>Wrong product delivered.</strong> If we send Claude Pro when you ordered ChatGPT Plus and we can&rsquo;t fix it within 24 hours, full refund.</li>
-              <li><strong>Duplicate charge.</strong> If SahulatPay or our system somehow charges you twice, the duplicate is refunded within 3 working days.</li>
+              <li><strong>Duplicate charge.</strong> If our payment gateway charges you twice, the duplicate is refunded within 3 working days.</li>
               <li><strong>Discontinued product.</strong> If we have to discontinue a tool mid-period (e.g. provider changes terms), we refund the unused remainder pro-rata.</li>
             </ul>
           </section>
@@ -82,7 +82,7 @@ export default function RefundPage() {
           <section>
             <h2 style={H2}>5. How long refunds take</h2>
             <ul style={UL}>
-              <li><strong>JazzCash / Easypaisa wallet:</strong> 24&ndash;48 hours back to your wallet</li>
+              <li><strong>Local wallet payments:</strong> 24&ndash;48 hours back to your wallet</li>
               <li><strong>Card refunds:</strong> 5&ndash;10 working days, depending on your bank</li>
               <li><strong>Replacements:</strong> usually within 1 hour, max 24 hours</li>
             </ul>

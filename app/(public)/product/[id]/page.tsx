@@ -6,6 +6,7 @@ import ProductGallery from "@/components/ProductGallery";
 import Reviews, { REVIEWS } from "@/components/Reviews";
 import PackageBuy from "./PackageBuy";
 import { STATIC_PRODUCTS, getAllProducts, getProduct } from "@/lib/products";
+import { getRegion } from "@/lib/region";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 
@@ -23,9 +24,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const product = await getProduct(id);
   if (!product) return {};
-  const title = `${product.name} — Buy in Pakistan, Pay in PKR`;
+  const title = `${product.name} — Premium AI Subscription`;
   const desc = product.description
-    ? `${product.description} Activated to your email in under 30 minutes. Pay via JazzCash, Easypaisa, or Card.`
+    ? `${product.description} Activated to your email in under 30 minutes.`
     : `${product.name} — paid in PKR, activated to your email in under 30 minutes.`;
   return {
     title,
@@ -55,7 +56,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    description: product.description || `${product.name} — premium AI subscription delivered to Pakistan in PKR.`,
+    description: product.description || `${product.name} — premium AI subscription, delivered to your inbox in under 30 minutes.`,
     category: product.category,
     brand: { "@type": "Brand", name: product.brand || product.name },
     offers: {
@@ -77,7 +78,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     ],
   };
 
-  const allProducts = await getAllProducts();
+  const [allProducts, region] = await Promise.all([getAllProducts(), getRegion()]);
+  const isPK = region === "PK";
   const productById = new Map(allProducts.map((p) => [p.id, p]));
 
   // Prefer the admin's hand-picked recommendations (preserve order). If empty,
@@ -150,7 +152,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                     "Activated within 30 minutes",
                     "Replacement guarantee for the full subscription period",
                     "WhatsApp + email support",
-                    "Pay with JazzCash, Easypaisa, or Card",
+                    isPK ? "Pay with JazzCash, Easypaisa, or Card" : "Secure payment by major card",
                   ]
               ).map((line) => (
                 <li key={line}>

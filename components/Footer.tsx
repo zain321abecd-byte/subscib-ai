@@ -1,9 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getSiteSettings } from "@/lib/site-settings";
+import { getRegion } from "@/lib/region";
 
 export default async function Footer() {
-  const s = await getSiteSettings();
+  const [s, region] = await Promise.all([getSiteSettings(), getRegion()]);
+  const isPK = region === "PK";
   const wa = s.whatsapp_number || "15550132026";
   const email = s.contact_email || "contact@subscribai.com";
 
@@ -19,10 +21,10 @@ export default async function Footer() {
       <div className="v2-container v2-footer-grid">
         <div className="v2-footer-brand">
           <Link href="/"><Image src="/assets/subscribai-logo.png" alt="SubscribAI" width={140} height={36} /></Link>
-          <p>Premium AI subscriptions, automation packs, and digital tools — paid in PKR, delivered in minutes.</p>
+          <p>Premium AI subscriptions, automation packs, and digital tools — delivered in minutes.</p>
           <div className="v2-pay-row">
-            <span><i className="fa-solid fa-mobile-screen"></i> JazzCash</span>
-            <span><i className="fa-solid fa-mobile-screen"></i> Easypaisa</span>
+            {isPK && <span><i className="fa-solid fa-mobile-screen"></i> JazzCash</span>}
+            {isPK && <span><i className="fa-solid fa-mobile-screen"></i> Easypaisa</span>}
             <span><i className="fa-solid fa-credit-card"></i> Card</span>
           </div>
           {socials.length > 0 && (

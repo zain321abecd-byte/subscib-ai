@@ -71,11 +71,20 @@ function extractFailureReason(data: any): string {
 export default function CheckoutPage() {
   const router = useRouter();
   const cart = useCart();
-  const { usdToPkr, ready: fxReady } = useFx();
+  const { usdToPkr, ready: fxReady, region } = useFx();
+  const isPK = region === "PK";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  // Default provider: jazzcash for PK, card for everyone else.
   const [provider, setProvider] = useState<Provider>("jazzcash");
+  useEffect(() => {
+    // Region resolves async — once known, switch the default for non-PK users.
+    if (!isPK && (provider === "jazzcash" || provider === "easypaisa")) {
+      setProvider("card");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPK]);
   const [status, setStatus] = useState<StatusPill>("idle");
   const [message, setMessage] = useState("");
   const [orderId, setOrderId] = useState("");
@@ -162,7 +171,7 @@ export default function CheckoutPage() {
     }
 
     setStatus("submitting");
-    setMessage("Creating payment with SahulatPay…");
+    setMessage("Creating payment…");
     const id = newOrderId();
     setOrderId(id);
 
@@ -387,12 +396,17 @@ export default function CheckoutPage() {
             <div className="surface-card">
               <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-xl)", color: "var(--text)", marginBottom: "var(--space-4)" }}>Payment method</h3>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--space-3)" }}>
-                {([
-                  ["jazzcash", "JazzCash Wallet", "fa-mobile-screen"],
-                  ["easypaisa", "Easypaisa Wallet", "fa-mobile-screen"],
-                  ["card", "Card", "fa-credit-card"],
-                ] as const).map(([id, label, icon]) => (
+              <div style={{ display: "grid", gridTemplateColumns: `repeat(${isPK ? 3 : 1}, 1fr)`, gap: "var(--space-3)" }}>
+                {(isPK
+                  ? [
+                      ["jazzcash", "JazzCash Wallet", "fa-mobile-screen"],
+                      ["easypaisa", "Easypaisa Wallet", "fa-mobile-screen"],
+                      ["card", "Card", "fa-credit-card"],
+                    ] as const
+                  : [
+                      ["card", "Credit / Debit Card", "fa-credit-card"],
+                    ] as const
+                ).map(([id, label, icon]) => (
                   <label key={id} style={{
                     display: "block", cursor: "pointer", padding: "var(--space-4)",
                     border: "1px solid " + (provider === id ? "var(--brand-500)" : "var(--border)"),

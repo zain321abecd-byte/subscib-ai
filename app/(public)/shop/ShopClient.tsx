@@ -127,7 +127,7 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
         <header className="shop-head">
           <p className="v2-eyebrow">Shop</p>
           <h1>Every AI tool, one cart</h1>
-          <p>Filter by category, search by name, sort by price. Pay with JazzCash, Easypaisa, or Card.</p>
+          <p>Filter by category, search by name, sort by price.</p>
         </header>
 
         <div className="shop-layout">

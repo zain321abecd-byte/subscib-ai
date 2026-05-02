@@ -88,8 +88,8 @@ const COMPARE: { group: string; rows: FeatureRow[] }[] = [
   {
     group: "Billing",
     rows: [
-      { label: "Pay in PKR via JazzCash / Easypaisa", values: [true,  true,            true] },
-      { label: "Pay by local card",                   values: [true,  true,            true] },
+      { label: "Wallet & local payment options",    values: [true,  true,            true] },
+      { label: "Major credit / debit cards",         values: [true,  true,            true] },
       { label: "Invoice billing & POs",               values: [false, false,           true] },
       { label: "Cancel any time",                     values: [true,  true,            true] },
     ],
@@ -111,7 +111,7 @@ export default function PricesPage() {
         <header className="v2-section-head">
           <p className="v2-eyebrow">Bundles</p>
           <h2>Save more with a bundle</h2>
-          <p>Pre-mixed packs for creators, growing teams, and businesses. Cancel any time. Prices shown in USD with PKR conversion at today&rsquo;s rate.</p>
+          <p>Pre-mixed packs for creators, growing teams, and businesses. Cancel any time.</p>
         </header>
 
         {/* Billing-cycle toggle */}

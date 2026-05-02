@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getRegion } from "@/lib/region";
 
 export const metadata: Metadata = {
   title: "FAQ — Frequently Asked Questions",
@@ -7,17 +8,22 @@ export const metadata: Metadata = {
   alternates: { canonical: "/faq" },
 };
 
-const QUESTIONS: { q: string; a: string; category: string }[] = [
+function buildQuestions(isPK: boolean): { q: string; a: string; category: string }[] {
+  return [
   // Delivery
-  { category: "Delivery", q: "How fast will I get my subscription?", a: "Most AI subscription accounts are activated within 30 minutes during business hours (9 AM – 11 PM PKT), and within a few hours overnight. You'll get an email and a WhatsApp confirmation when ready." },
+  { category: "Delivery", q: "How fast will I get my subscription?", a: "Most AI subscription accounts are activated within 30 minutes during business hours, and within a few hours overnight. You'll get an email and a WhatsApp confirmation when ready." },
   { category: "Delivery", q: "Where will my login details arrive?", a: "Always to the email address you entered at checkout. Check spam if you don't see it within 30 minutes, then message us on WhatsApp." },
   { category: "Delivery", q: "Can I get my account on a different email later?", a: "Yes — message us on WhatsApp with your order ID and the new email. We'll re-issue the credentials." },
 
   // Payment
-  { category: "Payment", q: "Which payment methods do you accept?", a: "JazzCash, Easypaisa, and any local debit/credit card. All processed securely through SahulatPay's gateway. We never see or store your card number." },
+  { category: "Payment", q: "Which payment methods do you accept?", a: isPK
+      ? "JazzCash, Easypaisa, and any debit or credit card. All processed securely through our payment gateway. We never see or store your card number."
+      : "Any major debit or credit card, processed securely through our payment gateway. We never see or store your card number." },
   { category: "Payment", q: "Is there a fee for paying by card vs wallet?", a: "No — the price you see is the price you pay. We absorb the gateway fee on our end." },
-  { category: "Payment", q: "I got charged but my order didn't go through?", a: "Forward the SahulatPay confirmation SMS or email to contact@subscribai.com or WhatsApp us. We'll either complete the order or refund within 24 hours." },
-  { category: "Payment", q: "Why are prices in USD with PKR conversion?", a: "Industry-standard for AI tools. We charge you in PKR at the live exchange rate at checkout — what you see on the Pay button is what hits your wallet." },
+  { category: "Payment", q: "I got charged but my order didn't go through?", a: "Forward the gateway confirmation SMS or email to contact@subscribai.com or WhatsApp us. We'll either complete the order or refund within 24 hours." },
+  ...(isPK
+    ? [{ category: "Payment", q: "Why are prices in USD with PKR conversion?", a: "Industry-standard for AI tools. We charge you in PKR at the live exchange rate at checkout — what you see on the Pay button is what hits your wallet." }]
+    : []),
 
   // Trust
   { category: "Trust", q: "Are these legitimate accounts?", a: "Yes. Every subscription is from an authorized reseller channel, family-plan slot, or our own bulk-purchase pool. We don't sell cracked or shared logins from sketchy sources." },
@@ -30,12 +36,19 @@ const QUESTIONS: { q: string; a: string; category: string }[] = [
   { category: "Subscriptions", q: "Can I upgrade or downgrade mid-cycle?", a: "Yes. Message us on WhatsApp; we'll prorate the difference and switch you over without losing access." },
 
   // Support
-  { category: "Support", q: "What's the fastest way to reach you?", a: "WhatsApp. We monitor it from 9 AM – 11 PM PKT every day. Average reply time during the day is under 15 minutes." },
+  { category: "Support", q: "What's the fastest way to reach you?", a: "WhatsApp. We monitor it during business hours every day. Average reply time during the day is under 15 minutes." },
   { category: "Support", q: "Do you offer phone support?", a: "Not currently — we keep prices low by being WhatsApp + email only. Most issues resolve in WhatsApp faster than a phone call anyway." },
-  { category: "Support", q: "What languages?", a: "English and Urdu both work. Roman-Urdu over WhatsApp is fine too." },
-];
+  ...(isPK
+    ? [{ category: "Support", q: "What languages?", a: "English and Urdu both work. Roman-Urdu over WhatsApp is fine too." }]
+    : [{ category: "Support", q: "What languages?", a: "English support, 7 days a week." }]),
+  ];
+}
 
-export default function FAQPage() {
+export default async function FAQPage() {
+  const region = await getRegion();
+  const isPK = region === "PK";
+  const QUESTIONS = buildQuestions(isPK);
+
   // Group by category
   const grouped = QUESTIONS.reduce<Record<string, typeof QUESTIONS>>((acc, q) => {
     (acc[q.category] = acc[q.category] || []).push(q);

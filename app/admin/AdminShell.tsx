@@ -24,7 +24,10 @@ const NAV: { section: string; items: NavItem[] }[] = [
   },
   {
     section: "Operations",
-    items: [{ href: "/admin/orders", label: "Orders", icon: "fa-receipt" }],
+    items: [
+      { href: "/admin/orders",  label: "Orders",  icon: "fa-receipt" },
+      { href: "/admin/traffic", label: "Traffic", icon: "fa-chart-line" },
+    ],
   },
   {
     section: "Configuration",

@@ -32,7 +32,7 @@ const FREEBIES: Freebie[] = [
     id: "midjourney-styles",
     title: "Midjourney Style Sheet",
     desc: "Fifty ready-made style modifiers for Midjourney v6.",
-    details: ["Photorealistic styles (15)", "Illustration styles (15)", "Editorial / fashion (10)", "Pakistan-themed (10)"],
+    details: ["Photorealistic styles (15)", "Illustration styles (15)", "Editorial / fashion (10)", "Cultural / regional (10)"],
     icon: "fa-palette", media: "media-pink",
     size: "640 KB", format: "PDF", delivery: "email",
   },
@@ -48,14 +48,14 @@ const FREEBIES: Freebie[] = [
     id: "ai-glossary",
     title: "AI Glossary PDF",
     desc: "Plain-English explanations of LLMs, RAG, fine-tuning, and more.",
-    details: ["80 terms explained", "Diagrams included", "Updated quarterly", "English + Urdu key terms"],
+    details: ["80 terms explained", "Diagrams included", "Updated quarterly", "Beginner-friendly explanations"],
     icon: "fa-book", media: "media-green",
     size: "920 KB", format: "PDF", delivery: "email",
   },
   {
     id: "canva-templates",
     title: "Canva Pro Template Pack",
-    desc: "Twenty Pakistan-styled Instagram and TikTok post templates.",
+    desc: "Twenty creator-ready Instagram and TikTok post templates.",
     details: ["10 Instagram posts", "10 TikTok / Reels covers", "Editable in Canva (free)", "Commercial use OK"],
     icon: "fa-image", media: "media-pink",
     size: "Canva link", format: "Canva", delivery: "whatsapp",
@@ -64,7 +64,7 @@ const FREEBIES: Freebie[] = [
     id: "beginner-course",
     title: "AI Beginner Mini-Course",
     desc: "60-minute video crash course for first-time AI users.",
-    details: ["Intro to ChatGPT (15 min)", "Image AI basics (15 min)", "Automation primer (15 min)", "Buying safely in PK (15 min)"],
+    details: ["Intro to ChatGPT (15 min)", "Image AI basics (15 min)", "Automation primer (15 min)", "Buying premium AI safely (15 min)"],
     icon: "fa-graduation-cap", media: "media-green",
     size: "Streaming link", format: "Video", delivery: "email",
   },
@@ -79,7 +79,7 @@ export default function FreebiesPage() {
         <header className="v2-section-head">
           <p className="v2-eyebrow">Freebies</p>
           <h2>Free resources — no signup</h2>
-          <p>Six handpicked freebies for Pakistani creators, students, and small teams. WhatsApp delivery is fastest; email works too.</p>
+          <p>Six handpicked freebies for creators, students, and small teams. WhatsApp delivery is fastest; email works too.</p>
         </header>
 
         <div className="v2-product-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>

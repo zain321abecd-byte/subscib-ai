@@ -22,7 +22,7 @@ export default function PrivacyPage() {
         <div style={{ color: "var(--text-soft)", lineHeight: 1.7, display: "grid", gap: "var(--space-5)" }}>
           <section>
             <h2 style={H2}>1. What we collect</h2>
-            <p>When you place an order we collect: your <strong>name, email, wallet phone number</strong> (for JazzCash/Easypaisa), and the items in your order. Payment details (card numbers, wallet PINs) are handled directly by SahulatPay — we never see or store them.</p>
+            <p>When you place an order we collect: your <strong>name, email, and (where applicable) phone number</strong> for local wallet payments, and the items in your order. Payment details (card numbers, wallet PINs) are handled directly by our payment gateway — we never see or store them.</p>
           </section>
 
           <section>
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
             <h2 style={H2}>3. Who we share it with</h2>
             <p>We do <strong>not</strong> sell or rent your data. We share only what's strictly necessary with these processors:</p>
             <ul style={UL}>
-              <li><strong>SahulatPay / AssanPay</strong> — to process your payment</li>
+              <li><strong>Our payment gateway</strong> — to process your payment securely</li>
               <li><strong>Vercel</strong> — to host this website</li>
               <li><strong>Email providers</strong> — to deliver order confirmations and login details</li>
             </ul>
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 style={H2}>4. How long we keep it</h2>
-            <p>Order records: 5 years (required for tax purposes in Pakistan). Email addresses: until you ask us to delete them. Wallet phone numbers used only at checkout, not retained beyond order fulfillment.</p>
+            <p>Order records: 5 years (for accounting and tax purposes). Email addresses: until you ask us to delete them. Wallet phone numbers used only at checkout, not retained beyond order fulfilment.</p>
           </section>
 
           <section>

@@ -27,7 +27,7 @@ export default function TermsPage() {
 
           <section>
             <h2 style={H2}>1. Who we are</h2>
-            <p>SubscribAI is a Pakistan-based reseller of premium AI subscriptions, automation packs, and digital courses. We don&rsquo;t build the AI tools listed in our shop — we resell access from authorized channels.</p>
+            <p>SubscribAI is an online reseller of premium AI subscriptions, automation packs, and digital courses. We don&rsquo;t build the AI tools listed in our shop — we resell access from authorized channels.</p>
           </section>
 
           <section>
@@ -43,9 +43,9 @@ export default function TermsPage() {
           <section>
             <h2 style={H2}>3. Payment</h2>
             <ul style={UL}>
-              <li>Prices shown in USD and converted to PKR at today&rsquo;s rate at checkout.</li>
-              <li>Payment is processed by SahulatPay (JazzCash, Easypaisa, or local card). We never see or store card numbers.</li>
-              <li>Once a transaction is confirmed by SahulatPay, payment is final unless covered by Section 5 (Replacements) or our Refund Policy.</li>
+              <li>Prices are shown in your local currency where supported, and converted at the live exchange rate at checkout.</li>
+              <li>Payment is processed by our payment gateway. We never see or store card numbers.</li>
+              <li>Once a transaction is confirmed by the gateway, payment is final unless covered by Section 5 (Replacements) or our Refund Policy.</li>
             </ul>
           </section>
 
@@ -97,7 +97,7 @@ export default function TermsPage() {
 
           <section>
             <h2 style={H2}>12. Governing law</h2>
-            <p>These terms are governed by Pakistani law. Disputes are resolved in courts in Karachi unless mutually agreed otherwise.</p>
+            <p>These terms are governed by the laws of the jurisdiction where SubscribAI is registered. Disputes are resolved in the local courts of that jurisdiction unless mutually agreed otherwise.</p>
           </section>
 
           <p style={{ marginTop: "var(--space-5)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>

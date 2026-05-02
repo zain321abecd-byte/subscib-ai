@@ -2,7 +2,7 @@ import { CartProvider } from "@/lib/cart";
 import { FxProvider, type CurrencyMode } from "@/lib/fx";
 import { ToastProvider } from "@/lib/toast";
 import { getSiteSettings } from "@/lib/site-settings";
-import { resolveCurrency } from "@/lib/region";
+import { getRegion, resolveCurrency } from "@/lib/region";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PageProgress from "@/components/PageProgress";
@@ -46,11 +46,11 @@ export default async function PublicLayout({ children }: { children: React.React
   const wa = settings.whatsapp_number || "15550132026";
 
   const mode = (settings.currency_mode || "auto") as CurrencyMode;
-  const initialCurrency = await resolveCurrency(mode);
+  const [initialCurrency, region] = await Promise.all([resolveCurrency(mode), getRegion()]);
   const fxOverride = Number(settings.fx_rate_pkr_per_usd) || undefined;
 
   return (
-    <FxProvider initialCurrency={initialCurrency} mode={mode} fxOverride={fxOverride}>
+    <FxProvider initialCurrency={initialCurrency} mode={mode} fxOverride={fxOverride} region={region}>
       <ToastProvider>
         <CartProvider>
           {/* JSON-LD lives in the body — Google indexes it either place. */}
