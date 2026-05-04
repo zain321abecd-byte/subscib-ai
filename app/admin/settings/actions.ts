@@ -5,34 +5,48 @@ import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { invalidateSettingsCache } from "@/lib/site-settings";
 
-function fail(msg: string): never {
-  redirect(`/admin/settings?error=${encodeURIComponent(msg)}`);
+function fail(msg: string, returnTo: string): never {
+  redirect(`${returnTo}?error=${encodeURIComponent(msg)}`);
 }
 
+/**
+ * Save any subset of site settings. The form names every field as
+ * `setting:<key>` and may include a hidden `__return_to` to control which
+ * page we redirect back to.
+ *
+ * Boolean toggles are submitted with the hidden+checkbox pattern in the form
+ * itself — that means an unchecked toggle still posts a "false" value via the
+ * preceding hidden input, and a checked one posts "true" (or "on") which wins
+ * because we dedupe-by-last in this action.
+ */
 export async function saveSettings(formData: FormData): Promise<void> {
+  const returnTo = String(formData.get("__return_to") || "/admin/settings");
+
   const supabase = await getSupabaseServer();
 
-  // Each form field is `setting:<key>`. Persist them as JSON values.
-  const updates: { key: string; value: unknown }[] = [];
+  // Dedupe by key — last value wins. This makes the hidden+checkbox pattern
+  // for booleans work cleanly without server-side knowledge of which keys
+  // are bools.
+  const collected = new Map<string, string>();
   for (const [name, raw] of formData.entries()) {
     if (!name.startsWith("setting:")) continue;
     const key = name.slice("setting:".length);
-    const value = String(raw);
-    updates.push({ key, value });
+    let value = String(raw);
+    // Normalise checkbox "on" → "true" for consistency with hidden inputs.
+    if (value === "on") value = "true";
+    collected.set(key, value);
   }
 
-  if (updates.length === 0) fail("Nothing to save.");
+  if (collected.size === 0) fail("Nothing to save.", returnTo);
 
-  // Upsert each key. We expect the row to already exist (seeded), but upsert
-  // covers the new-key case too.
+  const updates = [...collected.entries()].map(([key, value]) => ({ key, value }));
+
   const { error } = await supabase
     .from("site_settings")
     .upsert(updates, { onConflict: "key" });
-  if (error) fail(error.message);
+  if (error) fail(error.message, returnTo);
 
-  // Bust the in-memory settings cache used by Footer/WhatsAppFab/hero, then
-  // bust Next's layout-level cache so every public route re-fetches.
   invalidateSettingsCache();
   revalidatePath("/", "layout");
-  redirect("/admin/settings?saved=1");
+  redirect(`${returnTo}?saved=1`);
 }

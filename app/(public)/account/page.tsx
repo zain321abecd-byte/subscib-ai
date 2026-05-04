@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCustomer } from "@/lib/auth";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { getRegion } from "@/lib/region";
 import SignOutButton from "./SignOutButton";
 import type { OrderRow } from "@/lib/supabase/types";
 
@@ -20,6 +21,10 @@ function fmtPKR(n: number | null | undefined) {
   if (n == null) return "—";
   return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", maximumFractionDigits: 0 }).format(Number(n));
 }
+function fmtUSD(n: number | null | undefined) {
+  if (n == null) return "—";
+  return `$${Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+}
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleString("en-PK", {
@@ -32,14 +37,18 @@ export default async function AccountPage() {
   if (!user) redirect("/login?next=/account");
 
   const supabase = await getSupabaseServer();
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const [{ data, error }, region] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    getRegion(),
+  ]);
 
   const orders = (data ?? []) as OrderRow[];
+  const isPK = region === "PK";
   const fullName = (user.user_metadata as any)?.full_name || user.email || "there";
 
   return (
@@ -99,8 +108,14 @@ export default async function AccountPage() {
 
                   <footer className="account-order-foot">
                     <div>
-                      <strong>{fmtPKR(o.subtotal_pkr ?? Number(o.subtotal_usd))}</strong>
-                      <small> ≈ ${Number(o.subtotal_usd).toFixed(2)}</small>
+                      {isPK ? (
+                        <>
+                          <strong>{fmtPKR(o.subtotal_pkr ?? Number(o.subtotal_usd))}</strong>
+                          <small> ≈ {fmtUSD(o.subtotal_usd)}</small>
+                        </>
+                      ) : (
+                        <strong>{fmtUSD(o.subtotal_usd)}</strong>
+                      )}
                     </div>
                     {o.payment_method && (
                       <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", textTransform: "capitalize" }}>

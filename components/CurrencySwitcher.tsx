@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useFx } from "@/lib/fx";
 
+function setRegionCookie(value: "PK" | "OTHER") {
+  if (typeof document === "undefined") return;
+  const expires = new Date(Date.now() + 365 * 86400_000).toUTCString();
+  document.cookie = `region=${value}; expires=${expires}; path=/; SameSite=Lax`;
+}
+
 // Compact USD ↔ PKR toggle. Hidden when the admin's `currency_mode` forces a
 // single currency (always_pkr / always_usd / dual) — only "auto" mode lets the
 // user override their region default.
@@ -45,8 +51,13 @@ export default function CurrencySwitcher() {
               className={`currency-switcher-option ${currency === c ? "is-selected" : ""}`}
               onClick={() => {
                 setCurrency(c);
+                // Picking PKR also flips the region to PK (so payment methods
+                // like JazzCash/Easypaisa show); picking USD flips to OTHER
+                // (only Card visible). This keeps copy + payments in sync with
+                // what the user actually wants to see.
+                setRegionCookie(c === "PKR" ? "PK" : "OTHER");
                 setOpen(false);
-                // Refresh so server-rendered prices using the cookie pick it up.
+                // Hard reload so server-rendered region/currency take effect.
                 if (typeof window !== "undefined") {
                   window.location.reload();
                 }

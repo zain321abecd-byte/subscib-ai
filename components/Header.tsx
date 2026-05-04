@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
@@ -21,8 +22,13 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [authed, setAuthed] = useState<boolean | null>(null);
+  // The drawer is portalled to document.body so it escapes the header's
+  // backdrop-filter (which creates a containing block that breaks position:fixed).
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { count, ready } = useCart();
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -91,13 +97,63 @@ export default function Header() {
         </div>
       </div>
 
-      <div className={`v2-mobile-drawer ${drawerOpen ? "is-open" : ""}`} aria-hidden={!drawerOpen}>
-        {NAV.map(({ href, label }) => (
-          <Link key={href} href={href} onClick={closeDrawer}>{label}</Link>
-        ))}
-        <Link href="/account" className="btn btn-outline" onClick={closeDrawer}>Account</Link>
-        <Link href="/shop" className="btn btn-primary" onClick={closeDrawer}>Start now</Link>
-      </div>
+      {/* Drawer is portalled below — escapes header's backdrop-filter. */}
+      {mounted && createPortal(
+        <>
+          <div
+            className={`v2-mobile-backdrop ${drawerOpen ? "is-open" : ""}`}
+            aria-hidden="true"
+            onClick={closeDrawer}
+          />
+          <aside
+            className={`v2-mobile-drawer ${drawerOpen ? "is-open" : ""}`}
+            aria-hidden={!drawerOpen}
+            aria-label="Site navigation"
+          >
+            <div className="v2-mobile-drawer-head">
+              <span className="v2-mobile-drawer-title">Menu</span>
+              <button
+                type="button"
+                className="v2-mobile-drawer-close"
+                onClick={closeDrawer}
+                aria-label="Close menu"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <nav className="v2-mobile-drawer-nav">
+              {NAV.map(({ href, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={closeDrawer}
+                  className={pathname === href ? "is-active" : ""}
+                >
+                  {label}
+                  <i className="fa-solid fa-arrow-right" aria-hidden></i>
+                </Link>
+              ))}
+            </nav>
+
+            <div className="v2-mobile-drawer-actions">
+              {authed ? (
+                <Link href="/account" className="btn btn-outline btn-large" onClick={closeDrawer}>
+                  <i className="fa-solid fa-user"></i> Your account
+                </Link>
+              ) : (
+                <Link href="/login" className="btn btn-outline btn-large" onClick={closeDrawer}>
+                  <i className="fa-solid fa-right-to-bracket"></i> Sign in
+                </Link>
+              )}
+              <Link href="/shop" className="btn btn-primary btn-large" onClick={closeDrawer}>
+                Start now <i className="fa-solid fa-arrow-right"></i>
+              </Link>
+            </div>
+          </aside>
+        </>,
+        document.body,
+      )}
     </header>
   );
 }

@@ -102,7 +102,8 @@ function priceForCycle(monthlyUsd: number | null, cycle: BillingCycle): number |
 }
 
 export default function PricesPage() {
-  const { usdToPkr, ready } = useFx();
+  const { usdToPkr, ready, region } = useFx();
+  const isPK = region === "PK";
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
   return (
@@ -170,7 +171,7 @@ export default function PricesPage() {
                     <>
                       <strong>${usd}</strong>
                       <span>{cycleLabel}</span>
-                      {ready && (
+                      {ready && isPK && (
                         <div style={{ marginTop: 4, color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
                           ≈ Rs {pkr} {cycleLabel}
                         </div>

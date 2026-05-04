@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
+import { getSiteSettings } from "@/lib/site-settings";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--next-font-body", display: "swap" });
@@ -8,64 +9,61 @@ const poppins = Poppins({ subsets: ["latin"], weight: ["500", "600", "700", "800
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 const SITE_NAME = "SubscribAI";
 const DEFAULT_DESCRIPTION =
-  "Premium AI subscriptions delivered to Pakistan in minutes. ChatGPT Plus, Claude Pro, Midjourney, Canva, Notion AI, automation packs, and full courses — paid in PKR via JazzCash, Easypaisa, or local card.";
+  "Premium AI subscriptions delivered in minutes. ChatGPT Plus, Claude Pro, Midjourney, Canva, Notion AI, automation packs, and full courses.";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: `${SITE_NAME} — Premium AI Subscriptions in Pakistan, Paid in PKR`,
-    template: `%s · ${SITE_NAME}`,
-  },
-  description: DEFAULT_DESCRIPTION,
-  applicationName: SITE_NAME,
-  keywords: [
-    "ChatGPT Plus Pakistan", "Claude Pro Pakistan", "Midjourney Pakistan",
-    "AI subscriptions Pakistan", "buy ChatGPT Pakistan", "Canva Pro Pakistan",
-    "Notion AI Pakistan", "JazzCash AI tools", "Easypaisa AI subscriptions",
-    "AI tools PKR", "automation Pakistan", "SahulatPay AI",
-  ],
-  authors: [{ name: SITE_NAME }],
-  creator: SITE_NAME,
-  publisher: SITE_NAME,
-  category: "shopping",
-  alternates: { canonical: "/" },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true, follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1,
+export async function generateMetadata(): Promise<Metadata> {
+  const s = await getSiteSettings();
+  const title = s.seo_site_title?.trim() || `${SITE_NAME} — Premium AI Subscriptions`;
+  const description = s.seo_default_description?.trim() || DEFAULT_DESCRIPTION;
+  const keywords = (s.seo_default_keywords || "").split(",").map((k) => k.trim()).filter(Boolean);
+  const ogImage = s.seo_og_image?.trim() || "/assets/subscribai-logo-transparent-full.png";
+  const twitterHandle = s.seo_twitter_handle?.trim() || "";
+  const indexable = (s.seo_index_site ?? "true") !== "false";
+  const verification = s.seo_google_verification?.trim() || "";
+
+  const meta: Metadata = {
+    metadataBase: new URL(SITE_URL),
+    title: { default: title, template: `%s · ${SITE_NAME}` },
+    description,
+    applicationName: SITE_NAME,
+    keywords: keywords.length > 0 ? keywords : undefined,
+    authors: [{ name: SITE_NAME }],
+    creator: SITE_NAME,
+    publisher: SITE_NAME,
+    category: "shopping",
+    alternates: { canonical: "/" },
+    robots: indexable
+      ? {
+          index: true, follow: true,
+          googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
+        }
+      : { index: false, follow: false, googleBot: { index: false, follow: false } },
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      url: SITE_URL,
+      title,
+      description,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: SITE_NAME }],
     },
-  },
-  openGraph: {
-    type: "website",
-    siteName: SITE_NAME,
-    locale: "en_PK",
-    url: SITE_URL,
-    title: `${SITE_NAME} — Premium AI Subscriptions, Paid in PKR`,
-    description: DEFAULT_DESCRIPTION,
-    images: [{
-      url: "/assets/subscribai-logo-transparent-full.png",
-      width: 1200,
-      height: 630,
-      alt: `${SITE_NAME} — AI subscriptions for Pakistan`,
-    }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${SITE_NAME} — Premium AI Subscriptions, Paid in PKR`,
-    description: DEFAULT_DESCRIPTION,
-    images: ["/assets/subscribai-logo-transparent-full.png"],
-  },
-  icons: {
-    icon: [{ url: "/assets/favicon.png", type: "image/png" }],
-    apple: "/assets/favicon.png",
-  },
-  manifest: "/manifest.webmanifest",
-  formatDetection: { telephone: false, address: false, email: false },
-};
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+      ...(twitterHandle ? { creator: twitterHandle, site: twitterHandle } : {}),
+    },
+    icons: {
+      icon: [{ url: "/assets/favicon.png", type: "image/png" }],
+      apple: "/assets/favicon.png",
+    },
+    manifest: "/manifest.webmanifest",
+    formatDetection: { telephone: false, address: false, email: false },
+    ...(verification ? { other: { "google-site-verification": verification } } : {}),
+  };
+
+  return meta;
+}
 
 export const viewport: Viewport = {
   themeColor: [
@@ -77,7 +75,12 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Pull SEO settings here too so we can inject GA / FB Pixel scripts globally.
+  const s = await getSiteSettings();
+  const ga = s.seo_google_analytics?.trim() || "";
+  const fbp = s.seo_facebook_pixel?.trim() || "";
+
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
       <head>
@@ -88,10 +91,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
         />
+
+        {/* Google Analytics 4 (only when configured) */}
+        {ga && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${ga}`} />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga}',{anonymize_ip:true});`,
+              }}
+            />
+          </>
+        )}
+
+        {/* Facebook Pixel (only when configured) */}
+        {fbp && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${fbp}');fbq('track','PageView');`,
+            }}
+          />
+        )}
       </head>
-      {/* Body className is set by the section layout via `data-shell` so each
-          surface (public vs admin) controls its own visual reset without
-          forcing the root layout to read request headers. */}
       <body className="v2">{children}</body>
     </html>
   );

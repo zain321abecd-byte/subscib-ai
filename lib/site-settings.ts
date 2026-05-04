@@ -23,6 +23,17 @@ const FALLBACKS: Record<string, string> = {
   fx_rate_pkr_per_usd:  "",
   // Whether to show the USD ↔ PKR switcher in the header.
   currency_switcher:    "true",
+
+  // SEO + tracking. All optional — leave blank to skip.
+  seo_site_title:           "SubscribAI — Premium AI Subscriptions",
+  seo_default_description:  "Premium AI subscriptions delivered in minutes. ChatGPT Plus, Claude Pro, Midjourney, Canva, Notion AI, automation packs, and full courses.",
+  seo_default_keywords:     "AI subscriptions, ChatGPT Plus, Claude Pro, Midjourney, Canva Pro",
+  seo_og_image:             "",                  // Cloudinary URL — used as default OG/Twitter image
+  seo_twitter_handle:       "",                  // e.g. "@subscribai"
+  seo_google_verification:  "",                  // GSC verification token (just the value, no <meta> tag)
+  seo_google_analytics:     "",                  // e.g. "G-XXXXXXXXXX"
+  seo_facebook_pixel:       "",                  // e.g. "1234567890"
+  seo_index_site:           "true",              // "false" → site-wide noindex (great for staging)
 };
 
 function asString(v: unknown): string {
