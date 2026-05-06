@@ -12,6 +12,11 @@ export type ProductRow = {
   icon_class: string | null;
   media_class: string | null;
   image_url: string | null;
+  /** Hex color shown behind the brand icon (e.g. "#10A37F"). null → use card surface. */
+  icon_bg_color: string | null;
+  /** Which visual to render as the main media: "image" or "brand".
+   *  null → auto: image wins if set, otherwise brand. */
+  display_source: string | null;
   /** Additional gallery images (URLs). Cover stays in image_url. */
   gallery: string[] | null;
   in_stock: boolean;

@@ -13,7 +13,7 @@ function setRegionCookie(value: "PK" | "OTHER") {
 // single currency (always_pkr / always_usd / dual) — only "auto" mode lets the
 // user override their region default.
 export default function CurrencySwitcher() {
-  const { currency, mode, setCurrency } = useFx();
+  const { currency, mode, region, setCurrency } = useFx();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -26,6 +26,9 @@ export default function CurrencySwitcher() {
   }, []);
 
   if (mode !== "auto") return null;
+  // Foreign visitors don't get a PKR option — hide the switcher entirely so they
+  // never see "Pakistan Rupee" labels or local-only payment hints.
+  if (region !== "PK") return null;
 
   return (
     <div ref={ref} className="currency-switcher">

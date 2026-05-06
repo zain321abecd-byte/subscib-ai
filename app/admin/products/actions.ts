@@ -15,6 +15,8 @@ export type ProductFormData = {
   icon_class: string | null;
   media_class: "media-green" | "media-blue" | "media-pink" | "media-orange";
   image_url: string | null;
+  icon_bg_color: string | null;
+  display_source: string | null;
   gallery: string[];
   related_product_ids: string[];
   features: string[];
@@ -57,6 +59,15 @@ function parseForm(formData: FormData): ProductFormData {
     icon_class: str(formData.get("icon_class")) || null,
     media_class: (str(formData.get("media_class")) || "media-blue") as ProductFormData["media_class"],
     image_url: str(formData.get("image_url")) || null,
+    icon_bg_color: (() => {
+      const v = str(formData.get("icon_bg_color"));
+      // Only accept hex colors (#RRGGBB or #RGB) — anything else gets dropped.
+      return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(v) ? v.toUpperCase() : null;
+    })(),
+    display_source: (() => {
+      const v = str(formData.get("display_source"));
+      return v === "image" || v === "brand" ? v : null;
+    })(),
     gallery,
     related_product_ids,
     features,

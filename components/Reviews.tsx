@@ -17,11 +17,29 @@ export const REVIEWS: Review[] = [
   { name: "Aisha M.", initials: "AM", role: "Boutique owner", city: "Karachi", product: "Social Auto-Poster Pack", color: "var(--accent-soft)", text: "I run a small clothing brand. The social auto-poster cut my Instagram time from two hours a day to thirty minutes. Worth ten times what I paid." },
 ];
 
+/** International testimonials shown to non-PK visitors. No Pakistan/PKR/JazzCash references. */
+export const REVIEWS_GLOBAL: Review[] = [
+  { name: "Daniel M.", initials: "DM", role: "Product designer", city: "Berlin", product: "ChatGPT Plus Plan", color: "var(--brand-soft)", text: "Card payment went through instantly and credentials hit my inbox in 10 minutes on a weekend. The flow felt indistinguishable from buying direct." },
+  { name: "Priya S.", initials: "PS", role: "Freelance writer", city: "Singapore", product: "Claude Pro Plan", color: "var(--accent-soft)", text: "I switched from juggling three different AI accounts to managing them all here. Renewals are predictable and support actually replies the same day." },
+  { name: "Marco T.", initials: "MT", role: "Agency owner", city: "Milan", product: "Midjourney Basic", color: "var(--info-soft)", text: "Midjourney access landed in my inbox in under ten minutes. When I needed help mid-project, support replied on WhatsApp within five minutes." },
+  { name: "Hannah L.", initials: "HL", role: "Content creator", city: "Toronto", product: "Canva Pro Access", color: "var(--warning-soft)", text: "Canva Pro was activated faster than I could finish my coffee. I run a small brand — needing tools the same day matters. Renewed for a year." },
+  { name: "Omar F.", initials: "OF", role: "Operations lead", city: "Dubai", product: "Automation Starter Pack", color: "var(--brand-soft)", text: "The Make.com flows were already wired up for client reporting. Cut my Sunday admin from six hours to barely one." },
+  { name: "Emily R.", initials: "ER", role: "PhD researcher", city: "London", product: "ChatGPT Plus Plan", color: "var(--accent-soft)", text: "Cleanest checkout experience I've used for this category. No surprise renewals, no awkward forex charges, login arrived right after payment." },
+];
+
+import { getRegion } from "@/lib/region";
+import { getAllReviews, isSupabaseConfigured } from "@/lib/reviews";
+
 /**
  * Customer review section. Pass a subset of reviews to display, or omit
- * to show a default of 3 random ones.
+ * to fetch admin-curated reviews from the DB.
+ *
+ * Behavior when no `reviews` prop is given:
+ *   - Supabase configured + has approved reviews → render those.
+ *   - Supabase configured but DB empty → return null (hide section entirely).
+ *   - Supabase NOT configured (local dev) → fall back to region-aware static set.
  */
-export default function Reviews({
+export default async function Reviews({
   reviews,
   title = "What customers say",
   eyebrow = "Reviews",
@@ -32,7 +50,23 @@ export default function Reviews({
   eyebrow?: string;
   intro?: string;
 }) {
-  const list = reviews || REVIEWS.slice(0, 3);
+  const [region, dbReviews] = await Promise.all([getRegion(), getAllReviews()]);
+  const isPK = region === "PK";
+
+  let defaultPool: Review[];
+  if (dbReviews.length > 0) {
+    defaultPool = dbReviews;
+  } else if (!isSupabaseConfigured()) {
+    defaultPool = isPK ? REVIEWS : REVIEWS_GLOBAL;
+  } else {
+    defaultPool = [];
+  }
+
+  const list = reviews ?? defaultPool.slice(0, 3);
+
+  // Nothing to show — hide the whole section so the homepage doesn't have an
+  // awkward empty container.
+  if (list.length === 0) return null;
 
   return (
     <section className="v2-section reveal">
@@ -52,7 +86,10 @@ export default function Reviews({
                 <span className="v2-avatar" style={{ background: r.color }}>{r.initials}</span>
                 <div>
                   <strong>{r.name}</strong>
-                  <small>{r.role}, {r.city}{r.product ? ` · bought ${r.product}` : ""}</small>
+                  <small>
+                    {[r.role, r.city].filter(Boolean).join(", ")}
+                    {r.product ? `${r.role || r.city ? " · " : ""}bought ${r.product}` : ""}
+                  </small>
                 </div>
               </div>
             </article>

@@ -11,9 +11,9 @@ export default async function Footer() {
 
   const socials: { key: string; icon: string; label: string }[] = [
     { key: "social_instagram", icon: "fa-brands fa-instagram", label: "Instagram" },
-    { key: "social_facebook",  icon: "fa-brands fa-facebook",  label: "Facebook" },
-    { key: "social_tiktok",    icon: "fa-brands fa-tiktok",    label: "TikTok" },
-    { key: "social_youtube",   icon: "fa-brands fa-youtube",   label: "YouTube" },
+    { key: "social_facebook", icon: "fa-brands fa-facebook", label: "Facebook" },
+    { key: "social_tiktok", icon: "fa-brands fa-tiktok", label: "TikTok" },
+    { key: "social_youtube", icon: "fa-brands fa-youtube", label: "YouTube" },
   ].filter((sn) => !!s[sn.key]);
 
   return (
@@ -69,7 +69,7 @@ export default async function Footer() {
 
       <div className="v2-container v2-footer-bottom">
         <span>&copy; {new Date().getFullYear()} SubscribAI. All rights reserved.</span>
-        <span>Made for creators in Pakistan</span>
+        <span>Made for creators</span>
       </div>
     </footer>
   );

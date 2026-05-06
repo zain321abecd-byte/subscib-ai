@@ -12,6 +12,8 @@ export type Post = {
   authorInitials: string;
   authorColor: string;
   featured?: boolean;
+  /** Hide from non-PK visitors. Use for posts whose value depends on Pakistan-specific context. */
+  pkOnly?: boolean;
   /** Markdown-style body — newlines split into paragraphs at render time */
   body: string;
 };
@@ -28,6 +30,7 @@ export const POSTS: Post[] = [
     authorInitials: "AR",
     authorColor: "var(--brand-soft)",
     featured: true,
+    pkOnly: true,
     body: `If you're a small business in Pakistan looking at AI for the first time, the catalog is overwhelming. There are sixty tools that could in theory help you, and another two hundred influencers telling you which one to buy. This guide cuts through that.
 
 ## Start with the boring problems
@@ -56,7 +59,7 @@ Once your writing is on autopilot, add Canva Pro for visuals. Then add an automa
   {
     slug: "chatgpt-vs-claude",
     title: "ChatGPT Plus vs Claude Pro: which $20 to spend",
-    excerpt: "Side-by-side on writing, code, vision, file uploads, and Pakistan-specific quirks like Urdu support.",
+    excerpt: "Side-by-side on writing, code, vision, file uploads, and which one to keep if you can only afford one.",
     date: "Apr 14, 2026",
     readMins: 6,
     tag: "Compare",
@@ -72,10 +75,6 @@ You want the most polished consumer product. The voice mode is excellent. The im
 ## Pick Claude Pro if…
 
 You write or code for a living. Claude is noticeably better at long-form prose, has a better sense of nuance in instructions, and tends to push back when you're wrong instead of agreeing with everything. The longer context window means you can paste big PDFs and codebases without trimming.
-
-## Pakistan-specific notes
-
-Both handle Urdu reasonably well, but Claude tends to be more accurate on idioms. ChatGPT has stronger image generation. Both can be paid for via local SubscribAI checkout in PKR — no forex hassle.
 
 ## My honest recommendation
 
@@ -125,6 +124,7 @@ All five are in the SubscribAI Automation Starter Pack — pre-built, ready to i
     author: "Sara Hashmi",
     authorInitials: "SH",
     authorColor: "var(--accent-soft)",
+    pkOnly: true,
     body: `Default Midjourney outputs trend Western. With the right prompt structure, you can get visuals that genuinely feel like Pakistan — useful for marketing, content, and editorial work.
 
 ## The structure that works
@@ -157,6 +157,7 @@ Add a few comparable artists or styles ("inspired by South Asian photojournalism
     author: "Sara Hashmi",
     authorInitials: "SH",
     authorColor: "var(--accent-soft)",
+    pkOnly: true,
     body: `If you&rsquo;re a student in Pakistan, AI tools can save you days of work — research, writing, design, problem-solving. The catch: most charge in dollars, on cards your bank may not let you use. Here&rsquo;s a tight starter pack and how to actually get them.
 
 ## The shortlist for students
@@ -200,6 +201,7 @@ Don&rsquo;t pay sketchy sellers on Discord or Facebook for cracked accounts. The
     author: "SubscribAI Team",
     authorInitials: "SA",
     authorColor: "var(--warning-soft)",
+    pkOnly: true,
     body: `Three months ago we got tired of customers asking why every checkout still required a credit card. So we built local payment in.
 
 Starting today, you can pay for any subscription on SubscribAI directly with JazzCash, Easypaisa, or any local debit/credit card. The processor is SahulatPay, which is locally licensed and properly handles the bank-side reconciliation we couldn't manage on our own.
@@ -235,6 +237,10 @@ export const STATIC_POSTS = POSTS;
 // DB-backed getters with static fallback
 // ─────────────────────────────────────────────────────────────────────────────
 function rowToPost(row: BlogPostRow): Post {
+  // Heuristic: if the DB row doesn't have a pkOnly column, infer it from
+  // the title/excerpt/slug containing Pakistan-specific signal words.
+  const text = `${row.slug} ${row.title} ${row.excerpt}`.toLowerCase();
+  const inferredPkOnly = /\bpakistan|\bpakistani|jazzcash|easypaisa|\bpkr\b/.test(text);
   return {
     slug: row.slug,
     title: row.title,
@@ -247,6 +253,7 @@ function rowToPost(row: BlogPostRow): Post {
     authorInitials: row.author_initials,
     authorColor: row.author_color,
     featured: row.featured,
+    pkOnly: (row as unknown as { pk_only?: boolean }).pk_only ?? inferredPkOnly,
   };
 }
 
@@ -255,6 +262,8 @@ function supabaseConfigured(): boolean {
 }
 
 export async function getAllPosts(): Promise<Post[]> {
+  // Static demo set fires only when Supabase isn't configured. Otherwise the
+  // admin's `blog_posts` table is canonical — empty table = no posts shown.
   if (!supabaseConfigured()) return STATIC_POSTS;
   try {
     const supabase = await getSupabaseServer();
@@ -263,10 +272,10 @@ export async function getAllPosts(): Promise<Post[]> {
       .select("*")
       .eq("published", true)
       .order("date", { ascending: false });
-    if (error || !data || data.length === 0) return STATIC_POSTS;
+    if (error || !data) return [];
     return (data as BlogPostRow[]).map(rowToPost);
   } catch {
-    return STATIC_POSTS;
+    return [];
   }
 }
 
@@ -280,9 +289,9 @@ export async function getPost(slug: string): Promise<Post | undefined> {
       .eq("slug", slug)
       .eq("published", true)
       .maybeSingle();
-    if (error || !data) return STATIC_POSTS.find((p) => p.slug === slug);
+    if (error || !data) return undefined;
     return rowToPost(data as BlogPostRow);
   } catch {
-    return STATIC_POSTS.find((p) => p.slug === slug);
+    return undefined;
   }
 }

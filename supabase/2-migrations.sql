@@ -63,3 +63,14 @@ create index if not exists orders_user_id_idx on orders(user_id);
 drop policy if exists "orders read own" on orders;
 create policy "orders read own" on orders
   for select using (auth.uid() = user_id);
+
+-- ============================================================
+-- Products: per-product icon-background color + display-source choice
+-- (added 2026-05). Lets admins pick a custom color behind the brand icon
+-- and explicitly choose whether image or brand renders as the main visual
+-- when both are set.
+-- ============================================================
+alter table products
+  add column if not exists icon_bg_color  text;
+alter table products
+  add column if not exists display_source text;  -- "image" | "brand"; null = auto (image > brand)

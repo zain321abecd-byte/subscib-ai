@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAllPosts, type Post } from "@/lib/blog";
+import { getRegion } from "@/lib/region";
 
 export const metadata = { title: "Blog · SubscribAI" };
 export const revalidate = 60;
@@ -14,7 +15,29 @@ const TAG_COLORS: Record<Post["tag"], { c: string; bg: string; icon: string }> =
 const MEDIA_VARIANTS = ["media-orange", "media-blue", "media-pink", "media-green"] as const;
 
 export default async function BlogPage() {
-  const POSTS = await getAllPosts();
+  const [allPosts, region] = await Promise.all([getAllPosts(), getRegion()]);
+  const isPK = region === "PK";
+  const POSTS = isPK ? allPosts : allPosts.filter((p) => !p.pkOnly);
+
+  if (POSTS.length === 0) {
+    return (
+      <section style={{ padding: "var(--space-7) 0 var(--space-9)" }}>
+        <div className="v2-container">
+          <header style={{ marginBottom: "var(--space-6)", maxWidth: 720 }}>
+            <p className="v2-eyebrow">Blog</p>
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(1.8rem, 3.6vw, 2.5rem)", color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.1, margin: "var(--space-3) 0" }}>
+              Notes from the team
+            </h1>
+          </header>
+          <div className="surface-card" style={{ textAlign: "center", padding: "var(--space-7)" }}>
+            <p style={{ color: "var(--text-muted)" }}>New posts coming soon. Check back in a few days.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // POSTS guaranteed non-empty here.
   const featured = POSTS.find((p) => p.featured) || POSTS[0];
   const rest = POSTS.filter((p) => p.slug !== featured.slug);
 
@@ -27,7 +50,9 @@ export default async function BlogPage() {
             Notes from the team
           </h1>
           <p style={{ color: "var(--text-soft)", fontSize: "var(--fs-md)" }}>
-            Practical writing on AI tools, automation, and getting work done in Pakistan.
+            {isPK
+              ? "Practical writing on AI tools, automation, and getting work done in Pakistan."
+              : "Practical writing on AI tools, automation, and getting work done."}
           </p>
         </header>
 

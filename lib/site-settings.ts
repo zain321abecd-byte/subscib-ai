@@ -4,7 +4,7 @@ import type { SiteSettingRow } from "@/lib/supabase/types";
 const FALLBACKS: Record<string, string> = {
   whatsapp_number:  "15550132026",
   contact_email:    "contact@subscribai.com",
-  hero_headline:    "Premium AI subscriptions, paid in PKR",
+  hero_headline:    "Premium AI subscriptions,",
   hero_subtext:     "Activated to your inbox in under 30 minutes.",
   social_instagram: "",
   social_facebook:  "",

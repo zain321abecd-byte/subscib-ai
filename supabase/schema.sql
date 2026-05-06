@@ -15,6 +15,8 @@ create table if not exists products (
   icon_class    text,                            -- legacy fontawesome class
   media_class   text,                            -- legacy media class
   image_url     text,                            -- Cloudinary URL (preferred)
+  icon_bg_color text,                            -- hex color for the brand-icon tile background
+  display_source text,                           -- "image" | "brand"; null = auto (image > brand)
   in_stock      boolean not null default true,
   featured      boolean not null default false,
   sort_order    int not null default 0,

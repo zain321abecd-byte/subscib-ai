@@ -55,7 +55,7 @@ const TIERS: Tier[] = [
 ];
 
 // What's in each tier — for the comparison table
-type FeatureRow = { label: string; values: [string | boolean, string | boolean, string | boolean] };
+type FeatureRow = { label: string; values: [string | boolean, string | boolean, string | boolean]; pkOnly?: boolean };
 const COMPARE: { group: string; rows: FeatureRow[] }[] = [
   {
     group: "AI Tools",
@@ -88,7 +88,7 @@ const COMPARE: { group: string; rows: FeatureRow[] }[] = [
   {
     group: "Billing",
     rows: [
-      { label: "Wallet & local payment options",    values: [true,  true,            true] },
+      { label: "Wallet & local payment options",    values: [true,  true,            true], pkOnly: true },
       { label: "Major credit / debit cards",         values: [true,  true,            true] },
       { label: "Invoice billing & POs",               values: [false, false,           true] },
       { label: "Cancel any time",                     values: [true,  true,            true] },
@@ -116,36 +116,20 @@ export default function PricesPage() {
         </header>
 
         {/* Billing-cycle toggle */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: "var(--space-7)" }}>
-          <div style={{
-            display: "inline-flex", padding: 4,
-            background: "var(--surface-soft)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius-pill)",
-          }}>
+        <div className="prices-cycle-wrap">
+          <div className="prices-cycle">
             {(["monthly", "yearly"] as BillingCycle[]).map((c) => (
               <button
                 key={c}
                 type="button"
                 onClick={() => setCycle(c)}
                 aria-pressed={cycle === c}
-                style={{
-                  padding: "10px 20px", border: "none", cursor: "pointer",
-                  background: cycle === c ? "var(--brand-500)" : "transparent",
-                  color: cycle === c ? "#fff" : "var(--text-soft)",
-                  borderRadius: "var(--radius-pill)",
-                  fontWeight: 600, fontSize: "var(--fs-sm)",
-                  transition: "all var(--dur)",
-                }}
+                className="prices-cycle-btn"
+                data-active={cycle === c ? "true" : "false"}
               >
                 {c === "monthly" ? "Monthly" : "Yearly"}
                 {c === "yearly" && (
-                  <span style={{
-                    marginLeft: 8, padding: "2px 8px",
-                    background: cycle === c ? "rgba(255,255,255,0.20)" : "var(--accent-soft)",
-                    color: cycle === c ? "#fff" : "var(--accent-300)",
-                    borderRadius: "var(--radius-pill)",
-                    fontSize: "var(--fs-xs)", fontWeight: 700,
-                  }}>SAVE 20%</span>
+                  <span className="prices-cycle-save" data-active={cycle === c ? "true" : "false"}>SAVE 20%</span>
                 )}
               </button>
             ))}
@@ -169,16 +153,22 @@ export default function PricesPage() {
                 <div className="v2-tier-price">
                   {usd !== null ? (
                     <>
-                      <strong>${usd}</strong>
-                      <span>{cycleLabel}</span>
-                      {ready && isPK && (
-                        <div style={{ marginTop: 4, color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
-                          ≈ Rs {pkr} {cycleLabel}
-                        </div>
+                      {isPK ? (
+                        <>
+                          <strong>{ready ? `Rs ${pkr}` : "—"}</strong>
+                          <span>{cycleLabel}</span>
+                        </>
+                      ) : (
+                        <>
+                          <strong>${usd}</strong>
+                          <span>{cycleLabel}</span>
+                        </>
                       )}
                       {cycle === "yearly" && t.monthlyUsd && (
                         <div style={{ marginTop: 4, color: "var(--accent-300)", fontSize: "var(--fs-xs)", fontWeight: 600 }}>
-                          You save ${Math.round(t.monthlyUsd * 12 * 0.2)} a year
+                          {isPK
+                            ? (ready ? `You save Rs ${Math.round(t.monthlyUsd * 12 * 0.2 * usdToPkr).toLocaleString("en-PK")} a year` : "Save 20% yearly")
+                            : `You save $${Math.round(t.monthlyUsd * 12 * 0.2)} a year`}
                         </div>
                       )}
                     </>
@@ -222,19 +212,22 @@ export default function PricesPage() {
                     <tr key={`g-${group.group}`} className="prices-row-group">
                       <td colSpan={4}>{group.group}</td>
                     </tr>
-                    {group.rows.map((row) => (
+                    {group.rows.filter((row) => !row.pkOnly || isPK).map((row) => (
                       <tr key={row.label}>
-                        <td>{row.label}</td>
-                        {row.values.map((v, i) => (
-                          <td key={i} className={i === 1 ? "prices-td-featured" : ""}>
-                            {typeof v === "boolean"
-                              ? v
-                                ? <i className="fa-solid fa-check" style={{ color: "var(--accent-500)" }} aria-label="Included"></i>
-                                : <span style={{ color: "var(--text-muted)" }}>—</span>
-                              : <span style={{ color: "var(--text)" }}>{v}</span>
-                            }
-                          </td>
-                        ))}
+                        <td data-label="Feature">{row.label}</td>
+                        {row.values.map((v, i) => {
+                          const tier = i === 0 ? "Creator" : i === 1 ? "Growth" : "Business";
+                          return (
+                            <td key={i} data-label={tier} className={i === 1 ? "prices-td-featured" : ""}>
+                              {typeof v === "boolean"
+                                ? v
+                                  ? <i className="fa-solid fa-check" style={{ color: "var(--accent-500)" }} aria-label="Included"></i>
+                                  : <span style={{ color: "var(--text-muted)" }}>—</span>
+                                : <span style={{ color: "var(--text)" }}>{v}</span>
+                              }
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </>
@@ -260,6 +253,121 @@ export default function PricesPage() {
           color: var(--text-muted); font-weight: 600; font-size: var(--fs-xs);
           text-transform: uppercase; letter-spacing: 0.06em;
           text-align: left !important;
+        }
+
+        /* Billing-cycle toggle */
+        .prices-cycle-wrap {
+          display: flex; justify-content: center;
+          margin-bottom: var(--space-7);
+        }
+        .prices-cycle {
+          display: inline-flex; padding: 4px;
+          background: var(--surface-soft);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-pill);
+        }
+        .prices-cycle-btn {
+          padding: 10px 20px; border: none; cursor: pointer;
+          background: transparent;
+          color: var(--text-soft);
+          border-radius: var(--radius-pill);
+          font-weight: 600; font-size: var(--fs-sm);
+          transition: background var(--dur), color var(--dur);
+          display: inline-flex; align-items: center; gap: 8px;
+        }
+        .prices-cycle-btn[data-active="true"] {
+          background: var(--brand-500);
+          color: #fff;
+        }
+        .prices-cycle-save {
+          padding: 2px 8px;
+          background: var(--accent-soft);
+          color: var(--accent-300);
+          border-radius: var(--radius-pill);
+          font-size: var(--fs-xs); font-weight: 700;
+          letter-spacing: 0.02em;
+        }
+        .prices-cycle-save[data-active="true"] {
+          background: rgba(255,255,255,0.20);
+          color: #fff;
+        }
+
+        /* ---------- Mobile (≤720px) ---------- */
+        @media (max-width: 720px) {
+          .prices-cycle-wrap { margin-bottom: var(--space-5); }
+          .prices-cycle-btn {
+            padding: 8px 14px;
+            font-size: 0.82rem;
+            gap: 6px;
+          }
+          .prices-cycle-save {
+            padding: 2px 7px;
+            font-size: 0.62rem;
+          }
+
+          /* Comparison table → stacked cards */
+          .prices-table thead { display: none; }
+          .prices-table, .prices-table tbody { display: block; width: 100%; }
+          .prices-table tr {
+            display: block;
+            border-bottom: none;
+          }
+          .prices-table tr:not(.prices-row-group) {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+          }
+          .prices-table .prices-row-group {
+            background: transparent;
+            padding: 14px 4px 6px;
+            margin-top: 8px;
+          }
+          .prices-table .prices-row-group td {
+            background: transparent !important;
+            padding: 0 !important;
+            border: none !important;
+            font-size: 0.7rem !important;
+            color: var(--brand-300) !important;
+          }
+          .prices-table tr:not(.prices-row-group) td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border: none;
+            text-align: right;
+            font-size: 0.86rem;
+          }
+          .prices-table tr:not(.prices-row-group) td:first-child {
+            display: block;
+            text-align: left;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.92rem;
+            padding: 0 0 8px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+          }
+          .prices-table tr:not(.prices-row-group) td:first-child::before { display: none; }
+          .prices-table tr:not(.prices-row-group) td:not(:first-child)::before {
+            content: attr(data-label);
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 500;
+            text-align: left;
+            margin-right: auto;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+          }
+          .prices-table td.prices-td-featured {
+            background: transparent !important;
+          }
+          .prices-table td.prices-td-featured::before {
+            color: var(--brand-300) !important;
+          }
         }
       `}</style>
     </section>

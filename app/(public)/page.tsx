@@ -17,10 +17,24 @@ export default async function HomePage() {
     getRegion(),
   ]);
   const isPK = region === "PK";
-  const heroHeadline = settings.hero_headline || "Premium AI tools,";
-  const heroSubtext = settings.hero_subtext || (isPK
-    ? "Pay locally with JazzCash, Easypaisa, or any card. Activated to your inbox within 30 minutes, backed by replacement guarantees and real WhatsApp support."
-    : "Activated to your inbox within 30 minutes. Backed by replacement guarantees and real human support — pay securely with any major card.");
+  // For non-PK visitors, strip any PKR/Pakistan/JazzCash/Easypaisa references the
+  // admin may have saved. Foreign visitors must never see Pakistan-specific copy.
+  const sanitizeForGlobal = (s: string) =>
+    s.replace(/\s*[—,-]?\s*paid in PKR/gi, "")
+     .replace(/\s*[—,-]?\s*in Pakistan/gi, "")
+     .replace(/JazzCash,?\s*/gi, "")
+     .replace(/Easypaisa,?\s*/gi, "")
+     .replace(/PKR/g, "USD")
+     .replace(/\s+,/g, ",")
+     .trim();
+  const rawHeadline = settings.hero_headline || "Premium AI subscriptions,";
+  const heroHeadline = isPK ? rawHeadline : sanitizeForGlobal(rawHeadline);
+  const rawSubtext = settings.hero_subtext;
+  const heroSubtext = rawSubtext
+    ? (isPK ? rawSubtext : sanitizeForGlobal(rawSubtext))
+    : (isPK
+      ? "Pay locally with JazzCash, Easypaisa, or any card. Activated to your inbox within 30 minutes, backed by replacement guarantees and real WhatsApp support."
+      : "Activated to your inbox within 30 minutes. Backed by replacement guarantees and real human support — pay securely with any major card.");
 
   return (
     <>
@@ -66,37 +80,53 @@ export default async function HomePage() {
             </ul>
           </div>
 
-          <aside className="v2-hero-preview" aria-label="Featured tools">
-            <div className="v2-hero-preview-card">
-              <div className="v2-hero-preview-head">
-                <span className="v2-hero-preview-dot"></span>
-                <span className="v2-hero-preview-dot"></span>
-                <span className="v2-hero-preview-dot"></span>
-                <span className="v2-hero-preview-url">subscribai.com/shop</span>
+          {featured.length > 0 && (
+            <aside className="v2-hero-preview" aria-label="Featured tools">
+              <div className="v2-hero-preview-card">
+                <div className="v2-hero-preview-head">
+                  <span className="v2-hero-preview-dot"></span>
+                  <span className="v2-hero-preview-dot"></span>
+                  <span className="v2-hero-preview-dot"></span>
+                  <span className="v2-hero-preview-url">subscribai.com/shop</span>
+                </div>
+                <div className="v2-hero-preview-tiles">
+                  {(() => {
+                    // FX rate from admin settings (manual override → live API → 280 default)
+                    const fxRate = Number(settings.fx_rate_pkr_per_usd) || 280;
+                    const fmtPrice = (usd: number) => isPK
+                      ? `Rs ${Math.round(usd * fxRate).toLocaleString("en-PK")} / month`
+                      : `$${usd} / month`;
+                    const palette = [
+                      { bc: "badge-success" },
+                      { bc: "badge-brand"   },
+                      { bc: "badge-accent"  },
+                      { bc: "badge-success" },
+                    ];
+                    return featured.slice(0, 4).map((p, idx) => {
+                      const skin = palette[idx % palette.length];
+                      const tag = (p.tag || "").split(",")[0].trim();
+                      return (
+                        <div className="v2-mini-card" key={p.id}>
+                          <span className="v2-mini-icon" style={{ background: "#ffffff" }}>
+                            {p.brand
+                              ? <BrandIcon name={p.brand} size={20} />
+                              : <i className={p.iconClass} style={{ color: "#0F172A", fontSize: 14 }}></i>}
+                          </span>
+                          <div>
+                            <strong>{p.name}</strong>
+                            <small>{fmtPrice(p.price)}</small>
+                          </div>
+                          {tag && <span className={`badge ${skin.bc}`}>{tag}</span>}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
               </div>
-              <div className="v2-hero-preview-tiles">
-                {[
-                  { brand: "openai", t: "ChatGPT Plus", p: "$8 / month", b: "Active", bc: "badge-success", bg: "var(--brand-soft)" },
-                  { brand: "midjourney", t: "Midjourney Basic", p: "$10 / month", b: "Popular", bc: "badge-brand", bg: "var(--accent-soft)" },
-                  { brand: "canva", t: "Canva Pro", p: "$5 / month", b: "New", bc: "badge-accent", bg: "var(--info-soft)" },
-                  { brand: "anthropic", t: "Claude Pro", p: "$19 / month", bg: "var(--warning-soft)" },
-                ].map((tile, idx) => (
-                  <div className="v2-mini-card" key={idx}>
-                    <span className="v2-mini-icon" style={{ background: tile.bg }}>
-                      <BrandIcon name={tile.brand} size={20} />
-                    </span>
-                    <div>
-                      <strong>{tile.t}</strong>
-                      <small>{tile.p}</small>
-                    </div>
-                    {tile.b && <span className={`badge ${tile.bc}`}>{tile.b}</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="v2-hero-blob v2-hero-blob-1" aria-hidden />
-            <div className="v2-hero-blob v2-hero-blob-2" aria-hidden />
-          </aside>
+              <div className="v2-hero-blob v2-hero-blob-1" aria-hidden />
+              <div className="v2-hero-blob v2-hero-blob-2" aria-hidden />
+            </aside>
+          )}
         </div>
       </section>
 
@@ -147,15 +177,27 @@ export default async function HomePage() {
           </header>
           <div className="v2-cat-grid reveal reveal-stagger">
             {[
-              { href: "/shop#ai-subscriptions", icon: "fa-comments", title: "AI Subscriptions", desc: "ChatGPT Plus, Claude Pro, Gemini, Perplexity — premium plans at local prices.", c: "var(--brand-600)", bg: "var(--brand-soft)" },
-              { href: "/shop#design-tools", icon: "fa-palette", title: "Design & Image AI", desc: "Midjourney, Leonardo, Adobe Firefly, Canva Pro — for creators and marketers.", c: "var(--accent-600)", bg: "var(--accent-soft)" },
-              { href: "/shop#productivity", icon: "fa-bolt-lightning", title: "Productivity Tools", desc: "Notion AI, Grammarly Premium, ClickUp AI, Otter — work faster with AI.", c: "var(--info-500)", bg: "var(--info-soft)" },
-              { href: "/shop#automation", icon: "fa-diagram-project", title: "Automation Packs", desc: "Make.com, Zapier templates, n8n flows — pre-built workflows you can import.", c: "var(--warning-500)", bg: "var(--warning-soft)" },
-              { href: "/shop#courses", icon: "fa-graduation-cap", title: "Courses & Tutorials", desc: "Self-paced AI courses with downloadable templates and lifetime access.", c: "var(--success-500)", bg: "var(--success-soft)" },
-              { href: "/freebies", icon: "fa-gift", title: "Freebies", desc: "Free prompts, templates, and starter kits — no signup, instant download.", c: "var(--danger-500)", bg: "var(--danger-soft)" },
+              { href: "/shop#ai-subscriptions", brands: ["openai", "anthropic", "gemini"], icon: "fa-comments", title: "AI Subscriptions", desc: "ChatGPT Plus, Claude Pro, Gemini, Perplexity — premium plans at local prices.", c: "var(--brand-600)", bg: "var(--brand-soft)" },
+              { href: "/shop#design-tools", brands: ["midjourney", "canva", "firefly"], icon: "fa-palette", title: "Design & Image AI", desc: "Midjourney, Leonardo, Adobe Firefly, Canva Pro — for creators and marketers.", c: "var(--accent-600)", bg: "var(--accent-soft)" },
+              { href: "/shop#productivity", brands: ["notion", "grammarly", "clickup"], icon: "fa-bolt-lightning", title: "Productivity Tools", desc: "Notion AI, Grammarly Premium, ClickUp AI, Otter — work faster with AI.", c: "var(--info-500)", bg: "var(--info-soft)" },
+              { href: "/shop#automation", brands: ["make", "zapier", "n8n"], icon: "fa-diagram-project", title: "Automation Packs", desc: "Make.com, Zapier templates, n8n flows — pre-built workflows you can import.", c: "var(--warning-500)", bg: "var(--warning-soft)" },
+              { href: "/shop#courses", brands: [] as string[], icon: "fa-graduation-cap", title: "Courses & Tutorials", desc: "Self-paced AI courses with downloadable templates and lifetime access.", c: "var(--success-500)", bg: "var(--success-soft)" },
+              { href: "/freebies", brands: [] as string[], icon: "fa-gift", title: "Freebies", desc: "Free prompts, templates, and starter kits — no signup, instant download.", c: "var(--danger-500)", bg: "var(--danger-soft)" },
             ].map((cat) => (
               <Link key={cat.href} href={cat.href} className="surface-card is-interactive v2-cat-card">
-                <span className="v2-cat-icon" style={{ background: cat.bg, color: cat.c }}><i className={`fa-solid ${cat.icon}`}></i></span>
+                {cat.brands.length > 0 ? (
+                  <span className="v2-cat-brands" aria-hidden>
+                    {cat.brands.map((slug, i) => (
+                      <span key={slug} className="v2-cat-brand-tile" style={{ zIndex: cat.brands.length - i }}>
+                        <BrandIcon name={slug} size={20} />
+                      </span>
+                    ))}
+                  </span>
+                ) : (
+                  <span className="v2-cat-icon" style={{ background: cat.bg, color: cat.c }}>
+                    <i className={`fa-solid ${cat.icon}`}></i>
+                  </span>
+                )}
                 <h3>{cat.title}</h3>
                 <p>{cat.desc}</p>
                 <span className="v2-cat-arrow">Browse <i className="fa-solid fa-arrow-right"></i></span>
@@ -194,14 +236,14 @@ export default async function HomePage() {
           <div className="v2-why-grid reveal reveal-stagger">
             {[
               isPK
-                ? { icon: "fa-money-bill-transfer", t: "Pay in PKR", d: "JazzCash, Easypaisa, and any card. No forex hassle, no rejected international transactions.", c: "var(--brand-600)", bg: "var(--brand-soft)" }
-                : { icon: "fa-credit-card", t: "Pay your way", d: "Any major card, processed through a secure gateway. Receipts emailed instantly.", c: "var(--brand-600)", bg: "var(--brand-soft)" },
-              { icon: "fa-bolt", t: "Instant activation", d: "Most subscriptions go live in under 30 minutes. Digital downloads arrive immediately via email.", c: "var(--accent-600)", bg: "var(--accent-soft)" },
-              { icon: "fa-rotate", t: "Easy renewals", d: "Renewal reminders before expiry. Replacements within 24 hours if anything goes wrong with a subscription.", c: "var(--info-500)", bg: "var(--info-soft)" },
-              { icon: "fa-whatsapp", t: "Real human support", d: "WhatsApp + email support, 24/7. Average reply time under 15 minutes during the day.", c: "var(--success-500)", bg: "var(--success-soft)", brand: true },
+                ? { icon: "fa-money-bill-transfer", t: "Pay in PKR", d: "JazzCash, Easypaisa, and any card. No forex hassle, no rejected international transactions.", bg: "#FF7A1A" }
+                : { icon: "fa-credit-card", t: "Pay your way", d: "Any major card, processed through a secure gateway. Receipts emailed instantly.", bg: "#FF7A1A" },
+              { icon: "fa-bolt", t: "Instant activation", d: "Most subscriptions go live in under 30 minutes. Digital downloads arrive immediately via email.", bg: "#10A37F" },
+              { icon: "fa-rotate", t: "Easy renewals", d: "Renewal reminders before expiry. Replacements within 24 hours if anything goes wrong with a subscription.", bg: "#4796E3" },
+              { icon: "fa-whatsapp", t: "Real human support", d: "WhatsApp + email support, 24/7. Average reply time under 15 minutes during the day.", bg: "#25D366", brand: true },
             ].map((w) => (
               <div key={w.t} className="surface-card v2-why-card">
-                <span className="v2-why-icon" style={{ background: w.bg, color: w.c }}>
+                <span className="v2-why-icon" style={{ background: w.bg, color: "#ffffff" }}>
                   <i className={`${w.brand ? "fa-brands" : "fa-solid"} ${w.icon}`}></i>
                 </span>
                 <h3>{w.t}</h3>

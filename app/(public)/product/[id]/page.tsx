@@ -3,10 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import ProductGallery from "@/components/ProductGallery";
-import Reviews, { REVIEWS } from "@/components/Reviews";
+import Reviews, { REVIEWS, REVIEWS_GLOBAL } from "@/components/Reviews";
 import PackageBuy from "./PackageBuy";
 import { STATIC_PRODUCTS, getAllProducts, getProduct } from "@/lib/products";
 import { getRegion } from "@/lib/region";
+import { getAllReviews, isSupabaseConfigured } from "@/lib/reviews";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const title = `${product.name} — Premium AI Subscription`;
   const desc = product.description
     ? `${product.description} Activated to your email in under 30 minutes.`
-    : `${product.name} — paid in PKR, activated to your email in under 30 minutes.`;
+    : `${product.name} — activated to your email in under 30 minutes.`;
   return {
     title,
     description: desc,
@@ -78,7 +79,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     ],
   };
 
-  const [allProducts, region] = await Promise.all([getAllProducts(), getRegion()]);
+  const [allProducts, region, dbReviews] = await Promise.all([getAllProducts(), getRegion(), getAllReviews()]);
   const isPK = region === "PK";
   const productById = new Map(allProducts.map((p) => [p.id, p]));
 
@@ -166,13 +167,18 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
       </div>
 
-      {/* Customer reviews — show product-matched first, then fill with the rest */}
+      {/* Customer reviews — admin-curated from DB. Product-matched shown first.
+          Static region pool only used in dev (no Supabase configured). */}
       <Reviews
         eyebrow="Customer reviews"
         title="What customers say about us"
         reviews={(() => {
-          const matched = REVIEWS.filter((r) => r.product === product.name);
-          const others  = REVIEWS.filter((r) => r.product !== product.name);
+          let pool: typeof dbReviews;
+          if (dbReviews.length > 0) pool = dbReviews;
+          else if (!isSupabaseConfigured()) pool = isPK ? REVIEWS : REVIEWS_GLOBAL;
+          else pool = [];
+          const matched = pool.filter((r) => r.product === product.name);
+          const others  = pool.filter((r) => r.product !== product.name);
           return [...matched, ...others].slice(0, 3);
         })()}
       />

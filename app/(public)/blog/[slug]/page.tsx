@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { STATIC_POSTS, getAllPosts, getPost } from "@/lib/blog";
+import { getRegion } from "@/lib/region";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 
@@ -44,8 +45,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = await getPost(slug);
   if (!post) notFound();
 
+  const [allPostsRaw, region] = await Promise.all([getAllPosts(), getRegion()]);
+  const isPK = region === "PK";
+  // Hide PK-only posts from non-PK visitors entirely (404 if they navigate here).
+  if (!isPK && post.pkOnly) notFound();
   const tagColor = TAG_COLORS[post.tag];
-  const allPosts = await getAllPosts();
+  const allPosts = isPK ? allPostsRaw : allPostsRaw.filter((p) => !p.pkOnly);
   const related = allPosts.filter((p) => p.slug !== post.slug && p.tag === post.tag).slice(0, 2);
 
   // Render markdown-ish body — split paragraphs and h2 sections
@@ -136,7 +141,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <strong style={{ color: "var(--text)", fontFamily: "var(--font-heading)", display: "block", marginBottom: 4 }}>
               Ready to try the tools mentioned here?
             </strong>
-            <span style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>Browse the full catalog — paid in PKR, delivered in 30 minutes.</span>
+            <span style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
+              {isPK
+                ? "Browse the full catalog — paid in PKR, delivered in 30 minutes."
+                : "Browse the full catalog — delivered to your inbox in 30 minutes."}
+            </span>
           </div>
           <Link href="/shop" className="btn btn-primary">Browse the shop <i className="fa-solid fa-arrow-right"></i></Link>
         </div>

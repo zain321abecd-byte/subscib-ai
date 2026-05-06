@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "SubscribAI — Premium AI Subscriptions in Pakistan",
+    name: "SubscribAI — Premium AI Subscriptions",
     short_name: "SubscribAI",
-    description: "Premium AI subscriptions, automation packs, and digital tools — paid in PKR, delivered in minutes.",
+    description: "Premium AI subscriptions, automation packs, and digital tools — delivered in minutes.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",

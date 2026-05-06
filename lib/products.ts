@@ -16,6 +16,11 @@ export type Product = {
   featured?: boolean;
   /** Cloudinary or external image, set via admin panel. Optional. */
   imageUrl?: string;
+  /** Hex color (e.g. "#10A37F") rendered behind the brand icon. */
+  iconBgColor?: string;
+  /** "image" | "brand". Which visual to show as the main media when both
+   *  are set. Undefined → auto (image > brand). */
+  displaySource?: "image" | "brand";
   /** Additional gallery images (cover stays in imageUrl). */
   gallery?: string[];
   /** false when admin marks it out of stock. */
@@ -60,7 +65,7 @@ export const STATIC_PRODUCTS: Product[] = [
   // ── Automation Packs ────────────────────────────────────────────────
   { id: "automation-pack", name: "Automation Starter Pack", tag: "Business", price: 29, iconClass: "fa-solid fa-diagram-project", mediaClass: "media-orange", category: "automation", featured: true, description: "12 prebuilt no-code workflows for lead capture, client onboarding, content recycling, and invoice nudges." },
   { id: "social-media-pack", name: "Social Auto-Poster Pack", tag: "Marketing", price: 24, iconClass: "fa-solid fa-share-nodes", mediaClass: "media-pink", category: "automation", description: "Schedule and cross-post to Instagram, TikTok, Facebook, and LinkedIn from a single Notion database." },
-  { id: "ecommerce-pack", name: "E-commerce Order Pack", tag: "Business", price: 34, iconClass: "fa-solid fa-cart-flatbed", mediaClass: "media-blue", category: "automation", description: "Connect WooCommerce or Shopify to JazzCash reconciliation, customer SMS, and inventory alerts." },
+  { id: "ecommerce-pack", name: "E-commerce Order Pack", tag: "Business", price: 34, iconClass: "fa-solid fa-cart-flatbed", mediaClass: "media-blue", category: "automation", description: "Connect WooCommerce or Shopify to payment reconciliation, customer SMS, and inventory alerts." },
 
   // ── Courses ─────────────────────────────────────────────────────────
   { id: "ai-mastery", name: "AI Mastery Course (Bundle)", tag: "Course", price: 49, iconClass: "fa-solid fa-graduation-cap", mediaClass: "media-green", category: "courses", description: "Eight hours of self-paced video, 200 production-ready prompts, and 30 workflow templates. Lifetime access." },
@@ -87,6 +92,8 @@ function rowToProduct(row: ProductRow): Product {
     category: row.category as Product["category"],
     featured: row.featured,
     imageUrl: row.image_url ?? undefined,
+    iconBgColor: row.icon_bg_color ?? undefined,
+    displaySource: row.display_source === "image" || row.display_source === "brand" ? row.display_source : undefined,
     gallery: Array.isArray(row.gallery) ? row.gallery.filter((u) => typeof u === "string") : undefined,
     inStock: row.in_stock,
     // Default true if the column hasn't been added yet (graceful before migration).

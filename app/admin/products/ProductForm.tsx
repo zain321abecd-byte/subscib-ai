@@ -9,6 +9,7 @@ import TagInput from "../TagInput";
 import FeaturesInput from "../FeaturesInput";
 import RelatedProductsPicker from "./RelatedProductsPicker";
 import ProductReviewsInput, { type ReviewDraft } from "./ProductReviewsInput";
+import BrandIcon, { SUPPORTED_BRANDS } from "@/components/BrandIcon";
 import { createProduct, updateProduct } from "./actions";
 import type { ProductRow } from "@/lib/supabase/types";
 
@@ -56,6 +57,11 @@ export default function ProductForm({
   const [gallery, setGallery] = useState<string[]>(Array.isArray(product?.gallery) ? product!.gallery! : []);
   const [category, setCategory] = useState<CategoryValue>((product?.category as CategoryValue) ?? "ai-subscriptions");
   const [mediaClass, setMediaClass] = useState<MediaValue>((product?.media_class as MediaValue) ?? "media-blue");
+  const [brand, setBrand] = useState<string>(product?.brand ?? "");
+  const [iconBgColor, setIconBgColor] = useState<string>(product?.icon_bg_color ?? "");
+  const [displaySource, setDisplaySource] = useState<"image" | "brand" | "auto">(
+    product?.display_source === "image" || product?.display_source === "brand" ? product.display_source : "auto"
+  );
 
   // Wizard step state. Furthest reached step is tracked so steps the user has
   // already filled in are clickable in the stepper.
@@ -118,20 +124,160 @@ export default function ProductForm({
         </div>
       )}
 
-      {/* STEP 1 — VISUAL: Cover image + gallery + card colour */}
+      {/* STEP 1 — VISUAL: Brand icon (primary), then cover image override, gallery, card colour */}
       <section className="admin-card" hidden={step !== 0}>
         <header className="admin-section-head">
-          <h3>Cover image</h3>
-          <p>This is what shows up on the shop card and the product page.</p>
+          <h3>Product visual</h3>
+          <p>Pick a brand icon below — it's what shows on the shop card and product page. Upload a custom cover image only if you want to override it.</p>
         </header>
 
-        <ImagePicker
-          value={imageUrl}
-          onChange={setImageUrl}
-          folder="products"
-          tintBackground={MEDIA_OPTIONS.find((m) => m.value === mediaClass)?.swatch}
-        />
-        <input type="hidden" name="image_url" value={imageUrl} />
+        {/* Resolve the effective visual the same way the public ProductCard does. */}
+        {(() => {
+          const effective: "image" | "brand" | "none" =
+            displaySource === "image" ? (imageUrl ? "image" : brand ? "brand" : "none") :
+            displaySource === "brand" ? (brand ? "brand" : imageUrl ? "image" : "none") :
+            imageUrl ? "image" : brand ? "brand" : "none";
+          const showBrandTile = effective === "brand";
+          const tileBg = iconBgColor || undefined;
+          return (
+            <div className="admin-product-preview">
+              <div
+                className={`admin-product-preview-media ${effective === "image" ? mediaClass : "admin-product-preview-plain"}`}
+                style={effective === "brand" && tileBg ? { background: tileBg } : undefined}
+              >
+                {effective === "image" ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imageUrl} alt="Preview" />
+                    {brand && (
+                      <span className="admin-product-preview-badge" aria-hidden>
+                        <BrandIcon name={brand} size={16} />
+                      </span>
+                    )}
+                  </>
+                ) : showBrandTile ? (
+                  <span className="admin-product-preview-tile">
+                    <BrandIcon name={brand} size={76} />
+                  </span>
+                ) : (
+                  <i className="fa-solid fa-cube" style={{ fontSize: 32, color: "rgba(255,255,255,0.65)" }}></i>
+                )}
+              </div>
+              <div className="admin-product-preview-meta">
+                <strong>Live preview</strong>
+                <small>
+                  {effective === "image"
+                    ? brand
+                      ? `Image as main, ${SUPPORTED_BRANDS.find((b) => b.slug === brand)?.label || brand} as corner badge.`
+                      : "Showing custom cover image."
+                    : effective === "brand"
+                      ? `Showing brand icon: ${SUPPORTED_BRANDS.find((b) => b.slug === brand)?.label || brand}.`
+                      : "No icon selected — will fall back to a placeholder."}
+                </small>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Display source toggle — only meaningful when both an image AND a brand are set. */}
+        {imageUrl && brand && (
+          <div style={{ marginTop: 14 }}>
+            <label className="admin-label">Show as main visual</label>
+            <p className="admin-help" style={{ marginTop: 0, marginBottom: 8 }}>
+              You've set both an image and a brand icon. Pick which one fills the card; the other becomes a corner badge.
+            </p>
+            <div className="admin-display-source">
+              {([
+                { value: "image", label: "Image" },
+                { value: "brand", label: "Brand icon" },
+                { value: "auto", label: "Auto (image first)" },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`admin-display-source-opt ${displaySource === opt.value ? "is-active" : ""}`}
+                  onClick={() => setDisplaySource(opt.value)}
+                  aria-pressed={displaySource === opt.value}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <input type="hidden" name="display_source" value={displaySource === "auto" ? "" : displaySource} />
+          </div>
+        )}
+        {!(imageUrl && brand) && (
+          <input type="hidden" name="display_source" value="" />
+        )}
+
+        {/* Brand icon picker — primary visual choice. */}
+        <div style={{ marginTop: 22 }}>
+          <label className="admin-label">Brand icon</label>
+          <p className="admin-help" style={{ marginTop: 0, marginBottom: 10 }}>
+            Pick the AI tool / provider so its real logo shows on the shop card.
+          </p>
+          <div className="admin-brand-grid">
+            <button
+              type="button"
+              className={`admin-brand-chip ${brand === "" ? "is-active" : ""}`}
+              onClick={() => setBrand("")}
+              aria-pressed={brand === ""}
+              title="No brand icon"
+            >
+              <span className="admin-brand-chip-icon" style={{ background: "var(--surface-2)" }}>
+                <i className="fa-solid fa-ban" style={{ color: "var(--text-muted)", fontSize: 14 }}></i>
+              </span>
+              <span className="admin-brand-chip-label">None</span>
+            </button>
+            {SUPPORTED_BRANDS.map((b) => (
+              <button
+                key={b.slug}
+                type="button"
+                className={`admin-brand-chip ${brand === b.slug ? "is-active" : ""}`}
+                onClick={() => setBrand(b.slug)}
+                aria-pressed={brand === b.slug}
+                title={b.label}
+              >
+                <span className="admin-brand-chip-icon">
+                  <BrandIcon name={b.slug} size={22} />
+                </span>
+                <span className="admin-brand-chip-label">{b.label}</span>
+              </button>
+            ))}
+            {/* "Add your own" chip — scrolls to the cover image picker so admins
+                can upload any logo not in the static list. */}
+            <button
+              type="button"
+              className={`admin-brand-chip admin-brand-chip-add ${imageUrl ? "is-active" : ""}`}
+              onClick={() => {
+                setBrand("");
+                document.getElementById("custom-cover-image")?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+              title="Upload a custom logo"
+            >
+              <span className="admin-brand-chip-icon admin-brand-chip-add-icon">
+                <i className="fa-solid fa-plus" style={{ fontSize: 14 }}></i>
+              </span>
+              <span className="admin-brand-chip-label">{imageUrl ? "Custom ✓" : "Add custom"}</span>
+            </button>
+          </div>
+          <input type="hidden" name="brand" value={brand} />
+        </div>
+
+        {/* Custom cover image — optional override for brands not in the list. */}
+        <div id="custom-cover-image" style={{ marginTop: 22, scrollMarginTop: 80 }}>
+          <label className="admin-label">Custom cover image (your own logo)</label>
+          <p className="admin-help" style={{ marginTop: 0, marginBottom: 10 }}>
+            Upload any logo or illustration here. Use this when the brand you need isn't in the chip grid above. Overrides the brand icon when set.
+          </p>
+          <ImagePicker
+            value={imageUrl}
+            onChange={setImageUrl}
+            folder="products"
+            tintBackground={MEDIA_OPTIONS.find((m) => m.value === mediaClass)?.swatch}
+          />
+          <input type="hidden" name="image_url" value={imageUrl} />
+        </div>
 
         <div style={{ marginTop: 18 }}>
           <label className="admin-label">Gallery (optional, up to 4 extra images)</label>
@@ -139,30 +285,55 @@ export default function ProductForm({
           <input type="hidden" name="gallery" value={JSON.stringify(gallery)} />
         </div>
 
+        {/* Card colour preserved as a hidden field so the image-gradient frame
+            still works for products that use a custom cover image. The visual
+            picker was removed in favour of the unified colour picker below. */}
+        <input type="hidden" name="media_class" value={mediaClass} />
+
+        {/* Brand-icon background colour picker. Only relevant when the brand
+            icon (not the image) is the displayed visual. */}
         <div style={{ marginTop: 18 }}>
-          <label className="admin-label">Card colour</label>
-          <div className="admin-swatch-row" role="radiogroup" aria-label="Card colour">
-            {MEDIA_OPTIONS.map((m) => (
+          <label className="admin-label">Icon background colour (brand-icon view)</label>
+          <p className="admin-help" style={{ marginTop: 0, marginBottom: 10 }}>
+            Pick any colour to sit behind the brand icon. Leave blank to use the card surface.
+          </p>
+          <div className="admin-color-row">
+            <button
+              type="button"
+              className={`admin-color-swatch ${iconBgColor === "" ? "is-active" : ""}`}
+              onClick={() => setIconBgColor("")}
+              title="No background (use card surface)"
+              style={{ background: "var(--surface-2)" }}
+            >
+              <i className="fa-solid fa-ban" style={{ color: "var(--text-muted)", fontSize: 14 }}></i>
+            </button>
+            {["#FFFFFF", "#10A37F", "#4796E3", "#D97757", "#7B68EE", "#FF4F00", "#0F172A", "#EA4B71"].map((c) => (
               <button
-                key={m.value}
+                key={c}
                 type="button"
-                role="radio"
-                aria-checked={mediaClass === m.value}
-                className={`admin-swatch ${mediaClass === m.value ? "is-active" : ""}`}
-                onClick={() => setMediaClass(m.value)}
-                title={m.label}
-                style={{ background: m.swatch }}
-              >
-                {mediaClass === m.value && <i className="fa-solid fa-check"></i>}
-              </button>
+                className={`admin-color-swatch ${iconBgColor.toLowerCase() === c.toLowerCase() ? "is-active" : ""}`}
+                onClick={() => setIconBgColor(c)}
+                title={c}
+                style={{ background: c }}
+              />
             ))}
+            <label className="admin-color-custom" title="Pick any colour">
+              <input
+                type="color"
+                value={iconBgColor || "#ffffff"}
+                onChange={(e) => setIconBgColor(e.target.value)}
+              />
+              <i className="fa-solid fa-palette"></i>
+              <span>Custom</span>
+            </label>
+            {iconBgColor && (
+              <span className="admin-color-value">{iconBgColor.toUpperCase()}</span>
+            )}
           </div>
-          <input type="hidden" name="media_class" value={mediaClass} />
-          <p className="admin-help">Used as a fallback tint when the image is missing or still loading.</p>
+          <input type="hidden" name="icon_bg_color" value={iconBgColor} />
         </div>
 
-        {/* Keep legacy fallbacks hidden so existing seed rows don't lose them. */}
-        <input type="hidden" name="brand" value={product?.brand ?? ""} />
+        {/* Legacy FontAwesome fallback — preserved invisibly for existing rows. */}
         <input type="hidden" name="icon_class" value={product?.icon_class ?? "fa-solid fa-cube"} />
       </section>
 

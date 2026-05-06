@@ -3,7 +3,7 @@ import ShopClient from "./ShopClient";
 
 export const metadata = {
   title: "Shop — All AI Subscriptions",
-  description: "Every AI tool, one cart. Filter by category, search by name, sort by price. Pay with JazzCash, Easypaisa, or Card.",
+  description: "Every AI tool, one cart. Filter by category, search by name, sort by price. Secure card checkout — local wallet options available where supported.",
   alternates: { canonical: "/shop" },
 };
 

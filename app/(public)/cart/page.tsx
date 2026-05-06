@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
+import { useFx } from "@/lib/fx";
 
 export default function CartPage() {
   const cart = useCart();
+  const { region, usdToPkr, ready: fxReady } = useFx();
+  const isPK = region === "PK";
+  const fmtMoney = (usd: number) => {
+    if (isPK) return fxReady ? `Rs ${Math.round(usd * usdToPkr).toLocaleString("en-PK")}` : "—";
+    return `$${usd.toFixed(2)}`;
+  };
 
   if (!cart.ready) {
     return (
@@ -49,7 +56,7 @@ export default function CartPage() {
           <div className="surface-card" style={{ padding: 0 }}>
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {cart.items.map((item, idx) => (
-                <li key={item.id} style={{
+                <li key={item.id} className="cart-line-row" style={{
                   display: "grid",
                   gridTemplateColumns: "auto 1fr auto auto",
                   gap: "var(--space-4)",
@@ -63,7 +70,7 @@ export default function CartPage() {
 
                   <div style={{ minWidth: 0 }}>
                     <strong style={{ display: "block", color: "var(--text)", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "var(--fs-md)" }}>{item.name}</strong>
-                    <small style={{ color: "var(--text-muted)", display: "block", marginTop: 2 }}>${item.price} each</small>
+                    <small style={{ color: "var(--text-muted)", display: "block", marginTop: 2 }}>{fmtMoney(item.price)} each</small>
                   </div>
 
                   {/* Qty controls */}
@@ -74,7 +81,7 @@ export default function CartPage() {
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <strong style={{ color: "var(--text)", fontFamily: "var(--font-heading)", fontSize: "var(--fs-lg)" }}>${(item.price * item.qty).toFixed(2)}</strong>
+                    <strong style={{ color: "var(--text)", fontFamily: "var(--font-heading)", fontSize: "var(--fs-lg)" }}>{fmtMoney(item.price * item.qty)}</strong>
                     <button type="button" onClick={() => cart.remove(item.id)} aria-label="Remove" className="product-icon-action" style={{ background: "var(--surface-soft)" }}>
                       <i className="fa-solid fa-trash"></i>
                     </button>
@@ -88,10 +95,10 @@ export default function CartPage() {
           <aside className="surface-card" style={{ position: "sticky", top: 92 }}>
             <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-xl)", color: "var(--text)", marginBottom: "var(--space-4)" }}>Order summary</h3>
             <div style={{ display: "grid", gap: 10, fontSize: "var(--fs-sm)", color: "var(--text-soft)" }}>
-              <div style={summaryRow}><span>Subtotal</span><span>${cart.subtotal.toFixed(2)}</span></div>
-              <div style={summaryRow}><span>Taxes</span><span>${tax.toFixed(2)}</span></div>
+              <div style={summaryRow}><span>Subtotal</span><span>{fmtMoney(cart.subtotal)}</span></div>
+              <div style={summaryRow}><span>Taxes</span><span>{fmtMoney(tax)}</span></div>
               <div style={{ ...summaryRow, paddingTop: 12, borderTop: "1px solid var(--border)", color: "var(--text)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-lg)" }}>
-                <span>Total</span><span>${total.toFixed(2)}</span>
+                <span>Total</span><span>{fmtMoney(total)}</span>
               </div>
             </div>
             <Link href="/checkout" className="btn btn-primary btn-large" style={{ width: "100%", justifyContent: "center", marginTop: "var(--space-5)" }}>
@@ -110,6 +117,13 @@ export default function CartPage() {
             </ul>
           </aside>
         </div>
+      </div>
+
+      {/* Mobile-only sticky checkout bar */}
+      <div className="cart-sticky-cta">
+        <Link href="/checkout" className="btn btn-primary btn-large">
+          Checkout · {fmtMoney(total)} <i className="fa-solid fa-arrow-right"></i>
+        </Link>
       </div>
 
       <style>{`

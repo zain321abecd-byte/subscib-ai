@@ -11,7 +11,7 @@ async function fetchRate(): Promise<number> {
   try {
     const r = await fetch("https://open.er-api.com/v6/latest/USD", {
       next: { revalidate: 3600 },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(5000),
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
@@ -24,10 +24,18 @@ async function fetchRate(): Promise<number> {
 }
 
 export async function GET() {
-  if (cache && Date.now() - cache.fetchedAt < TTL_MS) {
-    return NextResponse.json({ usdToPkr: cache.rate, cached: true, fetchedAt: cache.fetchedAt });
+  // Belt-and-suspenders: never let this route return 500. The client uses the
+  // rate to format prices everywhere — a hard failure here would render every
+  // price as "—". On any unexpected error we serve the cached or fallback rate.
+  try {
+    if (cache && Date.now() - cache.fetchedAt < TTL_MS) {
+      return NextResponse.json({ usdToPkr: cache.rate, cached: true, fetchedAt: cache.fetchedAt });
+    }
+    const rate = await fetchRate();
+    cache = { rate, fetchedAt: Date.now() };
+    return NextResponse.json({ usdToPkr: rate, cached: false, fetchedAt: cache.fetchedAt });
+  } catch {
+    const rate = cache?.rate ?? FALLBACK_RATE;
+    return NextResponse.json({ usdToPkr: rate, cached: !!cache, fetchedAt: cache?.fetchedAt ?? Date.now(), fallback: true });
   }
-  const rate = await fetchRate();
-  cache = { rate, fetchedAt: Date.now() };
-  return NextResponse.json({ usdToPkr: rate, cached: false, fetchedAt: cache.fetchedAt });
 }
