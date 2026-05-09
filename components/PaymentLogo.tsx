@@ -1,18 +1,16 @@
-// Inline-SVG wordmark badges for the Pakistani payment wallets we accept.
-// JazzCash and Easypaisa are not in Simple Icons (and downloading their
-// official PNGs into the repo risks trademark issues), so we render
-// recognizable pill-shaped wordmarks in each brand's own colour.
+// Renders the real JazzCash / Easypaisa / Mastercard logos that live in
+// /public/assets/. Plain <img> is used (not next/image) because these are
+// small payment-method badges where layout-shift / optimization don't
+// matter and we want the natural aspect ratio without computing widths.
 
-type Provider = "jazzcash" | "easypaisa";
+type Provider = "jazzcash" | "easypaisa" | "card";
 
-const COLORS: Record<Provider, { bg: string; fg: string }> = {
-  jazzcash:  { bg: "#ED1C24", fg: "#ffffff" }, // Jazz red
-  easypaisa: { bg: "#54B848", fg: "#ffffff" }, // Easypaisa green
-};
-
-const LABELS: Record<Provider, { primary: string; secondary?: string }> = {
-  jazzcash:  { primary: "Jazz", secondary: "Cash" },
-  easypaisa: { primary: "easypaisa" },
+const SOURCES: Record<Provider, { src: string; label: string }> = {
+  jazzcash:  { src: "/assets/jazzcash.webp",  label: "JazzCash"  },
+  // Note: the file ships as "easypysa.webp" (typo at upload time); kept
+  // as-is so we don't have to rename a binary asset.
+  easypaisa: { src: "/assets/easypysa.webp",  label: "Easypaisa" },
+  card:      { src: "/assets/mastercard.jpeg", label: "Card"     },
 };
 
 export default function PaymentLogo({
@@ -24,61 +22,20 @@ export default function PaymentLogo({
   height?: number;
   className?: string;
 }) {
-  const { bg, fg } = COLORS[provider];
-  const { primary, secondary } = LABELS[provider];
-  const radius = height / 2;
-  const padX = height * 0.55;
-
-  // Approximate width — actual widths come from the SVG <text> rendering, so
-  // we set viewBox tall and let the parent scale via height.
-  const viewW =
-    provider === "easypaisa"
-      ? height * 5.4
-      : height * 4.2;
-
+  const { src, label } = SOURCES[provider];
   return (
-    <svg
-      role="img"
-      aria-label={provider === "jazzcash" ? "JazzCash" : "Easypaisa"}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={label}
       className={className}
-      height={height}
-      viewBox={`0 0 ${viewW} ${height}`}
-      style={{ display: "inline-block", verticalAlign: "middle" }}
-    >
-      <rect x={0} y={0} width={viewW} height={height} rx={radius} ry={radius} fill={bg} />
-      {secondary ? (
-        // JazzCash — italic "Jazz" + bold "Cash" with a tiny separator dot
-        <g
-          fill={fg}
-          fontFamily="Inter, system-ui, -apple-system, sans-serif"
-          fontWeight={800}
-          fontSize={height * 0.6}
-          dominantBaseline="central"
-          textRendering="geometricPrecision"
-        >
-          <text x={padX} y={height / 2} fontStyle="italic">
-            {primary}
-          </text>
-          <text x={padX + height * 1.55} y={height / 2}>
-            {secondary}
-          </text>
-        </g>
-      ) : (
-        // Easypaisa — single lowercase wordmark
-        <text
-          x={padX}
-          y={height / 2}
-          fill={fg}
-          fontFamily="Inter, system-ui, -apple-system, sans-serif"
-          fontWeight={700}
-          fontSize={height * 0.58}
-          dominantBaseline="central"
-          textRendering="geometricPrecision"
-          letterSpacing="-0.02em"
-        >
-          {primary}
-        </text>
-      )}
-    </svg>
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        height,
+        width: "auto",
+        objectFit: "contain",
+      }}
+    />
   );
 }

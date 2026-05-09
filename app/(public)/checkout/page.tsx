@@ -421,12 +421,8 @@ export default function CheckoutPage() {
                     transition: "all var(--dur)",
                   }}>
                     <input type="radio" name="provider" value={id} checked={provider === id} onChange={() => setProvider(id)} style={{ display: "none" }} />
-                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8, minHeight: 28 }}>
-                      {id === "card" ? (
-                        <i className="fa-solid fa-credit-card" style={{ fontSize: 24, color: provider === id ? "var(--brand-600)" : "var(--text-muted)" }}></i>
-                      ) : (
-                        <PaymentLogo provider={id} height={26} />
-                      )}
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8, minHeight: 32 }}>
+                      <PaymentLogo provider={id} height={32} />
                     </span>
                     <strong style={{ color: "var(--text)", fontSize: "var(--fs-sm)" }}>{label}</strong>
                   </label>

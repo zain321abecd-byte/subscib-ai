@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 64" role="img" aria-label="JazzCash">
+  <defs>
+    <linearGradient id="jc-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4242C"/>
+      <stop offset="1" stop-color="#C8161D"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="220" height="64" rx="32" ry="32" fill="url(#jc-bg)"/>
+  <g fill="#ffffff" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+    <text x="22" y="42" font-size="32" font-weight="900" font-style="italic" letter-spacing="-1">Jazz</text>
+    <text x="106" y="42" font-size="28" font-weight="700" letter-spacing="0">Cash</text>
+    <path d="M22 48 q24 6 60 0" stroke="#FFC400" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.9"/>
+  </g>
+</svg>
