@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import Select from "@/components/Select";
+import { useFx, formatPriceFromPKR } from "@/lib/fx";
 import type { Product } from "@/lib/products";
 
 const CATEGORIES = [
@@ -34,6 +35,10 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
   const [search, setSearch] = useState("");
   const [maxPrice, setMaxPrice] = useState(PRICE_BOUNDS.max);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const { currency, usdToPkr, ready: fxReady } = useFx();
+  // The slider holds raw PKR (the canonical product price). Show the visitor
+  // their preferred currency in the label / bounds so the filter feels native.
+  const fmtFilterPrice = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady);
 
   const items = useMemo(() => {
     let list = PRODUCTS.slice();
@@ -93,7 +98,7 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
       </div>
 
       <div className="shop-filter-block">
-        <label className="field-label">Max price: <strong style={{ color: "var(--text)" }}>${maxPrice}</strong></label>
+        <label className="field-label">Max price: <strong style={{ color: "var(--text)" }}>{fmtFilterPrice(maxPrice)}</strong></label>
         <input
           type="range"
           min={PRICE_BOUNDS.min}
@@ -104,8 +109,8 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
           className="shop-range"
         />
         <div className="shop-range-bounds">
-          <span>${PRICE_BOUNDS.min}</span>
-          <span>${PRICE_BOUNDS.max}</span>
+          <span>{fmtFilterPrice(PRICE_BOUNDS.min)}</span>
+          <span>{fmtFilterPrice(PRICE_BOUNDS.max)}</span>
         </div>
       </div>
 

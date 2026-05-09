@@ -34,7 +34,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Invalid email" }, { status: 400 });
   }
 
-  const subtotalUsd = items.reduce((s, i) => s + Number(i.price) * Number(i.qty || 1), 0);
+  // Item `price` is the PKR amount stored in products at the time of adding
+  // to cart (canonical since 2026-05). subtotal_pkr is the source of truth;
+  // subtotal_usd is what the foreign gateway charges and is provided by the
+  // client (computed against the live FX rate).
+  const subtotalPkr = items.reduce((s, i) => s + Number(i.price) * Number(i.qty || 1), 0);
+  const subtotalUsd =
+    typeof body.subtotal_usd === "number" && body.subtotal_usd > 0
+      ? body.subtotal_usd
+      : null;
 
   // If Supabase isn't configured, no-op gracefully — checkout still works.
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -73,8 +81,8 @@ export async function POST(req: Request) {
       customer_phone: typeof body.customer_phone === "string" ? body.customer_phone.trim() : null,
       customer_name: typeof body.customer_name === "string" ? body.customer_name.trim() : null,
       items,
-      subtotal_usd: subtotalUsd.toFixed(2),
-      subtotal_pkr: typeof body.subtotal_pkr === "number" ? body.subtotal_pkr : null,
+      subtotal_usd: subtotalUsd != null ? subtotalUsd.toFixed(2) : null,
+      subtotal_pkr: typeof body.subtotal_pkr === "number" ? body.subtotal_pkr : subtotalPkr,
       status: "pending",
       payment_method: typeof body.payment_method === "string" ? body.payment_method : null,
       transaction_id: typeof body.transaction_id === "string" ? body.transaction_id : null,

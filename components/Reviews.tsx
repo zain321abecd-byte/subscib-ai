@@ -6,6 +6,7 @@ type Review = {
   product?: string;
   text: string;
   color: string;
+  photoUrl?: string;
 };
 
 export const REVIEWS: Review[] = [
@@ -83,7 +84,19 @@ export default async function Reviews({
               <div className="v2-stars" aria-label="5 out of 5">★★★★★</div>
               <p>“{r.text}”</p>
               <div className="v2-testimonial-foot">
-                <span className="v2-avatar" style={{ background: r.color }}>{r.initials}</span>
+                {r.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={r.photoUrl}
+                    alt={r.name}
+                    className="v2-avatar v2-avatar-photo"
+                    width={40}
+                    height={40}
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="v2-avatar" style={{ background: r.color }}>{r.initials}</span>
+                )}
                 <div>
                   <strong>{r.name}</strong>
                   <small>

@@ -91,11 +91,14 @@ export default async function HomePage() {
                 </div>
                 <div className="v2-hero-preview-tiles">
                   {(() => {
-                    // FX rate from admin settings (manual override → live API → 280 default)
+                    // Prices are stored in PKR canonically. PK visitors see Rs
+                    // directly; foreign visitors get USD via the FX rate (admin
+                    // override → 280 default during SSR — the client may
+                    // re-fetch the live rate).
                     const fxRate = Number(settings.fx_rate_pkr_per_usd) || 280;
-                    const fmtPrice = (usd: number) => isPK
-                      ? `Rs ${Math.round(usd * fxRate).toLocaleString("en-PK")} / month`
-                      : `$${usd} / month`;
+                    const fmtPrice = (pkr: number) => isPK
+                      ? `Rs ${Math.round(pkr).toLocaleString("en-PK")} / month`
+                      : `$${(pkr / fxRate).toFixed(2)} / month`;
                     const palette = [
                       { bc: "badge-success" },
                       { bc: "badge-brand"   },

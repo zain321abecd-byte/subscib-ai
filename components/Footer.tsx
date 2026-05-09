@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import PaymentLogo from "./PaymentLogo";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getRegion } from "@/lib/region";
 
@@ -23,8 +24,8 @@ export default async function Footer() {
           <Link href="/"><Image src="/assets/subscribai-logo.png" alt="SubscribAI" width={140} height={36} /></Link>
           <p>Premium AI subscriptions, automation packs, and digital tools — delivered in minutes.</p>
           <div className="v2-pay-row">
-            {isPK && <span><i className="fa-solid fa-mobile-screen"></i> JazzCash</span>}
-            {isPK && <span><i className="fa-solid fa-mobile-screen"></i> Easypaisa</span>}
+            {isPK && <span className="v2-pay-chip"><PaymentLogo provider="jazzcash" height={20} /></span>}
+            {isPK && <span className="v2-pay-chip"><PaymentLogo provider="easypaisa" height={20} /></span>}
             <span><i className="fa-solid fa-credit-card"></i> Card</span>
           </div>
           {socials.length > 0 && (

@@ -1,5 +1,6 @@
 import SectionShell from "../SectionShell";
 import StyledSelectField from "../../StyledSelectField";
+import FloatField from "../../FloatField";
 import { dynamic, loadSettings, asString } from "../_shared";
 
 export { dynamic };
@@ -42,20 +43,17 @@ export default async function CurrencySettings({
           </p>
         </div>
 
-        <div>
-          <label className="admin-label" htmlFor="fx_rate_pkr_per_usd">FX rate override (PKR per USD)</label>
-          <input
-            id="fx_rate_pkr_per_usd"
-            name="setting:fx_rate_pkr_per_usd"
-            type="number"
-            step="0.01"
-            min="0"
-            className="admin-input"
-            defaultValue={asString(s["fx_rate_pkr_per_usd"])}
-            placeholder="Leave empty to use the live rate"
-          />
-          <p className="admin-help">Empty / 0 → use the live rate from open.er-api.com (refreshed every 24h on the server).</p>
-        </div>
+        <FloatField
+          id="fx_rate_pkr_per_usd"
+          name="setting:fx_rate_pkr_per_usd"
+          type="number"
+          step="0.01"
+          min={0}
+          label="FX rate override (PKR per USD)"
+          icon="fa-money-bill-trend-up"
+          defaultValue={asString(s["fx_rate_pkr_per_usd"])}
+          hint="Empty / 0 → use the live rate from open.er-api.com (refreshed every 24h on the server)."
+        />
 
         <div className="settings-bool-row">
           <input type="hidden" name="setting:currency_switcher" value="false" />

@@ -1,4 +1,5 @@
 import SectionShell from "../SectionShell";
+import FloatField from "../../FloatField";
 import { dynamic, loadSettings, asString } from "../_shared";
 
 export { dynamic };
@@ -20,30 +21,25 @@ export default async function BrandingSettings({
       error={params.error}
     >
       <div className="admin-form-stack">
-        <div>
-          <label className="admin-label" htmlFor="hero_headline">Hero headline</label>
-          <input
-            id="hero_headline"
-            name="setting:hero_headline"
-            className="admin-input"
-            defaultValue={asString(s["hero_headline"])}
-            placeholder="Premium AI tools,"
-          />
-          <p className="admin-help">First line of the homepage hero, before the typewriter animation.</p>
-        </div>
+        <FloatField
+          id="hero_headline"
+          name="setting:hero_headline"
+          label="Hero headline"
+          icon="fa-heading"
+          defaultValue={asString(s["hero_headline"])}
+          hint="First line of the homepage hero, before the typewriter animation."
+        />
 
-        <div>
-          <label className="admin-label" htmlFor="hero_subtext">Hero subtext</label>
-          <textarea
-            id="hero_subtext"
-            name="setting:hero_subtext"
-            className="admin-textarea"
-            defaultValue={asString(s["hero_subtext"])}
-            placeholder="Activated to your inbox in under 30 minutes…"
-            rows={4}
-          />
-          <p className="admin-help">Long-form description under the headline.</p>
-        </div>
+        <FloatField
+          as="textarea"
+          id="hero_subtext"
+          name="setting:hero_subtext"
+          label="Hero subtext"
+          icon="fa-align-left"
+          defaultValue={asString(s["hero_subtext"])}
+          rows={4}
+          hint="Long-form description under the headline."
+        />
       </div>
     </SectionShell>
   );

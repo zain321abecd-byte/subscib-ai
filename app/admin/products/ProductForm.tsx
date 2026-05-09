@@ -9,6 +9,7 @@ import TagInput from "../TagInput";
 import FeaturesInput from "../FeaturesInput";
 import RelatedProductsPicker from "./RelatedProductsPicker";
 import ProductReviewsInput, { type ReviewDraft } from "./ProductReviewsInput";
+import FloatField from "../FloatField";
 import BrandIcon, { SUPPORTED_BRANDS } from "@/components/BrandIcon";
 import { createProduct, updateProduct } from "./actions";
 import type { ProductRow } from "@/lib/supabase/types";
@@ -86,8 +87,25 @@ export default function ProductForm({
     });
   }
 
+  function handleInvalid(e: React.FormEvent<HTMLFormElement>) {
+    const target = e.target as HTMLElement;
+    if (!target?.closest) return;
+    const section = target.closest("section[data-step]") as HTMLElement | null;
+    if (!section) return;
+    const idx = Number(section.dataset.step);
+    if (Number.isNaN(idx) || idx === step) return;
+    e.preventDefault();
+    if (idx > maxReached) setMaxReached(idx);
+    setStep(idx);
+    requestAnimationFrame(() => {
+      const el = target as HTMLInputElement | HTMLTextAreaElement;
+      if (typeof el.reportValidity === "function") el.reportValidity();
+      el.focus?.();
+    });
+  }
+
   return (
-    <form action={handleSubmit} className="admin-form admin-form-narrow">
+    <form action={handleSubmit} onInvalidCapture={handleInvalid} className="admin-form admin-form-narrow">
       {isEdit && <input type="hidden" name="__original_id" value={product!.id} />}
 
       {/* STEPPER */}
@@ -125,7 +143,7 @@ export default function ProductForm({
       )}
 
       {/* STEP 1 — VISUAL: Brand icon (primary), then cover image override, gallery, card colour */}
-      <section className="admin-card" hidden={step !== 0}>
+      <section className="admin-card" data-step={0} hidden={step !== 0}>
         <header className="admin-section-head">
           <h3>Product visual</h3>
           <p>Pick a brand icon below — it's what shows on the shop card and product page. Upload a custom cover image only if you want to override it.</p>
@@ -338,24 +356,26 @@ export default function ProductForm({
       </section>
 
       {/* STEP 2 — DETAILS: Basics */}
-      <section className="admin-card" hidden={step !== 1}>
+      <section className="admin-card" data-step={1} hidden={step !== 1}>
         <header className="admin-section-head">
           <h3>Basics</h3>
           <p>Name, description, and category.</p>
         </header>
 
         <div className="admin-form-stack">
-          <div>
-            <label className="admin-label" htmlFor="name">Name</label>
-            <input id="name" name="name" required className="admin-input" defaultValue={product?.name ?? ""} placeholder="ChatGPT Plus Plan" />
-            {isEdit && product?.id ? (
-              <p className="admin-help">
-                URL: <code style={{ color: "var(--text-soft)" }}>/product/{product.id}</code> · auto-generated, stays stable on edits
-              </p>
-            ) : (
-              <p className="admin-help">URL is auto-generated from the name (e.g. <code>/product/chatgpt-plus</code>).</p>
-            )}
-          </div>
+          <FloatField
+            id="name"
+            name="name"
+            label="Name"
+            icon="fa-tag"
+            required
+            defaultValue={product?.name ?? ""}
+            hint={
+              isEdit && product?.id
+                ? <>URL: <code style={{ color: "var(--text-soft)" }}>/product/{product.id}</code> · auto-generated, stays stable on edits</>
+                : <>URL is auto-generated from the name (e.g. <code>/product/chatgpt-plus</code>).</>
+            }
+          />
 
           <div className="admin-row cols-2">
             <div>
@@ -384,7 +404,7 @@ export default function ProductForm({
       </section>
 
       {/* STEP 2 — DETAILS: Pricing & packages */}
-      <section className="admin-card" hidden={step !== 1}>
+      <section className="admin-card" data-step={1} hidden={step !== 1}>
         <header className="admin-section-head">
           <h3>Pricing &amp; packages</h3>
           <p>Two tiers shown side-by-side on the product page. Leave the Private tier empty if you only sell shared.</p>
@@ -404,20 +424,22 @@ export default function ProductForm({
                 aria-label="Shared tier label"
               />
             </div>
-            <label className="admin-label" htmlFor="price">Price (USD)</label>
+            <label className="admin-label" htmlFor="price">Price (PKR)</label>
             <div className="admin-input-prefix">
-              <span>$</span>
-              <input id="price" name="price" type="number" min="0" step="0.01" required defaultValue={product?.price ?? ""} placeholder="19" />
+              <span>Rs</span>
+              <input id="price" name="price" type="number" min="0" step="1" required defaultValue={product?.price ?? ""} placeholder="5000" />
             </div>
-            <label className="admin-label" htmlFor="description" style={{ marginTop: 12 }}>Description / what&rsquo;s included</label>
-            <textarea
-              id="description"
-              name="description"
-              className="admin-textarea"
-              defaultValue={product?.description ?? ""}
-              placeholder="Shared account login. Best for solo users."
-              rows={4}
-            />
+            <div style={{ marginTop: 12 }}>
+              <FloatField
+                as="textarea"
+                id="description"
+                name="description"
+                label="Description / what’s included"
+                icon="fa-align-left"
+                defaultValue={product?.description ?? ""}
+                rows={4}
+              />
+            </div>
           </div>
 
           {/* Private tier (optional, uses new private_* columns) */}
@@ -433,9 +455,9 @@ export default function ProductForm({
                 aria-label="Private tier label"
               />
             </div>
-            <label className="admin-label" htmlFor="private_price">Price (USD) — optional</label>
+            <label className="admin-label" htmlFor="private_price">Price (PKR) — optional</label>
             <div className="admin-input-prefix">
-              <span>$</span>
+              <span>Rs</span>
               <input
                 id="private_price"
                 name="private_price"
@@ -443,25 +465,27 @@ export default function ProductForm({
                 min="0"
                 step="0.01"
                 defaultValue={product?.private_price ?? ""}
-                placeholder="49"
+                placeholder="14000"
               />
             </div>
-            <label className="admin-label" htmlFor="private_description" style={{ marginTop: 12 }}>Description / what&rsquo;s included</label>
-            <textarea
-              id="private_description"
-              name="private_description"
-              className="admin-textarea"
-              defaultValue={product?.private_description ?? ""}
-              placeholder="Dedicated account, only you have access. Replacement guarantee for full period."
-              rows={4}
-            />
-            <p className="admin-help">Leave price empty / 0 to hide the Private tier.</p>
+            <div style={{ marginTop: 12 }}>
+              <FloatField
+                as="textarea"
+                id="private_description"
+                name="private_description"
+                label="Description / what’s included"
+                icon="fa-align-left"
+                defaultValue={product?.private_description ?? ""}
+                rows={4}
+                hint="Leave price empty / 0 to hide the Private tier."
+              />
+            </div>
           </div>
         </div>
       </section>
 
       {/* STEP 2 — DETAILS: Features (bullet lines under the price) */}
-      <section className="admin-card" hidden={step !== 1}>
+      <section className="admin-card" data-step={1} hidden={step !== 1}>
         <header className="admin-section-head">
           <h3>What&rsquo;s included</h3>
           <p>Bullet lines shown under the price on the product page. Drag to reorder.</p>
@@ -475,18 +499,23 @@ export default function ProductForm({
       </section>
 
       {/* STEP 3 — PUBLISH: Visibility */}
-      <section className="admin-card" hidden={step !== 2}>
+      <section className="admin-card" data-step={2} hidden={step !== 2}>
         <header className="admin-section-head">
           <h3>Visibility</h3>
           <p>Where this product shows up and in what order.</p>
         </header>
 
         <div className="admin-row cols-2">
-          <div>
-            <label className="admin-label" htmlFor="sort_order">Sort order</label>
-            <input id="sort_order" name="sort_order" type="number" step="1" className="admin-input" defaultValue={product?.sort_order ?? 0} />
-            <p className="admin-help">Lower numbers appear first on the shop page.</p>
-          </div>
+          <FloatField
+            id="sort_order"
+            name="sort_order"
+            type="number"
+            step="1"
+            label="Sort order"
+            icon="fa-arrow-down-1-9"
+            defaultValue={product?.sort_order ?? 0}
+            hint="Lower numbers appear first on the shop page."
+          />
           <div className="admin-toggle-stack">
             <label className="admin-toggle">
               <input type="checkbox" name="in_stock" defaultChecked={product?.in_stock ?? true} />
@@ -517,7 +546,7 @@ export default function ProductForm({
       </section>
 
       {/* STEP 3 — PUBLISH: Related products (admin-curated) */}
-      <section className="admin-card" hidden={step !== 2}>
+      <section className="admin-card" data-step={2} hidden={step !== 2}>
         <header className="admin-section-head">
           <h3>You may also like</h3>
           <p>Pick the exact products to recommend on this product&rsquo;s detail page. Leave empty to fall back to category-based suggestions.</p>
@@ -532,7 +561,7 @@ export default function ProductForm({
       </section>
 
       {/* STEP 3 — PUBLISH: Reviews (per-product) */}
-      <section className="admin-card" hidden={step !== 2}>
+      <section className="admin-card" data-step={2} hidden={step !== 2}>
         <header className="admin-section-head">
           <h3>Customer reviews</h3>
           <p>Reviews shown on this product&rsquo;s detail page. Add as many as you like.</p>

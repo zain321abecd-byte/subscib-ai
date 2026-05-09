@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import ImagePicker from "../ImagePicker";
 import Select from "@/components/Select";
+import FloatField from "../FloatField";
 import { createPost, updatePost } from "./actions";
 import type { BlogPostRow } from "@/lib/supabase/types";
 
@@ -69,39 +70,44 @@ export default function PostForm({ post }: { post?: BlogPostRow }) {
         </header>
 
         <div className="admin-form-stack">
-          <div>
-            <label className="admin-label" htmlFor="title">Title</label>
-            <input id="title" name="title" required className="admin-input" defaultValue={post?.title ?? ""} placeholder="AI for Pakistani businesses" />
-            {isEdit && post?.slug ? (
-              <p className="admin-help">
-                URL: <code style={{ color: "var(--text-soft)" }}>/blog/{post.slug}</code> · auto-generated, stays stable on edits
-              </p>
-            ) : (
-              <p className="admin-help">URL is auto-generated from the title.</p>
-            )}
-          </div>
+          <FloatField
+            id="title"
+            name="title"
+            label="Title"
+            icon="fa-heading"
+            required
+            defaultValue={post?.title ?? ""}
+            hint={
+              isEdit && post?.slug
+                ? <>URL: <code style={{ color: "var(--text-soft)" }}>/blog/{post.slug}</code> · auto-generated, stays stable on edits</>
+                : "URL is auto-generated from the title."
+            }
+          />
 
-          <div>
-            <label className="admin-label" htmlFor="excerpt">Excerpt</label>
-            <textarea id="excerpt" name="excerpt" required className="admin-textarea" defaultValue={post?.excerpt ?? ""} placeholder="One-sentence summary shown on the blog index card." />
-          </div>
+          <FloatField
+            as="textarea"
+            id="excerpt"
+            name="excerpt"
+            label="Excerpt"
+            icon="fa-quote-left"
+            required
+            defaultValue={post?.excerpt ?? ""}
+          />
 
-          <div>
-            <label className="admin-label" htmlFor="body">Body</label>
-            <textarea
-              id="body"
-              name="body"
-              required
-              className="admin-textarea"
-              defaultValue={post?.body ?? ""}
-              style={{ minHeight: 320 }}
-              placeholder={"Heading paragraphs are split on double newlines.\n\n## Subheadings start with two hashes.\n\n- Bullets start with a dash."}
-            />
-            <p className="admin-help">
-              Paragraphs split on blank lines. Lines starting with <code>## </code> render as section headings.
-              Lines starting with <code>- </code> render as bullets.
-            </p>
-          </div>
+          <FloatField
+            as="textarea"
+            id="body"
+            name="body"
+            label="Body"
+            icon="fa-align-left"
+            required
+            defaultValue={post?.body ?? ""}
+            style={{ minHeight: 320 }}
+            hint={
+              <>Paragraphs split on blank lines. Lines starting with <code>## </code> render as section headings.
+              Lines starting with <code>- </code> render as bullets.</>
+            }
+          />
         </div>
       </section>
 
@@ -113,14 +119,25 @@ export default function PostForm({ post }: { post?: BlogPostRow }) {
         </header>
 
         <div className="admin-row cols-3">
-          <div>
-            <label className="admin-label" htmlFor="date">Publish date</label>
-            <input id="date" name="date" type="date" required className="admin-input" defaultValue={post?.date ?? today()} />
-          </div>
-          <div>
-            <label className="admin-label" htmlFor="read_mins">Read minutes</label>
-            <input id="read_mins" name="read_mins" type="number" min="1" required className="admin-input" defaultValue={post?.read_mins ?? 5} />
-          </div>
+          <FloatField
+            id="date"
+            name="date"
+            type="date"
+            label="Publish date"
+            icon="fa-calendar"
+            required
+            defaultValue={post?.date ?? today()}
+          />
+          <FloatField
+            id="read_mins"
+            name="read_mins"
+            type="number"
+            min={1}
+            label="Read minutes"
+            icon="fa-clock"
+            required
+            defaultValue={post?.read_mins ?? 5}
+          />
           <div>
             <label className="admin-label">Tag</label>
             <Select<TagValue>
@@ -134,14 +151,23 @@ export default function PostForm({ post }: { post?: BlogPostRow }) {
         </div>
 
         <div className="admin-row cols-2">
-          <div>
-            <label className="admin-label" htmlFor="author">Author</label>
-            <input id="author" name="author" required className="admin-input" defaultValue={post?.author ?? ""} placeholder="Sara Hashmi" />
-          </div>
-          <div>
-            <label className="admin-label" htmlFor="author_initials">Author initials</label>
-            <input id="author_initials" name="author_initials" required className="admin-input" defaultValue={post?.author_initials ?? ""} placeholder="SH" maxLength={4} />
-          </div>
+          <FloatField
+            id="author"
+            name="author"
+            label="Author"
+            icon="fa-user"
+            required
+            defaultValue={post?.author ?? ""}
+          />
+          <FloatField
+            id="author_initials"
+            name="author_initials"
+            label="Author initials"
+            icon="fa-user-tag"
+            required
+            defaultValue={post?.author_initials ?? ""}
+            maxLength={4}
+          />
         </div>
 
         <div>

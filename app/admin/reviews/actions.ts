@@ -8,6 +8,7 @@ type ReviewInput = {
   name: string;
   initials: string;
   color: string | null;
+  photo_url: string | null;
   rating: number;
   text: string;
   product_id: string | null;
@@ -23,6 +24,7 @@ function parse(formData: FormData): ReviewInput {
     name: str("name"),
     initials: str("initials").slice(0, 4),
     color: str("color") || null,
+    photo_url: str("photo_url") || null,
     rating: num("rating") || 5,
     text: str("text"),
     product_id: str("product_id") || null,

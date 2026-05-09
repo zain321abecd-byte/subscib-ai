@@ -95,6 +95,7 @@ export type ReviewRow = {
   name: string;
   initials: string;
   color: string | null;
+  photo_url: string | null;
   rating: number;
   text: string;
   product_id: string | null;

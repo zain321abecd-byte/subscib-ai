@@ -1,6 +1,7 @@
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { createFreebie, deleteFreebie, updateFreebie } from "./actions";
 import DeleteSubmit from "./DeleteSubmit";
+import FloatField from "../FloatField";
 import type { FreebieRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -45,37 +46,16 @@ export default async function FreebiesAdminPage({
       <form action={createFreebie} className="admin-card">
         <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", color: "var(--text)", margin: "0 0 12px" }}>Add freebie</h3>
         <div className="admin-row cols-2">
-          <div>
-            <label className="admin-label">Slug</label>
-            <input name="id" required className="admin-input" pattern="[a-z0-9][a-z0-9\-]*" placeholder="prompt-pack" />
-          </div>
-          <div>
-            <label className="admin-label">Title</label>
-            <input name="title" required className="admin-input" placeholder="The 50-Prompt Starter Pack" />
-          </div>
+          <FloatField name="id" label="Slug" icon="fa-link" required pattern="[a-z0-9][a-z0-9\-]*" />
+          <FloatField name="title" label="Title" icon="fa-heading" required />
         </div>
-        <div>
-          <label className="admin-label">Description</label>
-          <textarea name="description" required className="admin-textarea" placeholder="Quick pitch — what's inside and why it's free." />
-        </div>
+        <FloatField as="textarea" name="description" label="Description" icon="fa-align-left" required />
         <div className="admin-row cols-3">
-          <div>
-            <label className="admin-label">FontAwesome icon</label>
-            <input name="icon_class" className="admin-input" placeholder="fa-solid fa-bolt" />
-          </div>
-          <div>
-            <label className="admin-label">File URL (optional)</label>
-            <input name="file_url" type="url" className="admin-input" placeholder="https://..." />
-          </div>
-          <div>
-            <label className="admin-label">Sort order</label>
-            <input name="sort_order" type="number" defaultValue={0} className="admin-input" />
-          </div>
+          <FloatField name="icon_class" label="FontAwesome icon" icon="fa-icons" />
+          <FloatField name="file_url" type="url" label="File URL (optional)" icon="fa-file" />
+          <FloatField name="sort_order" type="number" label="Sort order" icon="fa-arrow-down-1-9" defaultValue={0} />
         </div>
-        <div>
-          <label className="admin-label">WhatsApp message (pre-filled)</label>
-          <input name="whatsapp_msg" className="admin-input" placeholder="Hi! I'd like the 50-Prompt Starter Pack." />
-        </div>
+        <FloatField name="whatsapp_msg" label="WhatsApp message (pre-filled)" icon="fa-brands fa-whatsapp" />
         <label className="admin-checkbox-row">
           <input type="checkbox" name="active" defaultChecked />
           Active (shown on /freebies)
@@ -106,37 +86,16 @@ export default async function FreebiesAdminPage({
             <form action={updateFreebie} className="admin-form" style={{ marginTop: 14 }}>
               <input type="hidden" name="__original_id" value={f.id} />
               <div className="admin-row cols-2">
-                <div>
-                  <label className="admin-label">Slug</label>
-                  <input name="id" required className="admin-input" pattern="[a-z0-9][a-z0-9\-]*" defaultValue={f.id} />
-                </div>
-                <div>
-                  <label className="admin-label">Title</label>
-                  <input name="title" required className="admin-input" defaultValue={f.title} />
-                </div>
+                <FloatField name="id" label="Slug" icon="fa-link" required pattern="[a-z0-9][a-z0-9\-]*" defaultValue={f.id} />
+                <FloatField name="title" label="Title" icon="fa-heading" required defaultValue={f.title} />
               </div>
-              <div>
-                <label className="admin-label">Description</label>
-                <textarea name="description" required className="admin-textarea" defaultValue={f.description} />
-              </div>
+              <FloatField as="textarea" name="description" label="Description" icon="fa-align-left" required defaultValue={f.description} />
               <div className="admin-row cols-3">
-                <div>
-                  <label className="admin-label">Icon</label>
-                  <input name="icon_class" className="admin-input" defaultValue={f.icon_class ?? ""} />
-                </div>
-                <div>
-                  <label className="admin-label">File URL</label>
-                  <input name="file_url" type="url" className="admin-input" defaultValue={f.file_url ?? ""} />
-                </div>
-                <div>
-                  <label className="admin-label">Sort order</label>
-                  <input name="sort_order" type="number" className="admin-input" defaultValue={f.sort_order} />
-                </div>
+                <FloatField name="icon_class" label="Icon" icon="fa-icons" defaultValue={f.icon_class ?? ""} />
+                <FloatField name="file_url" type="url" label="File URL" icon="fa-file" defaultValue={f.file_url ?? ""} />
+                <FloatField name="sort_order" type="number" label="Sort order" icon="fa-arrow-down-1-9" defaultValue={f.sort_order} />
               </div>
-              <div>
-                <label className="admin-label">WhatsApp message</label>
-                <input name="whatsapp_msg" className="admin-input" defaultValue={f.whatsapp_msg ?? ""} />
-              </div>
+              <FloatField name="whatsapp_msg" label="WhatsApp message" icon="fa-brands fa-whatsapp" defaultValue={f.whatsapp_msg ?? ""} />
               <label className="admin-checkbox-row">
                 <input type="checkbox" name="active" defaultChecked={f.active} />
                 Active

@@ -93,25 +93,40 @@ export function useFx() {
   return useContext(FxCtx);
 }
 
-function formatPKR(n: number) {
+export function formatPKR(n: number) {
   return `Rs ${Math.round(n).toLocaleString("en-PK")}`;
 }
 
-function formatUSD(n: number) {
+export function formatUSD(n: number) {
   return `$${Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 }
 
 /**
- * Render a price in the visitor's currency. Behaviour by mode:
- *   - "auto"        — show ONE currency (PKR for PK visitors, USD otherwise),
- *                     unless the user manually flipped via the switcher.
+ * Format a PKR amount for the resolved active currency. If the visitor's
+ * active currency is USD, the amount is converted via the live FX rate.
+ * Returns "—" while the FX rate is still loading on the client.
+ */
+export function formatPriceFromPKR(pkr: number, currency: Currency, usdToPkr: number, ready: boolean): string {
+  if (currency === "PKR") return formatPKR(pkr);
+  // USD requires the FX rate. Show a placeholder until the rate has loaded
+  // (avoids flashing a stale 280-default value).
+  if (!ready || !usdToPkr) return "—";
+  return formatUSD(pkr / usdToPkr);
+}
+
+/**
+ * Render a price in the visitor's currency. The `pkr` prop is the canonical
+ * stored amount (in Rupees) — conversion to USD happens here for foreign
+ * visitors. Behaviour by mode:
+ *   - "auto"        — show ONE currency (PKR for PK / mode-PKR users, USD
+ *                     otherwise), respecting the manual switcher cookie.
  *   - "always_pkr"  — show PKR primary with a small USD note.
  *   - "always_usd"  — show USD only.
- *   - "dual"        — show both (USD primary, PKR secondary).
+ *   - "dual"        — show both (PKR primary, USD secondary).
  */
-export function Price({ usd, large = false }: { usd: number; large?: boolean }) {
+export function Price({ pkr, large = false }: { pkr: number; large?: boolean }) {
   const { usdToPkr, ready, currency, mode } = useFx();
-  const pkr = Math.round(usd * usdToPkr);
+  const usd = ready && usdToPkr ? pkr / usdToPkr : 0;
 
   const primaryStyle: React.CSSProperties = {
     fontFamily: "var(--font-heading)",
@@ -126,26 +141,26 @@ export function Price({ usd, large = false }: { usd: number; large?: boolean }) 
   if (mode === "dual") {
     return (
       <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
-        <strong style={primaryStyle}>{formatUSD(usd)}</strong>
-        {ready && <small style={secondaryStyle}>≈ {formatPKR(pkr)}</small>}
+        <strong style={primaryStyle}>{formatPKR(pkr)}</strong>
+        {ready && <small style={secondaryStyle}>≈ {formatUSD(usd)}</small>}
       </span>
     );
   }
   if (mode === "always_pkr") {
     return (
       <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
-        <strong style={primaryStyle}>{ready ? formatPKR(pkr) : "—"}</strong>
-        <small style={secondaryStyle}>≈ {formatUSD(usd)}</small>
+        <strong style={primaryStyle}>{formatPKR(pkr)}</strong>
+        {ready && <small style={secondaryStyle}>≈ {formatUSD(usd)}</small>}
       </span>
     );
   }
   if (mode === "always_usd") {
-    return <strong style={primaryStyle}>{formatUSD(usd)}</strong>;
+    return <strong style={primaryStyle}>{ready ? formatUSD(usd) : "—"}</strong>;
   }
 
   // mode === "auto" — show only the user's resolved currency.
   if (currency === "PKR") {
-    return <strong style={primaryStyle}>{ready ? formatPKR(pkr) : "—"}</strong>;
+    return <strong style={primaryStyle}>{formatPKR(pkr)}</strong>;
   }
-  return <strong style={primaryStyle}>{formatUSD(usd)}</strong>;
+  return <strong style={primaryStyle}>{ready ? formatUSD(usd) : "—"}</strong>;
 }

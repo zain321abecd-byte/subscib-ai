@@ -81,7 +81,7 @@ export default async function ProductsAdminPage({
                       <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}><code>{p.id}</code></div>
                     </td>
                     <td>{CATEGORY_LABELS[p.category] || p.category}</td>
-                    <td>${Number(p.price).toFixed(2)}</td>
+                    <td>Rs {Number(p.price).toLocaleString("en-PK")}</td>
                     <td>{p.in_stock ? "✅" : "⛔"}</td>
                     <td>{p.featured ? "★" : ""}</td>
                     <td style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>

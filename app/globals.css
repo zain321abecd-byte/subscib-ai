@@ -4327,7 +4327,7 @@ body.mobile-menu-open .site-header .mobile-menu-panel {
 
 .home-page .product-bottom {
   min-height: 38px;
-  margin-top: 14px;
+  margin-top: auto;
   padding-top: 12px;
 }
 
@@ -7633,6 +7633,43 @@ body.v2::before, body.v2::after { display: none !important; }
   font-size: var(--fs-sm);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
+.v2-avatar-photo {
+  object-fit: cover;
+  background: var(--surface-2);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.review-photo-avatar-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.review-photo-avatar-preview img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface-2);
+  box-shadow: 0 0 0 2px rgba(255, 122, 26, 0.35);
+  flex-shrink: 0;
+}
+.review-photo-avatar-preview strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.review-photo-avatar-preview small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
 .v2-testimonial-foot strong { display: block; color: var(--text); font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
 .v2-testimonial-foot small  { display: block; color: var(--text-muted); font-size: var(--fs-xs); }
 
@@ -7684,8 +7721,9 @@ body.v2::before, body.v2::after { display: none !important; }
   border-radius: var(--radius-md); font-size: 18px;
 }
 .v2-tier-price strong {
-  font-family: var(--font-heading); font-size: var(--fs-4xl); font-weight: var(--fw-display);
+  font-family: var(--font-heading); font-size: var(--fs-3xl); font-weight: var(--fw-display);
   color: var(--text); letter-spacing: -0.04em; line-height: 1;
+  white-space: nowrap;
 }
 .v2-tier-price span { color: var(--text-muted); font-size: var(--fs-sm); margin-left: 6px; }
 .v2-tier ul { list-style: none; padding: var(--space-3) 0; margin: 0; display: grid; gap: var(--space-3); border-top: 1px solid var(--border); }
@@ -7790,6 +7828,8 @@ body.v2::before, body.v2::after { display: none !important; }
   border: 1px solid var(--border); border-radius: var(--radius-md);
   font-size: var(--fs-xs); color: var(--text-soft);
 }
+.v2-pay-row span.v2-pay-chip { padding: 4px 8px; }
+.v2-pay-row span.v2-pay-chip svg { display: block; }
 .v2-footer h4 { font-family: var(--font-heading); color: var(--text); font-size: var(--fs-md); margin-bottom: var(--space-3); }
 .v2-footer a {
   display: block; color: var(--text-muted); text-decoration: none;
@@ -7919,6 +7959,7 @@ body.v2::before, body.v2::after { display: none !important; }
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100%;
   padding: var(--space-5) var(--space-5) var(--space-4);
   gap: var(--space-2);
 }
@@ -7960,7 +8001,7 @@ body.v2::before, body.v2::after { display: none !important; }
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-top: var(--space-4);
+  margin-top: auto;
   padding-top: var(--space-4);
   border-top: 1px solid var(--border);
 }
@@ -9226,9 +9267,27 @@ select.input::-ms-expand { display: none; }
 
 /* Forms */
 .admin-form { display: grid; gap: 14px; }
-.admin-row { display: grid; gap: 12px; grid-template-columns: 1fr; }
+.admin-row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+  /* Vertical breathing room between consecutive rows when the parent form
+     is a block container (no `gap` on the form itself). */
+  margin-bottom: 16px;
+}
+.admin-row:last-child { margin-bottom: 0; }
 @media (min-width: 700px) { .admin-row.cols-2 { grid-template-columns: 1fr 1fr; } }
 @media (min-width: 700px) { .admin-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; } }
+/* Drop FloatField's standalone bottom margin when it's a row cell — the
+   row's gap already handles between-row spacing. */
+.admin-row > .admin-float-field { margin-bottom: 0; }
+/* Ellipsis-truncate any oversized .admin-label so it never wraps and
+   pushes its column taller than the rest of the row. */
+.admin-row > div > .admin-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .admin-label { color: var(--text-soft); font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 6px; }
 .admin-input, .admin-textarea, .admin-select {
   width: 100%; box-sizing: border-box;
@@ -9288,25 +9347,301 @@ select.input::-ms-expand { display: none; }
 
 /* Login screen */
 .admin-login-wrap {
+  position: relative;
   min-height: 100dvh; display: grid; place-items: center;
   background: var(--bg); padding: 24px;
+  overflow: hidden;
+  isolation: isolate;
 }
+.admin-login-wrap::before,
+.admin-login-wrap::after {
+  content: "";
+  position: absolute; z-index: -1;
+  width: 520px; height: 520px; border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+}
+.admin-login-wrap::before {
+  top: -160px; left: -120px;
+  background: radial-gradient(circle, rgba(255, 122, 26, 0.35), transparent 70%);
+}
+.admin-login-wrap::after {
+  bottom: -180px; right: -140px;
+  background: radial-gradient(circle, rgba(255, 122, 26, 0.22), transparent 70%);
+}
+
+@keyframes admin-login-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .admin-login-card {
-  width: 100%; max-width: 400px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 16px; padding: 28px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  position: relative;
+  width: 100%; max-width: 420px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)) ,
+    var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px 28px 28px;
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.5),
+    0 1px 0 rgba(255,255,255,0.04) inset;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: admin-login-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.admin-login-card h1 {
-  font-family: var(--font-heading); font-size: 1.4rem;
-  color: var(--text); margin: 12px 0 4px;
+.admin-login-card::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255, 122, 26, 0.55), rgba(255, 122, 26, 0) 45%, rgba(255, 122, 26, 0.25));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.7;
 }
-.admin-login-card p { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 20px; }
+.admin-login-card .admin-brand {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 22px !important;
+}
+.admin-login-title {
+  font-family: var(--font-heading);
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin: 4px 0 6px;
+  letter-spacing: -0.02em;
+  text-align: center;
+  background: linear-gradient(135deg, #ffffff 0%, #ffd5b3 60%, #ff7a1a 110%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+}
+.admin-login-subtitle {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  margin-bottom: 24px;
+  text-align: center;
+}
 .admin-login-error {
-  background: rgba(239, 68, 68, 0.10); color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  padding: 10px 12px; border-radius: 10px; font-size: 0.88rem;
+  display: flex; align-items: flex-start; gap: 8px;
+  background: rgba(239, 68, 68, 0.10); color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  padding: 11px 13px; border-radius: 12px; font-size: 0.88rem;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+.admin-login-error i { margin-top: 2px; flex-shrink: 0; }
+
+/* ==========================================================
+   Floating-label field — reusable across all admin forms.
+   Markup:
+     <div class="admin-float-field [admin-float-field-icon]
+                                   [admin-float-field-toggle]
+                                   [admin-float-field-textarea]">
+       <input class="admin-input admin-float-input" placeholder=" " />
+       <label class="admin-float-label">Label</label>
+       <i class="fa-solid fa-x admin-float-icon" />            (optional)
+       <button class="admin-float-toggle">…</button>           (password)
+     </div>
+   ========================================================== */
+.admin-float-field {
+  position: relative;
   margin-bottom: 14px;
+}
+.admin-float-field .admin-float-input.admin-input,
+.admin-float-field .admin-float-input.admin-textarea {
+  width: 100%;
+  height: auto;
+  min-height: 58px;
+  padding: 16px 14px 16px 14px !important;
+  font-size: 0.95rem !important;
+  line-height: 1.3;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  color: var(--text);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease !important;
+}
+.admin-float-field .admin-float-input.admin-textarea {
+  min-height: 110px;
+  padding-top: 22px !important;
+  resize: vertical;
+}
+.admin-float-field .admin-float-input.admin-input:hover,
+.admin-float-field .admin-float-input.admin-textarea:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.admin-float-field .admin-float-input.admin-input:focus,
+.admin-float-field .admin-float-input.admin-textarea:focus {
+  outline: none;
+  border-color: var(--brand-500) !important;
+  background: rgba(255, 122, 26, 0.06) !important;
+  box-shadow: 0 0 0 4px rgba(255, 122, 26, 0.15) !important;
+}
+.admin-float-field .admin-float-input.admin-input:disabled,
+.admin-float-field .admin-float-input.admin-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Icon variant — shifts text and label right to clear the icon */
+.admin-float-field-icon .admin-float-input.admin-input,
+.admin-float-field-icon .admin-float-input.admin-textarea {
+  padding-left: 46px !important;
+}
+
+.admin-float-label {
+  position: absolute;
+  left: 14px;
+  top: 29px;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  pointer-events: none;
+  transition: top 0.16s ease, left 0.16s ease, font-size 0.16s ease, color 0.16s ease, padding 0.16s ease, background 0.16s ease, transform 0.16s ease, letter-spacing 0.16s ease;
+  background: transparent;
+  padding: 0 4px;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-float-field-icon .admin-float-label { left: 46px; }
+.admin-float-field-textarea .admin-float-label {
+  top: 22px;
+  transform: translateY(-50%);
+}
+
+.admin-float-icon {
+  position: absolute;
+  left: 16px;
+  top: 29px;
+  transform: translateY(-50%);
+  width: 18px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  pointer-events: none;
+  transition: color 0.18s ease;
+}
+.admin-float-field-textarea .admin-float-icon { top: 26px; transform: none; }
+
+.admin-float-field .admin-float-input:focus ~ .admin-float-icon {
+  color: var(--brand-400);
+}
+
+/* Float-up state: focus OR has value (placeholder-shown trick) */
+.admin-float-field .admin-float-input:focus ~ .admin-float-label,
+.admin-float-field .admin-float-input:not(:placeholder-shown) ~ .admin-float-label {
+  top: 0;
+  left: 14px;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--brand-400);
+  background: var(--surface);
+  padding: 0 6px;
+}
+
+/* "Pinned" label — for non-input fields (e.g. StyledSelectField wrapped in
+   an .admin-float-field-select). Renders the floating label permanently
+   sitting on the top border so it visually matches FloatFields. */
+.admin-float-field-select { margin-bottom: 14px; }
+.admin-float-label-pinned {
+  position: absolute;
+  top: 0;
+  left: 14px;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--brand-400);
+  background: var(--surface);
+  padding: 0 6px;
+  pointer-events: none;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hint + error text */
+.admin-float-hint,
+.admin-float-error {
+  margin: 6px 4px 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+.admin-float-hint  { color: var(--text-muted); }
+.admin-float-error { color: #fca5a5; }
+/* autofill clean-up — kill the browser's white/yellow autofill background and
+   keep our dark theme + light text on saved credentials */
+.admin-float-field .admin-float-input.admin-input:-webkit-autofill,
+.admin-float-field .admin-float-input.admin-input:-webkit-autofill:hover,
+.admin-float-field .admin-float-input.admin-input:-webkit-autofill:focus,
+.admin-float-field .admin-float-input.admin-input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset !important;
+          box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  caret-color: var(--text) !important;
+  border-color: var(--border) !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+}
+.admin-float-field .admin-float-input.admin-input:-webkit-autofill:focus {
+  border-color: var(--brand-500) !important;
+  -webkit-box-shadow:
+    0 0 0 1000px var(--surface) inset,
+    0 0 0 4px rgba(255, 122, 26, 0.15) !important;
+          box-shadow:
+    0 0 0 1000px var(--surface) inset,
+    0 0 0 4px rgba(255, 122, 26, 0.15) !important;
+}
+
+/* Password / toggle button on the right */
+.admin-float-field-toggle .admin-float-input.admin-input {
+  padding-right: 50px !important;
+}
+.admin-float-toggle {
+  position: absolute;
+  right: 6px;
+  top: 29px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.admin-float-toggle:hover:not(:disabled) {
+  color: var(--brand-400);
+}
+.admin-float-toggle:focus-visible {
+  outline: none;
+  color: var(--brand-400);
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.18);
+}
+.admin-float-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Order detail card */
@@ -10019,14 +10354,63 @@ body.admin-body::after {
   border-style: solid;
   border-color: var(--border);
   background: var(--surface-2);
+  /* Drop the empty-state aspect-ratio so the image dictates height — that
+     way portrait photos aren't sliced off at the top/bottom and we don't
+     get pillar-bars on landscape ones either. */
+  aspect-ratio: auto;
+  height: auto;
+  max-height: none;
+  display: block;
+}
+
+/* Avatar variant — circular drop zone for review/profile photos. The
+   uploaded image is cropped to a circle so the admin sees exactly what
+   the public site renders next to a review. */
+.admin-image-picker-v2.is-avatar { align-items: center; }
+.admin-image-dropzone.is-avatar {
+  width: 180px;
+  height: 180px;
+  max-height: 180px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  margin: 4px 0 4px;
+}
+.admin-image-dropzone.is-avatar.has-image {
+  width: 180px;
+  height: 180px;
+  max-height: 180px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.30);
+  background: var(--surface-2);
+}
+.admin-image-dropzone.is-avatar .admin-image-dropzone-img {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  margin: 0;
+}
+.admin-image-dropzone.is-avatar .admin-image-dropzone-empty {
+  padding: 12px;
+  gap: 4px;
+}
+.admin-image-dropzone.is-avatar .admin-image-dropzone-empty i { font-size: 1.6rem; }
+.admin-image-dropzone.is-avatar .admin-image-dropzone-empty strong { font-size: 0.8rem; }
+.admin-image-dropzone.is-avatar .admin-image-dropzone-empty small { display: none; }
+.admin-image-dropzone.is-avatar .admin-image-dropzone-overlay { border-radius: 50%; }
+.admin-image-dropzone.is-avatar .admin-image-dropzone-hint {
+  bottom: 14px; right: 50%; transform: translateX(50%);
 }
 
 .admin-image-dropzone-img {
-  width: 100%; height: 100%;
-  /* `contain` keeps the FULL image visible — no cropping. */
+  width: 100%;
+  height: auto;
+  max-height: 560px;
   object-fit: contain;
-  padding: 18px;
   display: block;
+  margin: 0 auto;
 }
 
 .admin-image-dropzone-empty {
@@ -12087,7 +12471,8 @@ body.admin-body::after {
   .admin-tag-input { padding: 8px 8px 4px !important; }
 
   /* Image picker — smaller cap on mobile */
-  .admin-image-dropzone { aspect-ratio: 4 / 3 !important; max-height: 220px !important; }
+  .admin-image-dropzone:not(.has-image):not(.is-avatar) { aspect-ratio: 4 / 3 !important; max-height: 220px !important; }
+  .admin-image-dropzone.has-image:not(.is-avatar) .admin-image-dropzone-img { max-height: 70vh !important; }
 
   /* Multi-image grid */
   .admin-multi-grid {

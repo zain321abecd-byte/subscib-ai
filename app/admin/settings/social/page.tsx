@@ -1,4 +1,5 @@
 import SectionShell from "../SectionShell";
+import FloatField from "../../FloatField";
 import { dynamic, loadSettings, asString } from "../_shared";
 
 export { dynamic };
@@ -28,20 +29,15 @@ export default async function SocialSettings({
     >
       <div className="admin-form-stack">
         {SOCIALS.map((sn) => (
-          <div key={sn.key}>
-            <label className="admin-label" htmlFor={sn.key}>
-              <i className={`fa-brands ${sn.icon}`} style={{ marginRight: 6, color: "var(--text-muted)" }}></i>
-              {sn.label}
-            </label>
-            <input
-              id={sn.key}
-              name={`setting:${sn.key}`}
-              type="url"
-              className="admin-input"
-              defaultValue={asString(s[sn.key])}
-              placeholder={sn.placeholder}
-            />
-          </div>
+          <FloatField
+            key={sn.key}
+            id={sn.key}
+            name={`setting:${sn.key}`}
+            type="url"
+            label={sn.label}
+            icon={`fa-brands ${sn.icon}`}
+            defaultValue={asString(s[sn.key])}
+          />
         ))}
       </div>
     </SectionShell>

@@ -84,6 +84,7 @@ create table if not exists reviews (
   name         text not null,
   initials     text not null,
   color        text,                             -- CSS var or hex
+  photo_url    text,                             -- optional Cloudinary URL; replaces initials avatar when set
   rating       int not null check (rating between 1 and 5),
   text         text not null,
   product_id   text references products(id) on delete set null,

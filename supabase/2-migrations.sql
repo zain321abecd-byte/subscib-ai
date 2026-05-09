@@ -74,3 +74,34 @@ alter table products
   add column if not exists icon_bg_color  text;
 alter table products
   add column if not exists display_source text;  -- "image" | "brand"; null = auto (image > brand)
+
+-- ============================================================
+-- Reviews: optional customer photo. When set, replaces the initials
+-- avatar on the homepage / product pages. URL is uploaded via
+-- Cloudinary through the admin ImagePicker.
+-- ============================================================
+alter table reviews
+  add column if not exists photo_url text;
+
+-- ============================================================
+-- Currency switch (2026-05): the canonical product price is now
+-- stored in PKR (Rs) instead of USD. The display layer converts
+-- to USD for non-PK visitors using the live FX rate.
+--
+-- One-shot conversion of existing rows (run ONCE — guarded by a
+-- marker setting so re-running this file is safe).
+-- ============================================================
+do $$
+declare
+  already_run boolean;
+begin
+  select coalesce((select (value)::text = '"true"' from site_settings where key = 'prices_in_pkr'), false)
+    into already_run;
+  if not already_run then
+    update products set price         = round(price * 280, 2)         where price is not null;
+    update products set private_price = round(private_price * 280, 2) where private_price is not null;
+    insert into site_settings (key, value)
+      values ('prices_in_pkr', '"true"')
+      on conflict (key) do update set value = excluded.value, updated_at = now();
+  end if;
+end $$;

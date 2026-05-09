@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import FloatField from "./FloatField";
 
 type Props = {
   value: string;
@@ -9,11 +10,15 @@ type Props = {
   /** Background applied behind the image (e.g. the selected card colour) so
       the admin can preview how the image will look on the shop card. */
   tintBackground?: string;
+  /** "rect" (default) renders a wide drop zone. "avatar" renders a circular
+      drop zone — used by reviews to make the picker visually match the
+      circular avatar that appears on the public site. */
+  shape?: "rect" | "avatar";
 };
 
 // Click anywhere on the preview area to choose a file. While uploading, a
 // translucent overlay with a spinner + progress bar covers the area.
-export default function ImagePicker({ value, onChange, folder = "uploads", tintBackground }: Props) {
+export default function ImagePicker({ value, onChange, folder = "uploads", tintBackground, shape = "rect" }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -69,10 +74,10 @@ export default function ImagePicker({ value, onChange, folder = "uploads", tintB
   }
 
   return (
-    <div className="admin-image-picker-v2">
+    <div className={`admin-image-picker-v2 ${shape === "avatar" ? "is-avatar" : ""}`}>
       <button
         type="button"
-        className={`admin-image-dropzone ${dragOver ? "is-drag" : ""} ${busy ? "is-busy" : ""} ${value ? "has-image" : ""}`}
+        className={`admin-image-dropzone ${shape === "avatar" ? "is-avatar" : ""} ${dragOver ? "is-drag" : ""} ${busy ? "is-busy" : ""} ${value ? "has-image" : ""}`}
         onClick={pickFile}
         onDragOver={(e) => { e.preventDefault(); if (!busy) setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
@@ -134,15 +139,16 @@ export default function ImagePicker({ value, onChange, folder = "uploads", tintB
 
       <details className="admin-image-paste">
         <summary>Or paste an image URL</summary>
-        <input
-          type="url"
-          className="admin-input"
-          placeholder="https://…"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={busy}
-          style={{ marginTop: 8 }}
-        />
+        <div style={{ marginTop: 8 }}>
+          <FloatField
+            type="url"
+            label="Image URL"
+            icon="fa-link"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={busy}
+          />
+        </div>
       </details>
 
       {error && <div className="admin-image-error">{error}</div>}

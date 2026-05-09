@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
@@ -89,9 +90,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <Suspense fallback={null}><AdminNavProgress /></Suspense>
       <aside className="admin-side">
         <div className="admin-side-head">
-          <Link href="/admin" className="admin-brand" onClick={(e) => handleNav(e, "/admin")}>
-            <span className="admin-brand-mark">S</span>
-            SubscribAI
+          <Link href="/admin" className="admin-brand" onClick={(e) => handleNav(e, "/admin")} aria-label="SubscribAI admin">
+            <Image
+              src="/assets/subscribai-logo.png"
+              alt="SubscribAI"
+              width={140}
+              height={36}
+              priority
+              style={{ height: "auto", width: "auto", maxHeight: 36 }}
+            />
           </Link>
           <button
             type="button"

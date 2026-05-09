@@ -52,20 +52,22 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                         <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}><code>{it.id}</code></div>
                       </td>
                       <td>{it.qty}</td>
-                      <td>${Number(it.price).toFixed(2)}</td>
-                      <td>${(Number(it.price) * Number(it.qty || 1)).toFixed(2)}</td>
+                      <td>Rs {Number(it.price).toLocaleString("en-PK")}</td>
+                      <td>Rs {(Number(it.price) * Number(it.qty || 1)).toLocaleString("en-PK")}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={3} style={{ textAlign: "right", color: "var(--text-muted)" }}>Subtotal (USD)</td>
-                    <td>${Number(order.subtotal_usd).toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td colSpan={3} style={{ textAlign: "right", color: "var(--text-muted)" }}>Charged (PKR)</td>
+                    <td colSpan={3} style={{ textAlign: "right", color: "var(--text-muted)" }}>Subtotal (PKR)</td>
                     <td>{fmtPKR(order.subtotal_pkr)}</td>
                   </tr>
+                  {order.subtotal_usd != null && (
+                    <tr>
+                      <td colSpan={3} style={{ textAlign: "right", color: "var(--text-muted)" }}>≈ USD</td>
+                      <td>${Number(order.subtotal_usd).toFixed(2)}</td>
+                    </tr>
+                  )}
                 </tfoot>
               </table>
             </div>

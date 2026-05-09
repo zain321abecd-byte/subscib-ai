@@ -9,6 +9,7 @@ export type Review = {
   product?: string;
   text: string;
   color: string;
+  photoUrl?: string;
 };
 
 const COLOR_FALLBACK = "var(--brand-soft)";
@@ -22,6 +23,7 @@ function rowToReview(row: ReviewRow): Review {
     product: row.product_name ?? undefined,
     text: row.text,
     color: row.color || COLOR_FALLBACK,
+    photoUrl: row.photo_url ?? undefined,
   };
 }
 

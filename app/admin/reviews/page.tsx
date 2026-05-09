@@ -1,7 +1,10 @@
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { createReview, deleteReview, updateReview } from "./actions";
 import DeleteSubmit from "./DeleteSubmit";
+import SubmitButton from "./SubmitButton";
 import StyledSelectField from "../StyledSelectField";
+import FloatField from "../FloatField";
+import PhotoField from "./PhotoField";
 import type { ReviewRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -53,38 +56,21 @@ export default async function ReviewsAdminPage({
       {/* Add new review */}
       <form action={createReview} className="admin-card">
         <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", color: "var(--text)", margin: "0 0 12px" }}>Add review</h3>
+        <PhotoField />
         <div className="admin-row cols-3">
-          <div>
-            <label className="admin-label">Name</label>
-            <input name="name" required className="admin-input" placeholder="Sara H." />
-          </div>
-          <div>
-            <label className="admin-label">Initials</label>
-            <input name="initials" required maxLength={4} className="admin-input" placeholder="SH" />
-          </div>
-          <div>
-            <label className="admin-label">Avatar colour</label>
+          <FloatField name="name" label="Name" icon="fa-user" required />
+          <FloatField name="initials" label="Initials" icon="fa-user-tag" required maxLength={4} />
+          <div className="admin-float-field admin-float-field-select">
             <StyledSelectField name="color" defaultValue="var(--brand-soft)" options={COLORS} ariaLabel="Avatar colour" />
+            <span className="admin-float-label admin-float-label-pinned">Avatar colour</span>
           </div>
         </div>
         <div className="admin-row cols-3">
-          <div>
-            <label className="admin-label">Rating (1–5)</label>
-            <input name="rating" type="number" min={1} max={5} defaultValue={5} className="admin-input" />
-          </div>
-          <div>
-            <label className="admin-label">Product (optional)</label>
-            <input name="product_name" className="admin-input" placeholder="ChatGPT Plus Plan" />
-          </div>
-          <div>
-            <label className="admin-label">Sort order</label>
-            <input name="sort_order" type="number" defaultValue={0} className="admin-input" />
-          </div>
+          <FloatField name="rating" type="number" min={1} max={5} label="Rating (1–5)" icon="fa-star" defaultValue={5} />
+          <FloatField name="product_name" label="Product (optional)" icon="fa-box" />
+          <FloatField name="sort_order" type="number" label="Sort order" icon="fa-arrow-down-1-9" defaultValue={0} />
         </div>
-        <div>
-          <label className="admin-label">Review text</label>
-          <textarea name="text" required className="admin-textarea" placeholder="What the customer said." />
-        </div>
+        <FloatField as="textarea" name="text" label="Review text" icon="fa-quote-left" required />
         <div className="admin-row cols-2">
           <label className="admin-checkbox-row">
             <input type="checkbox" name="approved" defaultChecked />
@@ -92,7 +78,7 @@ export default async function ReviewsAdminPage({
           </label>
         </div>
         <div className="admin-form-actions">
-          <button type="submit" className="admin-btn admin-btn-primary">Add review</button>
+          <SubmitButton label="Add review" pendingLabel="Adding…" />
         </div>
       </form>
 
@@ -106,9 +92,20 @@ export default async function ReviewsAdminPage({
         ) : reviews.map((r) => (
           <details key={r.id} className="admin-card" style={{ padding: 14 }}>
             <summary style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 12, listStyle: "none" }}>
-              <span style={{ background: r.color || "var(--brand-soft)", width: 36, height: 36, borderRadius: 999, display: "grid", placeItems: "center", fontWeight: 700, color: "var(--text)", flexShrink: 0 }}>
-                {r.initials}
-              </span>
+              {r.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={r.photo_url}
+                  alt={r.name}
+                  width={36}
+                  height={36}
+                  style={{ width: 36, height: 36, borderRadius: 999, objectFit: "cover", flexShrink: 0 }}
+                />
+              ) : (
+                <span style={{ background: r.color || "var(--brand-soft)", width: 36, height: 36, borderRadius: 999, display: "grid", placeItems: "center", fontWeight: 700, color: "var(--text)", flexShrink: 0 }}>
+                  {r.initials}
+                </span>
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, color: "var(--text)" }}>{r.name} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>· {r.rating}★</span></div>
                 <div style={{ fontSize: "0.84rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.text}</div>
@@ -119,44 +116,27 @@ export default async function ReviewsAdminPage({
 
             <form action={updateReview} className="admin-form" style={{ marginTop: 14 }}>
               <input type="hidden" name="id" value={r.id} />
+              <PhotoField defaultValue={r.photo_url ?? ""} />
               <div className="admin-row cols-3">
-                <div>
-                  <label className="admin-label">Name</label>
-                  <input name="name" required className="admin-input" defaultValue={r.name} />
-                </div>
-                <div>
-                  <label className="admin-label">Initials</label>
-                  <input name="initials" required maxLength={4} className="admin-input" defaultValue={r.initials} />
-                </div>
-                <div>
-                  <label className="admin-label">Avatar colour</label>
+                <FloatField name="name" label="Name" icon="fa-user" required defaultValue={r.name} />
+                <FloatField name="initials" label="Initials" icon="fa-user-tag" required maxLength={4} defaultValue={r.initials} />
+                <div className="admin-float-field admin-float-field-select">
                   <StyledSelectField name="color" defaultValue={r.color ?? "var(--brand-soft)"} options={COLORS} ariaLabel="Avatar colour" />
+                  <span className="admin-float-label admin-float-label-pinned">Avatar colour</span>
                 </div>
               </div>
               <div className="admin-row cols-3">
-                <div>
-                  <label className="admin-label">Rating</label>
-                  <input name="rating" type="number" min={1} max={5} className="admin-input" defaultValue={r.rating} />
-                </div>
-                <div>
-                  <label className="admin-label">Product</label>
-                  <input name="product_name" className="admin-input" defaultValue={r.product_name ?? ""} />
-                </div>
-                <div>
-                  <label className="admin-label">Sort order</label>
-                  <input name="sort_order" type="number" className="admin-input" defaultValue={r.sort_order} />
-                </div>
+                <FloatField name="rating" type="number" min={1} max={5} label="Rating" icon="fa-star" defaultValue={r.rating} />
+                <FloatField name="product_name" label="Product" icon="fa-box" defaultValue={r.product_name ?? ""} />
+                <FloatField name="sort_order" type="number" label="Sort order" icon="fa-arrow-down-1-9" defaultValue={r.sort_order} />
               </div>
-              <div>
-                <label className="admin-label">Review text</label>
-                <textarea name="text" required className="admin-textarea" defaultValue={r.text} />
-              </div>
+              <FloatField as="textarea" name="text" label="Review text" icon="fa-quote-left" required defaultValue={r.text} />
               <label className="admin-checkbox-row">
                 <input type="checkbox" name="approved" defaultChecked={r.approved} />
                 Approved (visible on the site)
               </label>
               <div className="admin-form-actions">
-                <button type="submit" className="admin-btn admin-btn-primary">Save</button>
+                <SubmitButton label="Save" pendingLabel="Saving…" />
               </div>
             </form>
 

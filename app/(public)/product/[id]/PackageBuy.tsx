@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCart } from "@/lib/cart";
-import { Price } from "@/lib/fx";
+import { Price, useFx, formatPriceFromPKR } from "@/lib/fx";
 import type { Product } from "@/lib/products";
 
 type Tier = {
@@ -42,6 +42,7 @@ export default function PackageBuy({ product }: { product: Product }) {
 
   const [activeKey, setActiveKey] = useState<Tier["key"]>("shared");
   const active = tiers.find((t) => t.key === activeKey) ?? tiers[0];
+  const { currency, usdToPkr, ready: fxReady } = useFx();
 
   function handleAdd() {
     cart.add({
@@ -73,7 +74,7 @@ export default function PackageBuy({ product }: { product: Product }) {
                   <i className={`fa-solid ${t.icon}`}></i>
                   <span className="package-tier-label">{t.label}</span>
                 </div>
-                <div className="package-tier-price">${t.price}</div>
+                <div className="package-tier-price">{formatPriceFromPKR(t.price, currency, usdToPkr, fxReady)}</div>
                 <p className="package-tier-desc">{t.description}</p>
                 <span className="package-tier-check">
                   <i className="fa-solid fa-check"></i>
@@ -85,7 +86,7 @@ export default function PackageBuy({ product }: { product: Product }) {
 
         <div className="package-buy-summary">
           <div className="package-buy-price">
-            <Price usd={active.price} large />
+            <Price pkr={active.price} large />
             <small>one-time / month</small>
           </div>
 
@@ -104,7 +105,7 @@ export default function PackageBuy({ product }: { product: Product }) {
         <div className="mobile-buy-bar" role="region" aria-label="Add to cart">
           <div className="mobile-buy-bar-info">
             <small>{tiers.length > 1 ? active.label : "Price"}</small>
-            <Price usd={active.price} />
+            <Price pkr={active.price} />
           </div>
           <button type="button" className="btn btn-primary mobile-buy-bar-cta" onClick={handleAdd}>
             {added ? (

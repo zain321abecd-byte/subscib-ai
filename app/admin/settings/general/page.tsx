@@ -1,4 +1,5 @@
 import SectionShell from "../SectionShell";
+import FloatField from "../../FloatField";
 import { dynamic, loadSettings, asString } from "../_shared";
 
 export { dynamic };
@@ -20,30 +21,24 @@ export default async function GeneralSettings({
       error={params.error}
     >
       <div className="admin-form-stack">
-        <div>
-          <label className="admin-label" htmlFor="whatsapp_number">WhatsApp number</label>
-          <input
-            id="whatsapp_number"
-            name="setting:whatsapp_number"
-            className="admin-input"
-            defaultValue={asString(s["whatsapp_number"])}
-            placeholder="923331234567"
-          />
-          <p className="admin-help">International format, no <code>+</code> or spaces. Used for every WhatsApp link across the site.</p>
-        </div>
+        <FloatField
+          id="whatsapp_number"
+          name="setting:whatsapp_number"
+          label="WhatsApp number"
+          icon="fa-brands fa-whatsapp"
+          defaultValue={asString(s["whatsapp_number"])}
+          hint={<>International format, no <code>+</code> or spaces. Used for every WhatsApp link across the site.</>}
+        />
 
-        <div>
-          <label className="admin-label" htmlFor="contact_email">Contact email</label>
-          <input
-            id="contact_email"
-            name="setting:contact_email"
-            type="email"
-            className="admin-input"
-            defaultValue={asString(s["contact_email"])}
-            placeholder="contact@yourcompany.com"
-          />
-          <p className="admin-help">Shown in the footer and used in <code>mailto:</code> links.</p>
-        </div>
+        <FloatField
+          id="contact_email"
+          name="setting:contact_email"
+          label="Contact email"
+          type="email"
+          icon="fa-envelope"
+          defaultValue={asString(s["contact_email"])}
+          hint={<>Shown in the footer and used in <code>mailto:</code> links.</>}
+        />
       </div>
     </SectionShell>
   );

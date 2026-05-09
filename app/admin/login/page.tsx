@@ -3,6 +3,8 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import FloatField from "../FloatField";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
 
 function LoginForm() {
@@ -74,39 +76,48 @@ function LoginForm() {
   return (
     <div className="admin-login-wrap">
       <form className="admin-login-card" onSubmit={onSubmit}>
-        <div className="admin-brand" style={{ marginBottom: 4 }}>
-          <span className="admin-brand-mark">S</span>
-          SubscribAI
+        <div className="admin-brand" style={{ marginBottom: 4, justifyContent: "center" }}>
+          <Image
+            src="/assets/subscribai-logo.png"
+            alt="SubscribAI"
+            width={160}
+            height={40}
+            priority
+            style={{ height: "auto", width: "auto", maxHeight: 40 }}
+          />
         </div>
-        <h1>Sign in to admin</h1>
-        <p>Use the email + password registered in Supabase Auth.</p>
+        <h1 className="admin-login-title">Welcome back</h1>
+        <p className="admin-login-subtitle">Sign in to manage your SubscribAI workspace.</p>
 
-        {error && <div className="admin-login-error">{error}</div>}
+        {error && (
+          <div className="admin-login-error">
+            <i className="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+            <span>{error}</span>
+          </div>
+        )}
 
-        <label className="admin-label" htmlFor="email">Email</label>
-        <input
+        <FloatField
           id="email"
+          label="Email address"
           type="email"
+          icon="fa-envelope"
           autoComplete="username"
           required
           disabled={busy}
-          className="admin-input"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={{ marginBottom: 12 }}
         />
 
-        <label className="admin-label" htmlFor="password">Password</label>
-        <input
+        <FloatField
           id="password"
+          label="Password"
           type="password"
+          icon="fa-key"
           autoComplete="current-password"
           required
           disabled={busy}
-          className="admin-input"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ marginBottom: 18 }}
         />
 
         <button

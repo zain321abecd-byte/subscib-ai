@@ -19,7 +19,13 @@ export async function getRegion(): Promise<Region> {
 
   const h = await headers();
   const country = (h.get("x-user-country") || "").toUpperCase();
-  return country === "PK" ? "PK" : "OTHER";
+  if (country) return country === "PK" ? "PK" : "OTHER";
+
+  // No cookie + no geo header. In production this is a foreign visitor on a
+  // non-Vercel host → OTHER. In local dev there is no geo header at all, so
+  // default to PK so PKR pricing renders without manual cookie wrangling.
+  if (process.env.NODE_ENV !== "production") return "PK";
+  return "OTHER";
 }
 
 /**

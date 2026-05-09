@@ -2,16 +2,14 @@
 
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
-import { useFx } from "@/lib/fx";
+import { useFx, formatPriceFromPKR } from "@/lib/fx";
 
 export default function CartPage() {
   const cart = useCart();
-  const { region, usdToPkr, ready: fxReady } = useFx();
-  const isPK = region === "PK";
-  const fmtMoney = (usd: number) => {
-    if (isPK) return fxReady ? `Rs ${Math.round(usd * usdToPkr).toLocaleString("en-PK")}` : "—";
-    return `$${usd.toFixed(2)}`;
-  };
+  const { currency, usdToPkr, ready: fxReady } = useFx();
+  // Cart prices are stored in PKR (the canonical currency since 2026-05).
+  // For non-PK visitors, formatPriceFromPKR converts via the live FX rate.
+  const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady);
 
   if (!cart.ready) {
     return (

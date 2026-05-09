@@ -4,15 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
-import { useFx } from "@/lib/fx";
+import { useFx, formatPriceFromPKR } from "@/lib/fx";
 import BrandIcon from "@/components/BrandIcon";
 import type { Product } from "@/lib/products";
 
 export default function ProductCard({ product }: { product: Product }) {
   const cart = useCart();
   const { toast } = useToast();
-  const { region, usdToPkr, ready: fxReady } = useFx();
-  const isPK = region === "PK";
+  const { currency, usdToPkr, ready: fxReady } = useFx();
   const [justAdded, setJustAdded] = useState(false);
   const inCart = cart.items.some((i) => i.id === product.id);
 
@@ -78,11 +77,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <h3>{product.name}</h3>
         <div className="product-bottom">
           <div className="product-card-price">
-            <b>
-              {isPK
-                ? (fxReady ? `Rs ${Math.round(product.price * usdToPkr).toLocaleString("en-PK")}` : "—")
-                : `$${product.price}`}
-            </b>
+            <b>{formatPriceFromPKR(product.price, currency, usdToPkr, fxReady)}</b>
           </div>
           <div className="product-actions">
             <Link className="product-icon-action" href={`/product/${product.id}`} aria-label={`View ${product.name}`} title="View details">

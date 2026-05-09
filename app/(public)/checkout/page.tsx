@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
+import PaymentLogo from "@/components/PaymentLogo";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
 type Provider = "jazzcash" | "easypaisa" | "card";
@@ -126,10 +127,13 @@ export default function CheckoutPage() {
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, []);
 
-  // SahulatPay's gateway charges in PKR. Convert USD subtotal → PKR using the
-  // live FX rate at checkout time, lock it in, and that's what we send.
-  const pkrTotal = Math.round(cart.subtotal * usdToPkr);
+  // Cart subtotal is now PKR-canonical (since 2026-05). PK visitors pay
+  // exactly that. Foreign visitors are billed in USD via the gateway, so we
+  // convert PKR → USD using the live FX rate at checkout time.
+  const pkrTotal = Math.round(cart.subtotal);
   const pkrFormatted = pkrTotal.toLocaleString("en-PK");
+  const usdTotal = fxReady && usdToPkr > 0 ? cart.subtotal / usdToPkr : 0;
+  const usdFormatted = usdTotal.toFixed(2);
 
   useEffect(() => {
     return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
@@ -201,6 +205,7 @@ export default function CheckoutPage() {
         customer_phone: phone,
         customer_name: name,
         subtotal_pkr: pkrTotal,
+        subtotal_usd: fxReady && usdToPkr > 0 ? Number((pkrTotal / usdToPkr).toFixed(2)) : undefined,
         payment_method: provider,
         transaction_id: id,
         utm_source: attribution.utm_source ?? null,
@@ -399,14 +404,14 @@ export default function CheckoutPage() {
               <div style={{ display: "grid", gridTemplateColumns: `repeat(${isPK ? 3 : 1}, 1fr)`, gap: "var(--space-3)" }}>
                 {(isPK
                   ? [
-                      ["jazzcash", "JazzCash Wallet", "fa-mobile-screen"],
-                      ["easypaisa", "Easypaisa Wallet", "fa-mobile-screen"],
-                      ["card", "Card", "fa-credit-card"],
-                    ] as const
+                      { id: "jazzcash" as const,  label: "Wallet" },
+                      { id: "easypaisa" as const, label: "Wallet" },
+                      { id: "card" as const,      label: "Credit / Debit Card" },
+                    ]
                   : [
-                      ["card", "Credit / Debit Card", "fa-credit-card"],
-                    ] as const
-                ).map(([id, label, icon]) => (
+                      { id: "card" as const,      label: "Credit / Debit Card" },
+                    ]
+                ).map(({ id, label }) => (
                   <label key={id} style={{
                     display: "block", cursor: "pointer", padding: "var(--space-4)",
                     border: "1px solid " + (provider === id ? "var(--brand-500)" : "var(--border)"),
@@ -416,7 +421,13 @@ export default function CheckoutPage() {
                     transition: "all var(--dur)",
                   }}>
                     <input type="radio" name="provider" value={id} checked={provider === id} onChange={() => setProvider(id)} style={{ display: "none" }} />
-                    <i className={`fa-solid ${icon}`} style={{ fontSize: 24, color: provider === id ? "var(--brand-600)" : "var(--text-muted)", marginBottom: 8, display: "block" }}></i>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8, minHeight: 28 }}>
+                      {id === "card" ? (
+                        <i className="fa-solid fa-credit-card" style={{ fontSize: 24, color: provider === id ? "var(--brand-600)" : "var(--text-muted)" }}></i>
+                      ) : (
+                        <PaymentLogo provider={id} height={26} />
+                      )}
+                    </span>
                     <strong style={{ color: "var(--text)", fontSize: "var(--fs-sm)" }}>{label}</strong>
                   </label>
                 ))}
@@ -440,7 +451,11 @@ export default function CheckoutPage() {
               {cart.items.map((i) => (
                 <li key={i.id} style={{ display: "flex", justifyContent: "space-between", color: "var(--text-soft)", fontSize: "var(--fs-sm)" }}>
                   <span>{i.name} × {i.qty}</span>
-                  <span>${(i.price * i.qty).toFixed(2)}</span>
+                  <span>
+                    {isPK
+                      ? `Rs ${(i.price * i.qty).toLocaleString("en-PK")}`
+                      : fxReady ? `$${((i.price * i.qty) / usdToPkr).toFixed(2)}` : "—"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -450,10 +465,10 @@ export default function CheckoutPage() {
                 {isPK ? (
                   <>
                     <span>Rs {pkrFormatted}</span>
-                    <small style={{ display: "block", color: "var(--text-muted)", fontSize: "var(--fs-xs)", fontWeight: 500, fontFamily: "var(--font-body)", marginTop: 2 }}>≈ ${cart.subtotal.toFixed(2)} USD</small>
+                    {fxReady && <small style={{ display: "block", color: "var(--text-muted)", fontSize: "var(--fs-xs)", fontWeight: 500, fontFamily: "var(--font-body)", marginTop: 2 }}>≈ ${usdFormatted} USD</small>}
                   </>
                 ) : (
-                  <span>${cart.subtotal.toFixed(2)} USD</span>
+                  <span>{fxReady ? `$${usdFormatted} USD` : "—"}</span>
                 )}
               </span>
             </div>
@@ -480,7 +495,7 @@ export default function CheckoutPage() {
               style={{ width: "100%", justifyContent: "center", marginTop: "var(--space-5)" }}
               disabled={!fxReady || status === "submitting" || status === "pending" || status === "paid"}
             >
-              {!fxReady ? "Loading…" : isPK ? `Pay Rs ${pkrFormatted}` : `Pay $${cart.subtotal.toFixed(2)}`} <i className="fa-solid fa-arrow-right"></i>
+              {isPK ? `Pay Rs ${pkrFormatted}` : !fxReady ? "Loading…" : `Pay $${usdFormatted}`} <i className="fa-solid fa-arrow-right"></i>
             </button>
 
             {status === "pending" && (
