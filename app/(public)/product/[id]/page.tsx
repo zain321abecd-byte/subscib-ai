@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import ProductCard from "@/components/ProductCard";
 import ProductGallery from "@/components/ProductGallery";
+import BrandIcon from "@/components/BrandIcon";
+import MobileHeroProductCard from "@/components/MobileHeroProductCard";
 import Reviews, { REVIEWS, REVIEWS_GLOBAL } from "@/components/Reviews";
 import PackageBuy from "./PackageBuy";
 import { STATIC_PRODUCTS, getAllProducts, getProduct } from "@/lib/products";
 import { getRegion } from "@/lib/region";
+import { getSiteSettings } from "@/lib/site-settings";
 import { getAllReviews, isSupabaseConfigured } from "@/lib/reviews";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
@@ -79,8 +81,17 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     ],
   };
 
-  const [allProducts, region, dbReviews] = await Promise.all([getAllProducts(), getRegion(), getAllReviews()]);
+  const [allProducts, region, dbReviews, settings] = await Promise.all([
+    getAllProducts(),
+    getRegion(),
+    getAllReviews(),
+    getSiteSettings(),
+  ]);
   const isPK = region === "PK";
+  const fxRate = Number(settings.fx_rate_pkr_per_usd) || 280;
+  const fmtPrice = (pkr: number) => isPK
+    ? `Rs ${Math.round(pkr).toLocaleString("en-PK")} / mo`
+    : `$${(pkr / fxRate).toFixed(2)} / mo`;
   const productById = new Map(allProducts.map((p) => [p.id, p]));
 
   // Prefer the admin's hand-picked recommendations (preserve order). If empty,
@@ -119,11 +130,22 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               ...(product.imageUrl ? [product.imageUrl] : []),
               ...(product.gallery ?? []),
             ];
-            return allImages.length > 0 ? (
-              <ProductGallery images={allImages} alt={product.name} />
-            ) : (
-              <div className={`product-media ${product.mediaClass} surface-card`} style={{ height: 420, borderRadius: "var(--radius-lg)", overflow: "hidden", padding: 0 }}>
-                <i className={product.iconClass} style={{ fontSize: "6rem" }}></i>
+            if (allImages.length > 0) {
+              return <ProductGallery images={allImages} alt={product.name} />;
+            }
+            // No uploaded image — match the home page's BrandIcon fallback so
+            // products like ChatGPT / Claude / Midjourney show their real
+            // brand logo here too, not a generic Font Awesome glyph.
+            if (product.brand) {
+              return (
+                <div className="product-detail-brand-media">
+                  <BrandIcon name={product.brand} size={120} />
+                </div>
+              );
+            }
+            return (
+              <div className={`product-media ${product.mediaClass} surface-card product-detail-icon-media`}>
+                <i className={product.iconClass}></i>
               </div>
             );
           })()}
@@ -186,8 +208,14 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       {related.length > 0 && (
         <div className="v2-container" style={{ marginTop: "var(--space-7)", marginBottom: "var(--space-9)" }}>
           <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-2xl)", color: "var(--text)", marginBottom: "var(--space-5)" }}>You may also like</h2>
-          <div className="v2-product-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
-            {related.map((p) => <ProductCard key={p.id} product={p} />)}
+          <div className="related-rail">
+            {related.map((p) => (
+              <MobileHeroProductCard
+                key={p.id}
+                product={p}
+                priceLabel={fmtPrice(p.price)}
+              />
+            ))}
           </div>
         </div>
       )}

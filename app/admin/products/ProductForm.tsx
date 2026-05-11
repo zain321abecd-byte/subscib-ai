@@ -403,31 +403,36 @@ export default function ProductForm({
         </div>
       </section>
 
-      {/* STEP 2 — DETAILS: Pricing & packages */}
+      {/* STEP 2 — DETAILS: Pricing & packages.
+          Tier 1 = the always-shown Private plan (every product has one).
+          Tier 2 = the optional Shared plan — admin picks per product whether
+          to offer it. Leave the Shared price empty/0 to hide that tier. */}
       <section className="admin-card" data-step={1} hidden={step !== 1}>
         <header className="admin-section-head">
           <h3>Pricing &amp; packages</h3>
-          <p>Two tiers shown side-by-side on the product page. Leave the Private tier empty if you only sell shared.</p>
+          <p>The Private plan shows on every product. Add a Shared plan only if you want to offer a cheaper shared option for this product.</p>
         </header>
 
         <div className="admin-row cols-2">
-          {/* Shared tier (uses the existing price + description columns) */}
+          {/* Private tier — the required, always-shown plan.
+              Storage: uses the existing price + description columns
+              (column names are historical; treat them as the main tier). */}
           <div className="admin-package-card">
             <div className="admin-package-card-head">
-              <i className="fa-solid fa-users"></i>
+              <i className="fa-solid fa-shield-halved"></i>
               <input
                 type="text"
                 name="shared_label"
                 className="admin-package-label"
-                defaultValue={product?.shared_label ?? "Shared"}
-                placeholder="Shared"
-                aria-label="Shared tier label"
+                defaultValue={product?.shared_label ?? "Private"}
+                placeholder="Private"
+                aria-label="Private tier label"
               />
             </div>
             <label className="admin-label" htmlFor="price">Price (PKR)</label>
             <div className="admin-input-prefix">
               <span>Rs</span>
-              <input id="price" name="price" type="number" min="0" step="1" required defaultValue={product?.price ?? ""} placeholder="5000" />
+              <input id="price" name="price" type="number" min="0" step="1" required defaultValue={product?.price ?? ""} placeholder="14000" />
             </div>
             <div style={{ marginTop: 12 }}>
               <FloatField
@@ -442,17 +447,18 @@ export default function ProductForm({
             </div>
           </div>
 
-          {/* Private tier (optional, uses new private_* columns) */}
+          {/* Shared tier — optional, admin opts in per product.
+              Storage: uses the private_* columns (historical names). */}
           <div className="admin-package-card admin-package-card-alt">
             <div className="admin-package-card-head">
-              <i className="fa-solid fa-shield-halved"></i>
+              <i className="fa-solid fa-users"></i>
               <input
                 type="text"
                 name="private_label"
                 className="admin-package-label"
-                defaultValue={product?.private_label ?? "Private"}
-                placeholder="Private"
-                aria-label="Private tier label"
+                defaultValue={product?.private_label ?? "Shared"}
+                placeholder="Shared"
+                aria-label="Shared tier label"
               />
             </div>
             <label className="admin-label" htmlFor="private_price">Price (PKR) — optional</label>
@@ -465,7 +471,7 @@ export default function ProductForm({
                 min="0"
                 step="0.01"
                 defaultValue={product?.private_price ?? ""}
-                placeholder="14000"
+                placeholder="5000"
               />
             </div>
             <div style={{ marginTop: 12 }}>
@@ -477,7 +483,7 @@ export default function ProductForm({
                 icon="fa-align-left"
                 defaultValue={product?.private_description ?? ""}
                 rows={4}
-                hint="Leave price empty / 0 to hide the Private tier."
+                hint="Leave price empty / 0 to hide the Shared tier."
               />
             </div>
           </div>

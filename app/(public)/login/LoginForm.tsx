@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
 
 type Mode = "signin" | "signup";
@@ -78,8 +79,15 @@ export default function LoginForm() {
   return (
     <section className="auth-section">
       <div className="auth-card">
-        <Link href="/" className="auth-brand">
-          <span className="auth-brand-mark">S</span> SubscribAI
+        <Link href="/" className="auth-brand" aria-label="SubscribAI home">
+          <Image
+            src="/assets/subscribai-logo.png"
+            alt="SubscribAI"
+            width={149}
+            height={36}
+            priority
+            className="auth-brand-logo"
+          />
         </Link>
 
         <div className="auth-tabs" role="tablist" aria-label="Sign in or sign up">
@@ -114,9 +122,12 @@ export default function LoginForm() {
         {info && <div className="auth-alert auth-alert-info">{info}</div>}
 
         <form className="auth-form" onSubmit={onSubmit}>
+          {/* Floating-label fields: input first, <span> after — the label
+              floats up via the CSS sibling selector when the input is focused,
+              filled, or autofilled. The single-space placeholder is required:
+              it activates :placeholder-shown so the empty state is detectable. */}
           {mode === "signup" && (
             <label className="auth-field">
-              <span>Full name</span>
               <input
                 type="text"
                 autoComplete="name"
@@ -124,13 +135,13 @@ export default function LoginForm() {
                 disabled={busy}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Sara Hashmi"
+                placeholder=" "
               />
+              <span>Full name</span>
             </label>
           )}
 
           <label className="auth-field">
-            <span>Email</span>
             <input
               type="email"
               autoComplete="email"
@@ -138,12 +149,12 @@ export default function LoginForm() {
               disabled={busy}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder=" "
             />
+            <span>Email</span>
           </label>
 
           <label className="auth-field">
-            <span>Password</span>
             <input
               type="password"
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
@@ -152,8 +163,9 @@ export default function LoginForm() {
               disabled={busy}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === "signup" ? "Pick something memorable" : "Your password"}
+              placeholder=" "
             />
+            <span>Password</span>
             {mode === "signup" && <small>At least 6 characters.</small>}
           </label>
 

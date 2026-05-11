@@ -7140,7 +7140,7 @@ body.v2::before, body.v2::after { display: none !important; }
   display: flex; align-items: center; justify-content: space-between;
   height: var(--header-height); gap: var(--space-5);
 }
-.v2-brand img { height: 36px; display: block; }
+.v2-brand img { height: 36px; width: auto; display: block; }
 .v2-nav { display: flex; gap: var(--space-5); flex: 1; justify-content: center; }
 .v2-nav a {
   color: var(--text-soft); font-size: var(--fs-sm); font-weight: var(--fw-medium);
@@ -11794,6 +11794,13 @@ body.admin-body::after {
   font-weight: 800;
   box-shadow: 0 6px 18px rgba(255, 122, 26, 0.35);
 }
+/* Inline-PNG variant used in place of the "S" mark — keeps proportional
+   width regardless of the height constraint applied here. */
+.auth-brand-logo {
+  height: 36px;
+  width: auto;
+  display: block;
+}
 
 .auth-tabs {
   display: grid;
@@ -11846,23 +11853,32 @@ body.admin-body::after {
 .auth-alert-error { background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.30); color: #fca5a5; }
 .auth-alert-info  { background: rgba(56,189,248,0.10); border: 1px solid rgba(56,189,248,0.30); color: #7dd3fc; }
 
-.auth-form { display: grid; gap: 14px; }
-.auth-field { display: grid; gap: 6px; }
-.auth-field > span {
-  font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  font-weight: 600;
+.auth-form { display: grid; gap: 16px; }
+
+/* Floating-label auth field. Markup is:
+     <label class="auth-field">
+       <input placeholder=" " />          <!-- single-space placeholder is the trick -->
+       <span>Email</span>                  <!-- sibling label (~ selector reaches it) -->
+     </label>
+   The label sits inside the input as a "rest" placeholder, then floats up to
+   the top border when the input is focused, has a value, or is autofilled.
+   Autofill needs its own rule because browsers don't change :placeholder-shown
+   state when they autofill a password — instead they expose :-webkit-autofill
+   (Chrome/Safari) or :autofill (standardized, modern Firefox/Chrome). */
+.auth-field {
+  position: relative;
+  display: block;
 }
 .auth-field > input {
+  width: 100%;
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 12px 14px;
+  padding: 22px 14px 10px;
   border-radius: 12px;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 16px;
+  line-height: 1.25;
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
 .auth-field > input:focus {
@@ -11871,7 +11887,51 @@ body.admin-body::after {
   background: var(--surface);
   box-shadow: 0 0 0 4px rgba(255, 122, 26, 0.18);
 }
-.auth-field > small { color: var(--text-muted); font-size: 0.78rem; }
+.auth-field > span {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  pointer-events: none;
+  transition: top .15s ease, transform .15s ease, font-size .15s ease,
+              color .15s ease, letter-spacing .15s ease;
+  background: transparent;
+  padding: 0 4px;
+}
+/* Float-up state: focused, has value, OR autofilled. */
+.auth-field > input:focus ~ span,
+.auth-field > input:not(:placeholder-shown) ~ span,
+.auth-field > input:-webkit-autofill ~ span,
+.auth-field > input:autofill ~ span {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-500);
+  background: var(--surface);
+}
+/* Chrome paints autofilled inputs with a yellow tint. Override so it matches
+   the dark card surface. The huge inset shadow trick paints over the native
+   yellow without changing the underlying background. */
+.auth-field > input:-webkit-autofill,
+.auth-field > input:-webkit-autofill:hover,
+.auth-field > input:-webkit-autofill:focus,
+.auth-field > input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 1000px var(--surface-2) inset;
+  caret-color: var(--text);
+  transition: background-color 9999s ease-in-out 0s;
+}
+.auth-field > small {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
 
 .auth-submit {
   margin-top: 4px;
@@ -12519,7 +12579,7 @@ body.admin-body::after {
   /* ---------- Header ---------- */
   .v2-header { padding: 6px 0; }
   .v2-header-row { height: 60px !important; gap: 10px !important; }
-  .v2-brand img { height: 30px !important; }
+  .v2-brand img { height: 30px !important; width: auto !important; }
   .v2-icon-btn { width: 38px; height: 38px; }
   .v2-cart-count { font-size: 0.62rem; min-width: 16px; height: 16px; }
 
@@ -13237,7 +13297,7 @@ body.admin-body::after {
 
   /* ---------- HEADER — smaller ---------- */
   .v2-header-row { height: 56px !important; }
-  .v2-brand img  { height: 26px !important; }
+  .v2-brand img  { height: 26px !important; width: auto !important; }
   .v2-icon-btn { width: 34px; height: 34px; font-size: 13px; }
   .v2-cart-count {
     font-size: 0.55rem !important;

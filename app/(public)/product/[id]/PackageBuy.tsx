@@ -21,22 +21,25 @@ export default function PackageBuy({ product }: { product: Product }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // The "shared_*" DB columns now back the always-shown PRIVATE plan, and the
+  // "private_*" columns back the optional SHARED plan. Names are historical —
+  // see /admin/products ProductForm for the same swap on the editor side.
   const tiers: Tier[] = [
     {
       key: "shared",
-      label: product.sharedLabel || "Shared",
+      label: product.sharedLabel || "Private",
       price: product.price,
-      description: product.description || "Shared account login. Best for solo users.",
-      icon: "fa-users",
+      description: product.description || "Dedicated account, only you have access.",
+      icon: "fa-shield-halved",
     },
   ];
   if (product.privatePrice && product.privatePrice > 0) {
     tiers.push({
       key: "private",
-      label: product.privateLabel || "Private",
+      label: product.privateLabel || "Shared",
       price: product.privatePrice,
-      description: product.privateDescription || "Dedicated account, only you have access.",
-      icon: "fa-shield-halved",
+      description: product.privateDescription || "Shared account login. Best for solo users on a budget.",
+      icon: "fa-users",
     });
   }
 

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
+import MobileMenu from "@/components/MobileMenu";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -20,15 +20,10 @@ const NAV = [
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [authed, setAuthed] = useState<boolean | null>(null);
-  // The drawer is portalled to document.body so it escapes the header's
-  // backdrop-filter (which creates a containing block that breaks position:fixed).
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { count, ready } = useCart();
-
-  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -37,7 +32,6 @@ export default function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Track customer auth state — Header re-renders on sign-in/sign-out.
   useEffect(() => {
     let cancelled = false;
     try {
@@ -54,26 +48,26 @@ export default function Header() {
     }
   }, []);
 
-  useEffect(() => {
-    document.body.style.overflow = drawerOpen ? "hidden" : "";
-  }, [drawerOpen]);
-
-  const closeDrawer = () => setDrawerOpen(false);
-
   return (
     <header className={`v2-header ${scrolled ? "is-scrolled" : ""}`}>
       <div className="v2-container v2-header-row">
         <Link className="v2-brand" href="/" aria-label="SubscribAI home">
-          <Image src="/assets/subscribai-logo.png" alt="SubscribAI" width={140} height={36} priority />
+          {/* Intrinsic source is 537×130 (≈4.13:1). The width/height props here
+              must match that aspect or the image gets squashed when CSS only
+              constrains one dimension. CSS uses width:auto + height:Xpx so the
+              browser scales proportionally on every breakpoint. */}
+          <Image src="/assets/subscribai-logo.png" alt="SubscribAI" width={149} height={36} priority />
         </Link>
 
-        <nav className="v2-nav" aria-label="Primary">
+        {/* Desktop primary nav */}
+        <nav className="v2-nav hidden md:flex" aria-label="Primary">
           {NAV.map(({ href, label }) => (
             <Link key={href} href={href} className={pathname === href ? "is-active" : ""}>{label}</Link>
           ))}
         </nav>
 
-        <div className="v2-header-actions">
+        {/* Desktop actions */}
+        <div className="v2-header-actions hidden md:flex">
           <CurrencySwitcher />
           <Link className="v2-icon-btn" href="/cart" aria-label="Cart">
             <i className="fa-solid fa-cart-shopping"></i>
@@ -85,75 +79,62 @@ export default function Header() {
             <Link className="btn btn-outline btn-small" href="/login">Sign in</Link>
           )}
           <Link className="btn btn-primary btn-small" href="/shop">Start now</Link>
-          <button
-            className="v2-burger"
-            type="button"
-            aria-label="Menu"
-            aria-expanded={drawerOpen}
-            onClick={() => setDrawerOpen((o) => !o)}
+        </div>
+
+        {/* Mobile actions — cart icon + hamburger only. Everything else lives
+            in the slide-down menu (MobileMenu). */}
+        <div className="flex md:hidden items-center gap-1">
+          <Link
+            href="/cart"
+            aria-label={`Cart${ready && count > 0 ? `, ${count} item${count === 1 ? "" : "s"}` : ""}`}
+            className="
+              relative inline-flex h-11 w-11 items-center justify-center
+              rounded-full
+              text-ink-50 active:bg-white/10
+              transition-colors
+            "
           >
-            <span></span><span></span><span></span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 4h2l2.4 11.2A2 2 0 0 0 9.36 17H17.5a2 2 0 0 0 1.96-1.6L21 8H6" />
+              <circle cx="10" cy="20" r="1.25" fill="currentColor" stroke="none" />
+              <circle cx="17" cy="20" r="1.25" fill="currentColor" stroke="none" />
+            </svg>
+            {ready && count > 0 && (
+              <span
+                className="
+                  absolute top-1 right-1
+                  min-w-4.5 h-4.5 px-1
+                  rounded-full bg-brand-500 text-white
+                  text-[10px] font-semibold leading-4.5 text-center
+                  ring-2 ring-ink-1000
+                "
+              >
+                {count > 99 ? "99+" : count}
+              </span>
+            )}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+            className="
+              relative inline-flex h-11 w-11 items-center justify-center
+              appearance-none bg-transparent border-0 cursor-pointer
+              rounded-full
+              text-ink-50 active:bg-white/10
+              transition-colors
+            "
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" aria-hidden>
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
           </button>
         </div>
       </div>
 
-      {/* Drawer is portalled below — escapes header's backdrop-filter. */}
-      {mounted && createPortal(
-        <>
-          <div
-            className={`v2-mobile-backdrop ${drawerOpen ? "is-open" : ""}`}
-            aria-hidden="true"
-            onClick={closeDrawer}
-          />
-          <aside
-            className={`v2-mobile-drawer ${drawerOpen ? "is-open" : ""}`}
-            aria-hidden={!drawerOpen}
-            aria-label="Site navigation"
-          >
-            <div className="v2-mobile-drawer-head">
-              <span className="v2-mobile-drawer-title">Menu</span>
-              <button
-                type="button"
-                className="v2-mobile-drawer-close"
-                onClick={closeDrawer}
-                aria-label="Close menu"
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            </div>
-
-            <nav className="v2-mobile-drawer-nav">
-              {NAV.map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={closeDrawer}
-                  className={pathname === href ? "is-active" : ""}
-                >
-                  {label}
-                  <i className="fa-solid fa-arrow-right" aria-hidden></i>
-                </Link>
-              ))}
-            </nav>
-
-            <div className="v2-mobile-drawer-actions">
-              {authed ? (
-                <Link href="/account" className="btn btn-outline btn-large" onClick={closeDrawer}>
-                  <i className="fa-solid fa-user"></i> Your account
-                </Link>
-              ) : (
-                <Link href="/login" className="btn btn-outline btn-large" onClick={closeDrawer}>
-                  <i className="fa-solid fa-right-to-bracket"></i> Sign in
-                </Link>
-              )}
-              <Link href="/shop" className="btn btn-primary btn-large" onClick={closeDrawer}>
-                Start now <i className="fa-solid fa-arrow-right"></i>
-              </Link>
-            </div>
-          </aside>
-        </>,
-        document.body,
-      )}
+      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} authed={authed} />
     </header>
   );
 }

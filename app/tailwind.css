@@ -1,0 +1,485 @@
+/* -----------------------------------------------------------------------------
+ * Tailwind v4 entry — mobile redesign system
+ * -----------------------------------------------------------------------------
+ * Preflight is intentionally skipped so we don't reset the existing .v2-*
+ * styles. Tailwind utilities are imported *un-layered* so they participate in
+ * normal source-order cascade — this lets `hidden md:flex` actually win over
+ * legacy single-class selectors like `.v2-header-actions { display: flex }`
+ * (un-layered legacy CSS beats any @layer'd Tailwind utilities by default).
+ * tailwind.css is imported after globals.css in app/layout.tsx, so utilities
+ * defined here naturally override legacy rules of equal specificity.
+ * ---------------------------------------------------------------------------*/
+
+@import "tailwindcss/theme.css";
+@import "tailwindcss/utilities.css";
+
+@theme {
+  /* Brand — mirrors the existing :root tokens so utilities like
+     bg-brand-500 / text-accent-500 / shadow-brand match site identity. */
+  --color-brand-50:  #FFF1E5;
+  --color-brand-100: #FFE0C2;
+  --color-brand-300: #FFB87A;
+  --color-brand-500: #FF7A1A;
+  --color-brand-600: #ED6A0A;
+  --color-brand-700: #C85B08;
+
+  --color-accent-300: #5EEBD0;
+  --color-accent-500: #34E0BC;
+  --color-accent-600: #22D3B5;
+
+  --color-ink-50:  #F5F5F7;
+  --color-ink-200: #D2D2D7;
+  --color-ink-400: #86868B;
+  --color-ink-700: #2A2A35;
+  --color-ink-800: #1E1E28;
+  --color-ink-900: #16161E;
+  --color-ink-950: #121218;
+  --color-ink-1000: #0A0A0E;
+
+  /* Three breakpoint mobile-first system. Overrides Tailwind defaults so the
+     team can't accidentally introduce new breakpoints. */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 1024px;
+  --breakpoint-lg: 1280px;
+  --breakpoint-xl: 1536px;
+
+  /* Fluid type scale tuned for thumb-distance reading. */
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.375rem;
+  --text-2xl:  1.625rem;
+  --text-3xl:  2rem;
+  --text-4xl:  2.5rem;
+  --text-5xl:  3.25rem;
+
+  /* Radii match the existing system. */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   20px;
+  --radius-xl:   28px;
+  --radius-2xl:  36px;
+
+  /* Fonts inherit from next/font CSS variables already wired in <html>. */
+  --font-sans:    "Inter", "Open Sans", system-ui, -apple-system, sans-serif;
+  --font-heading: "Poppins", "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* -----------------------------------------------------------------------------
+ * Mobile-redesign base — narrowly-scoped rules that the legacy cascade misses.
+ * ---------------------------------------------------------------------------*/
+
+/* Stop accidental horizontal scroll on phones — long words in the hero or
+   any wide legacy section can otherwise extend the viewport. We use `clip`
+   instead of `hidden` so descendants can still use `position: sticky`
+   (overflow: hidden creates a scroll container which breaks sticky). */
+html, body { overflow-x: clip; }
+
+/* Mobile: pin the site header to the top of the viewport so it stays
+   visible while scrolling. The legacy `.v2-header { position: sticky }`
+   works on desktop but can be defeated by mobile browser quirks, so we
+   force `position: fixed` here and add a top padding to `<main>` to
+   reserve the space the fixed header takes out of flow. */
+@media (max-width: 1023px) {
+  .v2-header {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 60;
+  }
+  main {
+    padding-top: 60px;
+  }
+}
+
+/* Hide scrollbar on horizontal-scroll regions (used by hero trust chips,
+   featured-product carousels, etc.). */
+.hide-scrollbar { scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
+/* -----------------------------------------------------------------------------
+ * Mobile footer payment-logo chips — the legacy `.v2-pay-chip` stretches the
+ * raw logo files; replace with fixed-size white tiles that center the image
+ * with proper object-fit so the brand artwork keeps its aspect ratio.
+ * ---------------------------------------------------------------------------*/
+@media (max-width: 1023px) {
+  .v2-pay-row {
+    justify-content: center;
+    gap: 10px;
+  }
+  .v2-pay-row span.v2-pay-chip,
+  .v2-pay-row span {
+    width: 64px;
+    height: 40px;
+    padding: 6px 10px;
+    background: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .v2-pay-row img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * GLOBAL MOBILE POLISH — applies the new design language to every legacy
+ * page without rewriting markup. Targets the broad `.v2-*` patterns that
+ * appear on Shop, Product Detail, Cart, Checkout, Pricing, Account, Blog…
+ * ---------------------------------------------------------------------------*/
+
+@media (max-width: 1023px) {
+  /* Tighter, less-round corners across all legacy cards. */
+  .surface-card,
+  .product-card,
+  .bundle-card,
+  .testimonial-grid article,
+  .v2-cat-card,
+  .v2-why-card,
+  .v2-mini-card,
+  .v2-pricing-card,
+  .v2-faq details,
+  .v2-stats-band > div,
+  .freebie-square,
+  .shop-product-card,
+  .blog-card,
+  .review-card,
+  .account-card,
+  .order-summary,
+  .checkout-summary-card,
+  .cart-line-card,
+  .auth-card {
+    border-radius: 12px !important;
+  }
+
+  /* Buttons feel less pill-y on mobile. */
+  .btn {
+    border-radius: 12px !important;
+    min-height: 48px;
+    padding: 12px 20px;
+  }
+  .btn-small { min-height: 40px; padding: 8px 16px; }
+  .btn-large { min-height: 52px; padding: 14px 24px; font-size: 0.95rem; }
+
+  /* Container side gutters tuned for phones. */
+  .v2-container {
+    width: 100%;
+    padding-left: 20px;
+    padding-right: 20px;
+    box-sizing: border-box;
+  }
+
+  /* Section vertical rhythm — slightly tighter on mobile. */
+  .v2-section { padding-top: 36px; padding-bottom: 36px; }
+  .v2-section h2 { font-size: clamp(1.625rem, 6.5vw, 2rem); line-height: 1.1; }
+  .v2-section p  { line-height: 1.55; }
+
+  /* Page-hero pattern reused across Shop / Pricing / Blog / Account etc. */
+  .page-hero,
+  .shop-hero,
+  .auth-hero,
+  .account-hero {
+    padding-top: 28px;
+    padding-bottom: 18px;
+  }
+  .page-hero h1,
+  .shop-hero h1,
+  .auth-hero h1,
+  .account-hero h1 {
+    font-size: clamp(1.875rem, 7.6vw, 2.5rem);
+    line-height: 1.08;
+    margin: 0 0 12px;
+  }
+  .page-hero p,
+  .shop-hero p,
+  .account-hero p {
+    font-size: 0.94rem;
+    line-height: 1.55;
+  }
+
+  /* Form inputs — bigger tap targets, easier to type into. */
+  .input,
+  .form-input,
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    min-height: 48px;
+    font-size: 16px; /* iOS Safari skips zoom on focus when font-size ≥ 16px */
+    border-radius: 10px !important;
+  }
+  textarea { min-height: 96px; padding: 12px 14px; }
+
+  /* Sticky bottom CTA bar — applies wherever pages use `.sticky-cta-bar`
+     (cart, checkout, product detail). Keeps the primary conversion action
+     in the thumb zone at all times. */
+  .sticky-cta-bar,
+  .product-detail-sticky,
+  .cart-sticky-checkout,
+  .checkout-sticky-pay {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 55;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: rgba(10, 10, 14, 0.92);
+    backdrop-filter: saturate(180%) blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .sticky-cta-bar .btn,
+  .product-detail-sticky .btn,
+  .cart-sticky-checkout .btn,
+  .checkout-sticky-pay .btn {
+    flex: 1;
+    border-radius: 12px !important;
+  }
+  /* Reserve room for the sticky bar so the last bit of page content isn't
+     hidden behind it. Pages opt in via `body.has-sticky-cta` */
+  body.has-sticky-cta main {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  /* Product grids stack to 2-col on phones, 1-col below 380px. */
+  .v2-product-grid,
+  .shop-product-grid,
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+  @media (max-width: 360px) {
+    .v2-product-grid,
+    .shop-product-grid,
+    .product-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  /* Shop filter / search bar — sticky just below the fixed header. */
+  .shop-toolbar,
+  .shop-filter-bar {
+    position: sticky;
+    top: 60px;
+    z-index: 40;
+    background: rgba(10, 10, 14, 0.92);
+    backdrop-filter: saturate(180%) blur(16px);
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* Cart / checkout summary cards stack with consistent padding. */
+  .order-summary,
+  .checkout-summary-card,
+  .cart-line-card {
+    padding: 16px !important;
+  }
+  .cart-line-card + .cart-line-card,
+  .checkout-line + .checkout-line {
+    margin-top: 12px;
+  }
+
+  /* Eyebrow labels — small uppercase with brand color, used on many pages */
+  .v2-eyebrow {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    color: var(--brand-500);
+  }
+
+  /* Tighten the legacy footer on mobile. */
+  .v2-footer {
+    padding-top: 36px;
+    padding-bottom: 28px;
+  }
+  .v2-footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  .v2-footer-brand {
+    text-align: center;
+  }
+  .v2-footer h4 {
+    margin-bottom: 8px;
+  }
+
+  /* Breadcrumb / page-back row at top of inner pages */
+  .product-detail-breadcrumb,
+  .breadcrumb {
+    font-size: 0.8rem;
+    padding: 12px 0;
+    flex-wrap: wrap;
+  }
+  .product-detail-breadcrumb .current,
+  .breadcrumb .current {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Product detail layout: stack the gallery and the buy column. */
+  .product-detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  .product-detail-title {
+    font-size: clamp(1.625rem, 6.5vw, 2rem) !important;
+    line-height: 1.15 !important;
+    margin-bottom: 8px !important;
+  }
+  .product-detail-tagline { font-size: 0.95rem; line-height: 1.55; }
+
+  /* "You may also like" related row — show as horizontal swipe carousel
+     so the page doesn't get crazy tall on mobile. */
+  .related-products,
+  .you-may-also-like {
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 8px;
+  }
+  .related-products::-webkit-scrollbar,
+  .you-may-also-like::-webkit-scrollbar { display: none; }
+}
+
+/* -----------------------------------------------------------------------------
+ * Reusable mobile utility classes for the redesigned conversion pages.
+ * ---------------------------------------------------------------------------*/
+
+.m-page {           /* default page surface on mobile */
+  padding: 20px;
+  background: var(--bg);
+  color: var(--text);
+}
+.m-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 16px;
+}
+.m-input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.m-input:focus { border-color: var(--brand-500); background: rgba(255,255,255,0.06); }
+.m-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.m-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--brand-500);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 12px 32px -12px rgba(255, 122, 26, 0.6);
+  transition: background 0.15s ease;
+}
+.m-btn-primary:active { background: var(--brand-700); }
+.m-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.m-btn-secondary:active { background: rgba(255,255,255,0.10); }
+
+/* -----------------------------------------------------------------------------
+ * Product detail — brand-logo / icon fallback media tile.
+ * On mobile this stays compact so the buy column shows above-the-fold.
+ * ---------------------------------------------------------------------------*/
+.product-detail-brand-media {
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  height: 220px;
+}
+.product-detail-icon-media {
+  display: grid;
+  place-items: center;
+  height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 0;
+  color: #fff;
+}
+.product-detail-icon-media i { font-size: 4rem; }
+
+/* Bigger card on desktop where vertical space is cheap. */
+@media (min-width: 1024px) {
+  .product-detail-brand-media,
+  .product-detail-icon-media { height: 420px; border-radius: 20px; }
+  .product-detail-icon-media i { font-size: 6rem; }
+}
+
+/* -----------------------------------------------------------------------------
+ * "You may also like" — mobile carousel, desktop grid.
+ * ---------------------------------------------------------------------------*/
+.related-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(60vw, 240px);
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 0 16px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.related-rail::-webkit-scrollbar { display: none; }
+.related-rail > * { scroll-snap-align: start; }
+
+@media (min-width: 1024px) {
+  .related-rail {
+    display: grid;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-auto-columns: initial;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+}
