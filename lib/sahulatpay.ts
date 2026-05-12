@@ -37,7 +37,12 @@ export const PROVIDERS: Record<ProviderKey, {
   },
   card: {
     label: "Card",
-    initiatePath: "payment-request/otp",
+    // AssanPay docs §"Redirect User to Payment Page" — the hosted "Cashier
+    // Model" endpoint is /payment-request/{merchantId}. The previous
+    // /payment-request/otp/{merchantId} value is undocumented and silently
+    // routes users to the EasyPaisa-only `/pay-ep/...` hosted page instead
+    // of the generic cashier (`/aik-qr/...`) which exposes Card + wallets.
+    initiatePath: "payment-request",
     statusPath: "payment/all-inquiry",
     statusMethod: "GET",
     hosted: true,

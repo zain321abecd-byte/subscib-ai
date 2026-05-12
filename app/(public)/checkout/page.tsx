@@ -236,9 +236,18 @@ export default function CheckoutPage() {
       setRedirectUrl(data.redirectUrl || null);
 
       if (data.success && data.paymentStatus === "pending") {
-        setStatus("pending");
-        setMessage(data.message || `Open your ${provider === "easypaisa" ? "Easypaisa" : "JazzCash"} app and approve the payment.`);
-        // Record as pending so the user sees it in /account immediately
+        // Card payments (and any hosted-fallback wallet flow) come back from
+        // SahulatPay with a hosted payment URL where the customer enters their
+        // card details. The wallet flow (JazzCash / Easypaisa direct push)
+        // does NOT need a redirect — the user approves in their app, so we
+        // just poll for status.
+        const usesHostedPage =
+          provider === "card" ||
+          data.hostedAuthMode === "merchant-url" ||
+          (typeof data.gatewayMode === "string" && data.gatewayMode.startsWith("hosted"));
+
+        // Record as pending FIRST so the user can see the order in /account
+        // even if they bounce off the hosted page without completing payment.
         cart.recordOrder({
           orderId: id, placedAt: Date.now(),
           items: orderItemsSnapshot,
@@ -247,6 +256,18 @@ export default function CheckoutPage() {
           paymentProvider: provider,
           status: "pending",
         });
+
+        if (usesHostedPage && data.redirectUrl) {
+          setStatus("pending");
+          setMessage("Redirecting you to the secure payment page…");
+          // Use top-level navigation so SahulatPay can post-back to our
+          // /api/sahulatpay-callback when the customer finishes paying.
+          window.location.assign(data.redirectUrl);
+          return;
+        }
+
+        setStatus("pending");
+        setMessage(data.message || `Open your ${provider === "easypaisa" ? "Easypaisa" : "JazzCash"} app and approve the payment.`);
         startPolling(id, provider);
       } else if (data.success && data.paymentStatus === "paid") {
         setStatus("paid");

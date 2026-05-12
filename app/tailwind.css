@@ -100,32 +100,32 @@ html, body { overflow-x: clip; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
 /* -----------------------------------------------------------------------------
- * Mobile footer payment-logo chips — the legacy `.v2-pay-chip` stretches the
- * raw logo files; replace with fixed-size white tiles that center the image
- * with proper object-fit so the brand artwork keeps its aspect ratio.
+ * Mobile footer payment-logo chips — the raw brand JPEGs/PNGs each have
+ * their own black background baked in, so the chip frame is a dark tile that
+ * blends with the artwork. Width is intrinsic (let the image's own aspect
+ * ratio drive the chip width) so the wide VISA/Mastercard combo doesn't get
+ * cropped and the square JazzCash / Easypaisa marks stay legible.
  * ---------------------------------------------------------------------------*/
 @media (max-width: 1023px) {
   .v2-pay-row {
     justify-content: center;
-    gap: 10px;
+    align-items: center;
+    gap: 16px;
   }
   .v2-pay-row span.v2-pay-chip,
   .v2-pay-row span {
-    width: 64px;
-    height: 40px;
-    padding: 6px 10px;
-    background: #FFFFFF;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
   .v2-pay-row img {
-    max-width: 100%;
-    max-height: 100%;
+    display: block;
+    height: 28px !important;
     width: auto !important;
-    height: auto !important;
     object-fit: contain !important;
   }
 }

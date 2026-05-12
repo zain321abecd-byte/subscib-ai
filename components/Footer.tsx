@@ -23,10 +23,10 @@ export default async function Footer() {
         <div className="v2-footer-brand">
           <Link href="/"><Image src="/assets/subscribai-logo.png" alt="SubscribAI" width={140} height={36} /></Link>
           <p>Premium AI subscriptions, automation packs, and digital tools — delivered in minutes.</p>
-          <div className="v2-pay-row">
-            {isPK && <span className="v2-pay-chip"><PaymentLogo provider="jazzcash" height={22} /></span>}
-            {isPK && <span className="v2-pay-chip"><PaymentLogo provider="easypaisa" height={22} /></span>}
-            <span className="v2-pay-chip"><PaymentLogo provider="card" height={22} /></span>
+          <div className="v2-pay-row" aria-label="Accepted payment methods">
+            {isPK && <span className="v2-pay-chip" title="JazzCash"><PaymentLogo provider="jazzcash" height={32} /></span>}
+            {isPK && <span className="v2-pay-chip" title="Easypaisa"><PaymentLogo provider="easypaisa" height={32} /></span>}
+            <span className="v2-pay-chip" title="Visa & Mastercard"><PaymentLogo provider="card" height={32} /></span>
           </div>
           {socials.length > 0 && (
             <div className="v2-social-row" style={{ display: "flex", gap: 12, marginTop: 12 }}>

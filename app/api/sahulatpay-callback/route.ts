@@ -58,6 +58,8 @@ async function handle(payload: Record<string, any>, method: string) {
 }
 
 export async function POST(req: Request) {
+  // POST is the server-to-server notification path from SahulatPay. Always
+  // return JSON so the gateway can parse our ack.
   let payload: Record<string, any> = {};
   try {
     payload = await req.json();
@@ -68,10 +70,39 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  // GET is almost always the BROWSER redirect-back after the customer
+  // finishes the hosted card payment on SahulatPay. We still record the
+  // status in our DB (best-effort), but the response must be a real HTML
+  // redirect — not raw JSON — or the user sees a JSON blob and panics.
+  // Server-to-server probes that explicitly ask for JSON keep getting JSON.
   const payload: Record<string, any> = {};
   const url = new URL(req.url);
   url.searchParams.forEach((value, key) => { payload[key] = value; });
-  return handle(payload, "GET");
+
+  const orderId = String(payload.order_id || payload.orderId || payload.transactionId || "").trim();
+  const rawStatus = payload.status || payload.transactionStatus || payload.responseDesc || "";
+  const paymentStatus = normalizePaymentStatus(rawStatus);
+
+  console.info("SahulatPay callback received", {
+    method: "GET",
+    orderId,
+    paymentStatus,
+    rawStatus: String(rawStatus).slice(0, 80),
+  });
+
+  // Best-effort DB sync — don't block the redirect on it.
+  await syncOrderStatus(orderId, paymentStatus);
+
+  const accept = req.headers.get("accept") || "";
+  const wantsJson = accept.includes("application/json") && !accept.includes("text/html");
+  if (wantsJson) return handle(payload, "GET");
+
+  // Send the customer to the thank-you page with the order context so the
+  // page can show the right success / failed / pending UI.
+  const dest = new URL("/thank-you", url.origin);
+  if (orderId) dest.searchParams.set("orderId", orderId);
+  if (paymentStatus) dest.searchParams.set("status", paymentStatus);
+  return NextResponse.redirect(dest, 303);
 }
 
 export async function OPTIONS() {

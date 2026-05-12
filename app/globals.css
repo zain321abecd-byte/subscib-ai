@@ -7821,14 +7821,33 @@ body.v2::before, body.v2::after { display: none !important; }
 .v2-footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: var(--space-6); padding-bottom: var(--space-7); }
 .v2-footer-brand img { height: 36px; margin-bottom: var(--space-4); display: block; }
 .v2-footer-brand p { color: var(--text-muted); margin-bottom: var(--space-4); max-width: 36ch; }
-.v2-pay-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.v2-pay-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 4px 0 14px;
+}
 .v2-pay-row span {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 12px; background: var(--surface);
   border: 1px solid var(--border); border-radius: var(--radius-md);
   font-size: var(--fs-xs); color: var(--text-soft);
 }
-.v2-pay-row span.v2-pay-chip { padding: 4px 8px; }
+/* Payment-logo chips render the raw brand artwork directly — no frame, no
+ * background, no border. The JPEG/PNG files already carry their own brand
+ * styling, so any wrapper just adds visual noise. */
+.v2-pay-row span.v2-pay-chip {
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  transition: transform var(--dur);
+}
+.v2-pay-row span.v2-pay-chip:hover { transform: translateY(-1px); }
+.v2-pay-row span.v2-pay-chip img,
 .v2-pay-row span.v2-pay-chip svg { display: block; }
 .v2-footer h4 { font-family: var(--font-heading); color: var(--text); font-size: var(--fs-md); margin-bottom: var(--space-3); }
 .v2-footer a {
@@ -13292,8 +13311,7 @@ body.admin-body::after {
     padding-top: 18px !important;
   }
   .v2-footer-bottom span { font-size: 0.7rem !important; }
-  .v2-pay-row { gap: 6px !important; flex-wrap: wrap; }
-  .v2-pay-row span { font-size: 0.66rem !important; padding: 4px 9px !important; border-radius: 999px; }
+  .v2-pay-row { gap: 16px !important; flex-wrap: wrap; justify-content: center !important; }
 
   /* ---------- HEADER — smaller ---------- */
   .v2-header-row { height: 56px !important; }

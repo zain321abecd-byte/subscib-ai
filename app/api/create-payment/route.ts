@@ -150,7 +150,12 @@ export async function POST(req: Request) {
   const payload: Record<string, unknown> = isCard
     ? { amount, order_id: orderId, store_name: storeName }
     : { amount: useNumberAmount ? directWalletAmount : amount, phone, order_id: orderId, type: "wallet" };
+  // Return-URL field is endpoint-specific:
+  //   • Wallet endpoints (initiate-jz, initiate-ep) → `redirect_url`
+  //   • Hosted cashier endpoint (/payment-request/{merchantId}) → `link`
+  //     (per AssanPay docs §Request Body — must be an https:// URL).
   if (provider === "jazzcash") payload.redirect_url = callbackUrl || "https://example.com/payment-return";
+  if (isCard && isPublicHttpUrl(callbackUrl)) payload.link = callbackUrl;
   if (provider === "easypaisa") payload.email = email;
 
   let gatewayPayload: any;
