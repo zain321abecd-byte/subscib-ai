@@ -23,6 +23,10 @@ export default async function Footer() {
         <div className="v2-footer-brand">
           <Link href="/"><Image src="/assets/subscribai-logo.png" alt="SubscribAI" width={140} height={36} /></Link>
           <p>Premium AI subscriptions, automation packs, and digital tools — delivered in minutes.</p>
+          <p className="v2-footer-address">
+            <i className="fa-solid fa-location-dot"></i>
+            <span>Saleem Complex, Shop No 30, Q Block, Model Town, Lahore</span>
+          </p>
           <div className="v2-pay-row" aria-label="Accepted payment methods">
             {isPK && <span className="v2-pay-chip" title="JazzCash"><PaymentLogo provider="jazzcash" height={32} /></span>}
             {isPK && <span className="v2-pay-chip" title="Easypaisa"><PaymentLogo provider="easypaisa" height={32} /></span>}

@@ -23,6 +23,10 @@ export default function ContactPage() {
           <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: 12 }}>
             <li><a href="https://wa.me/15550132026" style={{ color: "var(--brand-600)" }}><i className="fa-brands fa-whatsapp"></i> WhatsApp +1 555 013 2026</a></li>
             <li><a href="mailto:contact@subscribai.com" style={{ color: "var(--brand-600)" }}><i className="fa-solid fa-envelope"></i> contact@subscribai.com</a></li>
+            <li style={{ color: "var(--text-soft)", display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <i className="fa-solid fa-location-dot" style={{ color: "var(--brand-600)", marginTop: 4 }}></i>
+              <span>Saleem Complex, Shop No 30, Q Block, Model Town, Lahore</span>
+            </li>
           </ul>
         </aside>
       </div>
