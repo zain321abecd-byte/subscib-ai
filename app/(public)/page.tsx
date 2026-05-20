@@ -45,7 +45,7 @@ export default async function HomePage() {
        * MOBILE HERO  (md:hidden) — left-aligned, text CTA, wavy bg
        * ─────────────────────────────────────────────────────────────── */}
       <section className="md:hidden relative overflow-hidden bg-ink-1000 min-h-screen flex flex-col">
-        {/* Wavy red brushstroke background */}
+        {/* Wavy brand brushstroke background */}
         <svg
           aria-hidden
           viewBox="0 0 400 800"
@@ -54,13 +54,13 @@ export default async function HomePage() {
         >
           <defs>
             <radialGradient id="hero-bg-glow" cx="50%" cy="55%" r="55%">
-              <stop offset="0%" stopColor="#FF1A1A" stopOpacity="0.55" />
-              <stop offset="60%" stopColor="#7A0A0A" stopOpacity="0.25" />
+              <stop offset="0%" stopColor="#FF7A1A" stopOpacity="0.45" />
+              <stop offset="60%" stopColor="#C85B08" stopOpacity="0.22" />
               <stop offset="100%" stopColor="#000000" stopOpacity="0" />
             </radialGradient>
           </defs>
           <rect width="400" height="800" fill="url(#hero-bg-glow)" />
-          <g stroke="#FF2A2A" strokeOpacity="0.32" fill="none" strokeWidth="1.2" strokeLinecap="round">
+          <g stroke="#FF7A1A" strokeOpacity="0.32" fill="none" strokeWidth="1.2" strokeLinecap="round">
             <path d="M-20 120 Q 90 60 220 160 T 440 220" />
             <path d="M-20 200 Q 140 130 260 230 T 440 300" />
             <path d="M-30 320 Q 120 240 280 360 T 440 420" />
@@ -68,7 +68,7 @@ export default async function HomePage() {
             <path d="M-20 600 Q 140 520 290 640 T 440 700" />
             <path d="M-30 700 Q 120 620 280 720 T 440 760" />
           </g>
-          <g stroke="#FF3A3A" strokeOpacity="0.18" fill="none" strokeWidth="0.8">
+          <g stroke="#FFB37A" strokeOpacity="0.18" fill="none" strokeWidth="0.8">
             <path d="M-10 80 Q 130 30 260 130 T 410 200" />
             <path d="M-10 380 Q 150 320 280 420 T 420 500" />
             <path d="M-10 560 Q 160 480 300 580 T 420 660" />
@@ -509,9 +509,9 @@ export default async function HomePage() {
             isPK
               ? { i: "fa-money-bill-transfer", t: "Pay in PKR", d: "JazzCash, Easypaisa, and any card. No forex hassle, no rejected international transactions.", bg: "#FF7A1A", brand: false }
               : { i: "fa-credit-card", t: "Pay your way", d: "Any major card, processed through a secure gateway. Receipts emailed instantly.", bg: "#FF7A1A", brand: false },
-            { i: "fa-bolt", t: "Instant activation", d: "Most subscriptions go live in under 30 minutes. Digital downloads arrive immediately via email.", bg: "#10A37F", brand: false },
-            { i: "fa-rotate", t: "Easy renewals", d: "Renewal reminders before expiry. Replacements within 24 hours if anything goes wrong with a subscription.", bg: "#4796E3", brand: false },
-            { i: "fa-whatsapp", t: "Real human support", d: "WhatsApp + email support, 24/7. Average reply time under 15 minutes during the day.", bg: "#25D366", brand: true },
+            { i: "fa-bolt", t: "Instant activation", d: "Most subscriptions go live in under 30 minutes. Digital downloads arrive immediately via email.", bg: "#FF7A1A", brand: false },
+            { i: "fa-rotate", t: "Easy renewals", d: "Renewal reminders before expiry. Replacements within 24 hours if anything goes wrong with a subscription.", bg: "#C85B08", brand: false },
+            { i: "fa-whatsapp", t: "Real human support", d: "WhatsApp + email support, 24/7. Average reply time under 15 minutes during the day.", bg: "#C85B08", brand: true },
           ].map((w) => (
             <div key={w.t} className="flex gap-4 rounded-md bg-gradient-to-br from-white/[0.05] to-white/[0.01] ring-1 ring-white/8 p-4">
               <span className="h-12 w-12 shrink-0 grid place-items-center rounded-sm text-white text-[20px]" style={{ background: w.bg }}>
@@ -539,9 +539,9 @@ export default async function HomePage() {
               isPK
                 ? { icon: "fa-money-bill-transfer", t: "Pay in PKR", d: "JazzCash, Easypaisa, and any card. No forex hassle, no rejected international transactions.", bg: "#FF7A1A" }
                 : { icon: "fa-credit-card", t: "Pay your way", d: "Any major card, processed through a secure gateway. Receipts emailed instantly.", bg: "#FF7A1A" },
-              { icon: "fa-bolt", t: "Instant activation", d: "Most subscriptions go live in under 30 minutes. Digital downloads arrive immediately via email.", bg: "#10A37F" },
-              { icon: "fa-rotate", t: "Easy renewals", d: "Renewal reminders before expiry. Replacements within 24 hours if anything goes wrong with a subscription.", bg: "#4796E3" },
-              { icon: "fa-whatsapp", t: "Real human support", d: "WhatsApp + email support, 24/7. Average reply time under 15 minutes during the day.", bg: "#25D366", brand: true },
+              { icon: "fa-bolt", t: "Instant activation", d: "Most subscriptions go live in under 30 minutes. Digital downloads arrive immediately via email.", bg: "#FF7A1A" },
+              { icon: "fa-rotate", t: "Easy renewals", d: "Renewal reminders before expiry. Replacements within 24 hours if anything goes wrong with a subscription.", bg: "#C85B08" },
+              { icon: "fa-whatsapp", t: "Real human support", d: "WhatsApp + email support, 24/7. Average reply time under 15 minutes during the day.", bg: "#C85B08", brand: true },
             ].map((w) => (
               <div key={w.t} className="surface-card v2-why-card">
                 <span className="v2-why-icon" style={{ background: w.bg, color: "#ffffff" }}>

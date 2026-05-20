@@ -58,11 +58,18 @@ export default async function BlogPage() {
 
         {/* Featured post */}
         <Link href={`/blog/${featured.slug}`} className="surface-card is-interactive blog-featured">
-          <div className={`product-media ${MEDIA_VARIANTS[POSTS.indexOf(featured) % 4]} blog-featured-media`} aria-hidden>
-            <span className="blog-featured-icon" style={{ color: TAG_COLORS[featured.tag].c }}>
-              <i className={`fa-solid ${TAG_COLORS[featured.tag].icon}`}></i>
-            </span>
-          </div>
+          {featured.coverUrl ? (
+            <div className="blog-featured-media blog-featured-media-img" aria-hidden>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={featured.coverUrl} alt="" loading="eager" />
+            </div>
+          ) : (
+            <div className={`product-media ${MEDIA_VARIANTS[POSTS.indexOf(featured) % 4]} blog-featured-media`} aria-hidden>
+              <span className="blog-featured-icon" style={{ color: TAG_COLORS[featured.tag].c }}>
+                <i className={`fa-solid ${TAG_COLORS[featured.tag].icon}`}></i>
+              </span>
+            </div>
+          )}
           <div className="blog-featured-body">
             <span className="badge" style={{ background: TAG_COLORS[featured.tag].bg, color: TAG_COLORS[featured.tag].c, marginBottom: "var(--space-3)" }}>
               {featured.tag} · Featured
@@ -90,8 +97,14 @@ export default async function BlogPage() {
         <div className="blog-grid">
           {rest.map((p) => (
             <Link key={p.slug} href={`/blog/${p.slug}`} className="surface-card is-interactive blog-card">
-              {/* Slim colored accent stripe on top — replaces the heavy media block */}
-              <div className="blog-card-stripe" style={{ background: TAG_COLORS[p.tag].c }} aria-hidden />
+              {p.coverUrl ? (
+                <div className="blog-card-cover" aria-hidden>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.coverUrl} alt="" loading="lazy" />
+                </div>
+              ) : (
+                <div className="blog-card-stripe" style={{ background: TAG_COLORS[p.tag].c }} aria-hidden />
+              )}
               <div className="blog-card-body">
                 <span className="badge" style={{ background: TAG_COLORS[p.tag].bg, color: TAG_COLORS[p.tag].c, marginBottom: "var(--space-3)", alignSelf: "flex-start" }}>
                   {p.tag} · {p.readMins} min read

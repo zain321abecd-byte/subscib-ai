@@ -16,6 +16,8 @@ export type Post = {
   pkOnly?: boolean;
   /** Markdown-style body — newlines split into paragraphs at render time */
   body: string;
+  /** Cover image URL (OG image + post hero). Optional. */
+  coverUrl?: string | null;
 };
 
 export const POSTS: Post[] = [
@@ -254,6 +256,7 @@ function rowToPost(row: BlogPostRow): Post {
     authorColor: row.author_color,
     featured: row.featured,
     pkOnly: (row as unknown as { pk_only?: boolean }).pk_only ?? inferredPkOnly,
+    coverUrl: row.cover_url ?? null,
   };
 }
 

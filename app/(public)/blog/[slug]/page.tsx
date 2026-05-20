@@ -24,6 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = await getPost(slug);
   if (!post) return {};
+  const images = post.coverUrl ? [{ url: post.coverUrl }] : undefined;
   return {
     title: post.title,
     description: post.excerpt,
@@ -36,8 +37,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       publishedTime: post.date,
       authors: [post.author],
       tags: [post.tag],
+      images,
     },
-    twitter: { card: "summary_large_image", title: post.title, description: post.excerpt },
+    twitter: { card: "summary_large_image", title: post.title, description: post.excerpt, images: post.coverUrl ? [post.coverUrl] : undefined },
   };
 }
 
@@ -154,6 +156,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             </div>
           </div>
         </header>
+
+        {/* Cover image — admin-uploaded hero */}
+        {post.coverUrl && (
+          <figure className="blog-post-cover">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={post.coverUrl} alt={post.title} loading="eager" />
+          </figure>
+        )}
 
         {/* Body */}
         <BlogBody>{blocks}</BlogBody>
