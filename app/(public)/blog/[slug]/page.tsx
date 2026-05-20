@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { STATIC_POSTS, getAllPosts, getPost } from "@/lib/blog";
 import { getRegion } from "@/lib/region";
+import BlogBody from "@/components/BlogBody";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 
@@ -53,27 +54,64 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const allPosts = isPK ? allPostsRaw : allPostsRaw.filter((p) => !p.pkOnly);
   const related = allPosts.filter((p) => p.slug !== post.slug && p.tag === post.tag).slice(0, 2);
 
-  // Render markdown-ish body — split paragraphs and h2 sections
-  const blocks = post.body.split(/\n\n+/).map((block, i) => {
-    const trimmed = block.trim();
-    if (trimmed.startsWith("## ")) {
-      return (
-        <h2 key={i} style={{
-          fontFamily: "var(--font-heading)", color: "var(--text)",
-          fontSize: "var(--fs-xl)", letterSpacing: "-0.015em",
-          marginTop: "var(--space-6)", marginBottom: "var(--space-3)",
-        }}>{trimmed.replace(/^##\s+/, "")}</h2>
-      );
+  // Render markdown-ish body — line-level parsing so single newlines work too
+  type Block =
+    | { kind: "h2"; text: string }
+    | { kind: "p"; lines: string[] }
+    | { kind: "ul"; items: string[] };
+
+  const lines = post.body.split(/\r?\n/);
+  const parsed: Block[] = [];
+  let buffer: string[] = [];
+  let listBuffer: string[] = [];
+  const flushP = () => {
+    if (buffer.length) {
+      parsed.push({ kind: "p", lines: buffer });
+      buffer = [];
     }
-    if (trimmed.startsWith("- ")) {
-      const items = trimmed.split("\n").map((l) => l.replace(/^-\s+/, ""));
+  };
+  const flushList = () => {
+    if (listBuffer.length) {
+      parsed.push({ kind: "ul", items: listBuffer });
+      listBuffer = [];
+    }
+  };
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushP();
+      flushList();
+      continue;
+    }
+    if (line.startsWith("## ") || line.startsWith("# ")) {
+      flushP();
+      flushList();
+      parsed.push({ kind: "h2", text: line.replace(/^#+\s+/, "") });
+      continue;
+    }
+    if (line.startsWith("- ") || line.startsWith("* ")) {
+      flushP();
+      listBuffer.push(line.replace(/^[-*]\s+/, ""));
+      continue;
+    }
+    flushList();
+    buffer.push(line);
+  }
+  flushP();
+  flushList();
+
+  const blocks = parsed.map((block, i) => {
+    if (block.kind === "h2") {
+      return <h2 key={i} className="blog-h2">{block.text}</h2>;
+    }
+    if (block.kind === "ul") {
       return (
-        <ul key={i} style={{ paddingLeft: 24, display: "grid", gap: 6, color: "var(--text-soft)" }}>
-          {items.map((item, j) => <li key={j}>{item}</li>)}
+        <ul key={i} className="blog-list">
+          {block.items.map((item, j) => <li key={j}>{item}</li>)}
         </ul>
       );
     }
-    return <p key={i} style={{ color: "var(--text-soft)", lineHeight: 1.7 }}>{trimmed}</p>;
+    return <p key={i} className="blog-p">{block.lines.join(" ")}</p>;
   });
 
   // Article JSON-LD
@@ -91,7 +129,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   return (
     <article className="v2-section">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <div className="v2-container" style={{ maxWidth: 760 }}>
+      <div className="v2-container" style={{ maxWidth: 880 }}>
         {/* Breadcrumb */}
         <nav style={{ marginBottom: "var(--space-5)", color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
           <Link href="/" style={{ color: "inherit" }}>Home</Link>
@@ -100,33 +138,25 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </nav>
 
         {/* Header */}
-        <header style={{ marginBottom: "var(--space-6)" }}>
-          <span className="badge" style={{ background: tagColor.bg, color: tagColor.c, marginBottom: "var(--space-3)" }}>
+        <header className="blog-post-header">
+          <span className="badge blog-post-tag" style={{ background: tagColor.bg, color: tagColor.c }}>
             {post.tag}
           </span>
-          <h1 style={{
-            fontFamily: "var(--font-heading)",
-            fontSize: "clamp(1.8rem, 3.6vw, 2.5rem)",
-            fontWeight: 800, color: "var(--text)",
-            letterSpacing: "-0.025em", lineHeight: 1.1,
-            marginBottom: "var(--space-4)",
-          }}>{post.title}</h1>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", color: "var(--text-muted)" }}>
+          <h1 className="blog-post-title">{post.title}</h1>
+          <div className="blog-post-meta">
             <span className="blog-avatar blog-avatar-sm" style={{ background: post.authorColor }}>{post.authorInitials}</span>
-            <div style={{ fontSize: "var(--fs-sm)" }}>
-              <strong style={{ color: "var(--text-soft)", fontWeight: 600 }}>{post.author}</strong>
-              <span style={{ margin: "0 6px" }}>·</span>
+            <div className="blog-post-meta-text">
+              <strong>{post.author}</strong>
+              <span className="blog-post-meta-sep">·</span>
               <span>{post.date}</span>
-              <span style={{ margin: "0 6px" }}>·</span>
+              <span className="blog-post-meta-sep">·</span>
               <span>{post.readMins} min read</span>
             </div>
           </div>
         </header>
 
         {/* Body */}
-        <div style={{ display: "grid", gap: "var(--space-3)" }}>
-          {blocks}
-        </div>
+        <BlogBody>{blocks}</BlogBody>
 
         {/* CTA at bottom */}
         <div style={{
