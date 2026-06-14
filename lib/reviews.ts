@@ -48,3 +48,21 @@ export async function getAllReviews(): Promise<Review[]> {
     return [];
   }
 }
+
+/** Raw approved rows for the premium testimonials carousel. Empty if DB unset. */
+export async function getAllReviewRows(): Promise<ReviewRow[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = await getSupabaseServer();
+    const { data, error } = await supabase
+      .from("reviews")
+      .select("*")
+      .eq("approved", true)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false });
+    if (error || !data) return [];
+    return data as ReviewRow[];
+  } catch {
+    return [];
+  }
+}

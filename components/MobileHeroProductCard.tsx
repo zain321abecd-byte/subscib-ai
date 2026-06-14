@@ -9,6 +9,7 @@ type Product = {
   id: string;
   name: string;
   price: number;
+  tag?: string;
   brand?: string | null;
   iconClass?: string;
 };
@@ -46,61 +47,43 @@ export default function MobileHeroProductCard({
   return (
     <Link
       href={`/product/${product.id}`}
-      className="
-        w-full h-full
-        rounded-md
-        bg-gradient-to-b from-white/[0.06] to-white/[0.02]
-        ring-1 ring-white/10
-        p-3
-        flex flex-col gap-2
-        active:scale-[0.98] transition-transform
-      "
+      className="shop-mobile-card"
     >
-      <div className="aspect-square rounded-sm bg-white grid place-items-center overflow-hidden">
+      <span className="shop-mobile-card-shine" aria-hidden />
+      <div className="shop-mobile-media">
         {product.brand ? (
-          <BrandIcon name={product.brand} size={64} />
+          <BrandIcon name={product.brand} size={68} />
         ) : (
           <i className={`${product.iconClass}`} style={{ color: "#0F172A", fontSize: 48 }}></i>
         )}
       </div>
 
-      <p className="text-[14px] font-semibold text-ink-50 leading-tight line-clamp-2">
-        {product.name}
-      </p>
-      <p className="text-[13px] font-medium text-brand-500 leading-tight">{priceLabel}</p>
+      <div className="shop-mobile-copy">
+        {product.tag && <span>{product.tag.split(",")[0]}</span>}
+        <p>{product.name}</p>
+      </div>
 
-      <button
-        type="button"
-        onClick={onAdd}
-        aria-label={`Add ${product.name} to cart`}
-        className={`
-          mt-1 inline-flex items-center justify-center gap-1.5
-          h-10 rounded-md
-          appearance-none border-0 cursor-pointer
-          text-[13px] font-semibold
-          transition-colors
-          ${justAdded
-            ? "bg-accent-500 text-ink-1000"
-            : "bg-brand-500 active:bg-brand-700 text-white"}
-        `}
-      >
-        {justAdded ? (
-          <>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <div className="shop-mobile-foot">
+        <strong>{priceLabel}</strong>
+
+        <button
+          type="button"
+          onClick={onAdd}
+          aria-label={`Add ${product.name} to cart`}
+          className={justAdded ? "is-added" : ""}
+        >
+          {justAdded ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12l5 5 9-11"/>
             </svg>
-            Added
-          </>
-        ) : (
-          <>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 4h2l2.4 11.2A2 2 0 0 0 9.36 17H17.5a2 2 0 0 0 1.96-1.6L21 8H6"/>
               <path d="M12 11v4M10 13h4"/>
             </svg>
-            Add to cart
-          </>
-        )}
-      </button>
+          )}
+        </button>
+      </div>
     </Link>
   );
 }

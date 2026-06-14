@@ -14,7 +14,7 @@ function LoginForm() {
   const configured = isSupabaseConfigured();
 
   const initialError =
-    errorParam === "not_configured" || !configured
+    !configured
       ? "Supabase isn't configured yet. Add the env vars from ADMIN_SETUP.md and redeploy."
       : errorParam === "not_admin"
       ? "Your account isn't authorised to access the admin panel."

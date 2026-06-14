@@ -11,7 +11,7 @@ import type { Product } from "@/lib/products";
 export default function ProductCard({ product }: { product: Product }) {
   const cart = useCart();
   const { toast } = useToast();
-  const { currency, usdToPkr, ready: fxReady } = useFx();
+  const { currency, usdToPkr, usdToInr, ready: fxReady } = useFx();
   const [justAdded, setJustAdded] = useState(false);
   const inCart = cart.items.some((i) => i.id === product.id);
 
@@ -77,7 +77,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <h3>{product.name}</h3>
         <div className="product-bottom">
           <div className="product-card-price">
-            <b>{formatPriceFromPKR(product.price, currency, usdToPkr, fxReady)}</b>
+            <b>{formatPriceFromPKR(product.price, currency, usdToPkr, fxReady, usdToInr)}</b>
           </div>
           <div className="product-actions">
             <Link className="product-icon-action" href={`/product/${product.id}`} aria-label={`View ${product.name}`} title="View details">

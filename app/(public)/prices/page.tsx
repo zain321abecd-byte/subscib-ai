@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useFx } from "@/lib/fx";
+import { Fragment, useState } from "react";
+import { formatINR, formatPKR, formatUSD, useFx } from "@/lib/fx";
 
 type BillingCycle = "monthly" | "yearly";
 
@@ -102,9 +102,22 @@ function priceForCycle(monthlyUsd: number | null, cycle: BillingCycle): number |
 }
 
 export default function PricesPage() {
-  const { usdToPkr, ready, region } = useFx();
+  const { currency, usdToPkr, usdToInr, ready, region } = useFx();
   const isPK = region === "PK";
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const formatBundlePrice = (usd: number) => {
+    if (currency === "USD") return formatUSD(usd);
+    if (!ready) return "-";
+    if (currency === "INR") return formatINR(usd * usdToInr);
+    return formatPKR(usd * usdToPkr);
+  };
+  const formatBundleSavings = (monthlyUsd: number) => {
+    const savingsUsd = monthlyUsd * 12 * 0.2;
+    if (currency === "USD") return `You save ${formatUSD(Math.round(savingsUsd))} a year`;
+    if (!ready) return "Save 20% yearly";
+    if (currency === "INR") return `You save ${formatINR(savingsUsd * usdToInr)} a year`;
+    return `You save ${formatPKR(savingsUsd * usdToPkr)} a year`;
+  };
 
   return (
     <section className="v2-section">
@@ -140,7 +153,6 @@ export default function PricesPage() {
         <div className="v2-pricing-grid reveal reveal-stagger">
           {TIERS.map((t) => {
             const usd = priceForCycle(t.monthlyUsd, cycle);
-            const pkr = usd !== null ? Math.round(usd * usdToPkr).toLocaleString("en-PK") : null;
             const cycleLabel = cycle === "monthly" ? "/ month" : "/ year";
             return (
               <article key={t.name} className={`surface-card v2-tier ${t.featured ? "is-featured" : ""}`}>
@@ -152,31 +164,20 @@ export default function PricesPage() {
                 </header>
                 <div className="v2-tier-price">
                   {usd !== null ? (
-                    <>
-                      {isPK ? (
-                        <>
-                          <strong>{ready ? `Rs ${pkr}` : "—"}</strong>
-                          <span>{cycleLabel}</span>
-                        </>
-                      ) : (
-                        <>
-                          <strong>${usd}</strong>
-                          <span>{cycleLabel}</span>
-                        </>
-                      )}
+                    <Fragment key={`tier-price-${t.name}-${cycle}`}>
+                      <strong>{formatBundlePrice(usd)}</strong>
+                      <span>{cycleLabel}</span>
                       {cycle === "yearly" && t.monthlyUsd && (
                         <div style={{ marginTop: 4, color: "var(--accent-300)", fontSize: "var(--fs-xs)", fontWeight: 600 }}>
-                          {isPK
-                            ? (ready ? `You save Rs ${Math.round(t.monthlyUsd * 12 * 0.2 * usdToPkr).toLocaleString("en-PK")} a year` : "Save 20% yearly")
-                            : `You save $${Math.round(t.monthlyUsd * 12 * 0.2)} a year`}
+                          {formatBundleSavings(t.monthlyUsd)}
                         </div>
                       )}
-                    </>
+                    </Fragment>
                   ) : (
-                    <>
+                    <Fragment key={`tier-price-${t.name}-custom`}>
                       <strong>Custom</strong>
                       <span>volume pricing</span>
-                    </>
+                    </Fragment>
                   )}
                 </div>
                 <ul>
@@ -208,8 +209,8 @@ export default function PricesPage() {
               </thead>
               <tbody>
                 {COMPARE.map((group) => (
-                  <>
-                    <tr key={`g-${group.group}`} className="prices-row-group">
+                  <Fragment key={group.group}>
+                    <tr className="prices-row-group">
                       <td colSpan={4}>{group.group}</td>
                     </tr>
                     {group.rows.filter((row) => !row.pkOnly || isPK).map((row) => (
@@ -230,7 +231,7 @@ export default function PricesPage() {
                         })}
                       </tr>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -309,20 +310,22 @@ export default function PricesPage() {
           .prices-table thead { display: none; }
           .prices-table, .prices-table tbody { display: block; width: 100%; }
           .prices-table tr {
-            display: block;
+            display: grid;
             border-bottom: none;
           }
           .prices-table tr:not(.prices-row-group) {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 14px;
-            margin-bottom: 8px;
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 10px;
           }
           .prices-table .prices-row-group {
             background: transparent;
-            padding: 14px 4px 6px;
-            margin-top: 8px;
+            padding: 16px 2px 8px;
+            margin-top: 10px;
           }
           .prices-table .prices-row-group td {
             background: transparent !important;
@@ -332,38 +335,47 @@ export default function PricesPage() {
             color: var(--brand-300) !important;
           }
           .prices-table tr:not(.prices-row-group) td {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 0;
+            display: grid;
+            place-items: center;
+            gap: 6px;
+            min-height: 68px;
+            padding: 9px 6px;
             border: none;
-            text-align: right;
-            font-size: 0.86rem;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.035);
+            text-align: center;
+            font-size: 0.82rem;
+            line-height: 1.25;
+            color: var(--text);
           }
           .prices-table tr:not(.prices-row-group) td:first-child {
             display: block;
+            grid-column: 1 / -1;
+            min-height: 0;
+            background: transparent;
+            border-radius: 0;
             text-align: left;
             color: var(--text);
             font-weight: 600;
-            font-size: 0.92rem;
-            padding: 0 0 8px;
-            margin-bottom: 6px;
+            font-size: 0.95rem;
+            line-height: 1.3;
+            padding: 0 0 10px;
+            margin-bottom: 0;
             border-bottom: 1px solid var(--border);
           }
           .prices-table tr:not(.prices-row-group) td:first-child::before { display: none; }
           .prices-table tr:not(.prices-row-group) td:not(:first-child)::before {
             content: attr(data-label);
             color: var(--text-muted);
-            font-size: 0.78rem;
-            font-weight: 500;
-            text-align: left;
-            margin-right: auto;
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-align: center;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.06em;
           }
           .prices-table td.prices-td-featured {
-            background: transparent !important;
+            background: rgba(255, 122, 26, 0.08) !important;
+            box-shadow: inset 0 0 0 1px rgba(255, 122, 26, 0.18);
           }
           .prices-table td.prices-td-featured::before {
             color: var(--brand-300) !important;

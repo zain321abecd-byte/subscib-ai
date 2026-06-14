@@ -30,6 +30,8 @@ export type ProductRow = {
   private_description: string | null;
   shared_label: string | null;
   private_label: string | null;
+  /** Plans, durations, and Plan + Account Type + Duration price matrix. */
+  variation_config: unknown | null;
   /** Custom bullet lines shown under the price. Empty → fallback defaults. */
   features: string[] | null;
   sort_order: number;
@@ -38,6 +40,7 @@ export type ProductRow = {
 };
 
 export type BlogPostRow = {
+  id?: string;
   slug: string;
   title: string;
   excerpt: string;
@@ -45,14 +48,77 @@ export type BlogPostRow = {
   date: string; // ISO date
   read_mins: number;
   tag: string;
+  tags?: string[] | null;
   author: string;
   author_initials: string;
   author_color: string;
+  author_id?: string | null;
+  author_bio?: string | null;
+  author_image?: string | null;
+  author_social_links?: Record<string, string> | null;
+  category_id?: string | null;
+  category_name?: string | null;
   cover_url: string | null;
+  featured_image_alt?: string | null;
   featured: boolean;
   published: boolean;
+  status?: "Draft" | "Published" | "Scheduled" | string | null;
+  scheduled_at?: string | null;
+  meta_title?: string | null;
+  meta_description?: string | null;
+  focus_keyword?: string | null;
+  secondary_keywords?: string[] | null;
+  canonical_url?: string | null;
+  robots_index?: boolean | null;
+  robots_follow?: boolean | null;
+  og_title?: string | null;
+  og_description?: string | null;
+  og_image?: string | null;
+  twitter_title?: string | null;
+  twitter_description?: string | null;
+  twitter_image?: string | null;
+  schema_type?: "BlogPosting" | "Article" | string | null;
+  faq_items?: Array<{ question: string; answer: string }> | null;
+  related_post_ids?: string[] | null;
+  redirect_from?: string[] | null;
   created_at: string;
   updated_at: string;
+};
+
+export type BlogCategoryRow = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlogTagRow = {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+};
+
+export type BlogAuthorRow = {
+  id: string;
+  name: string;
+  bio: string | null;
+  image: string | null;
+  social_links: Record<string, string> | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RedirectRow = {
+  id: string;
+  old_slug: string;
+  new_slug: string;
+  status_code: number;
+  created_at: string;
 };
 
 export type OrderItem = {
@@ -60,6 +126,13 @@ export type OrderItem = {
   name: string;
   qty: number;
   price: number;
+  variation?: {
+    plan?: string;
+    accountType?: string;
+    accountLabel?: string;
+    duration?: string;
+    summary?: string;
+  };
 };
 
 export type OrderRow = {
@@ -105,21 +178,53 @@ export type ReviewRow = {
   created_at: string;
 };
 
-export type FreebieRow = {
+export type StockStatus = "active" | "expiringSoon" | "expired" | "renewed";
+
+export type StockItemRow = {
   id: string;
-  title: string;
-  description: string;
-  icon_class: string | null;
-  file_url: string | null;
-  whatsapp_msg: string | null;
-  sort_order: number;
-  active: boolean;
+  item_name: string;
+  category: string | null;
+  quantity: number;
+  unit: string | null;
+  expiry_date: string;
+  reminder_days_before_expiry: number;
+  contact_email: string;
+  supplier_name: string | null;
+  status: StockStatus;
+  notes: string | null;
+  last_reminder_sent_at: string | null;
+  last_expired_reminder_sent_at: string | null;
+  renewed_at: string | null;
   created_at: string;
+  updated_at: string;
 };
 
 export type SiteSettingRow = {
   key: string;
   value: unknown;
+  updated_at: string;
+};
+
+export type TrafficSessionRow = {
+  session_id: string;
+  first_seen: string;
+  last_seen: string;
+  pageviews: number;
+  source: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  referrer: string | null;
+  landing_page: string | null;
+  last_page: string | null;
+  user_id: string | null;
+  user_email: string | null;
+  browser: string | null;
+  os: string | null;
+  device_type: string | null;
+  platform: string | null;
+  user_agent: string | null;
+  created_at: string;
   updated_at: string;
 };
 

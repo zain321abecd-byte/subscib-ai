@@ -24,6 +24,7 @@ export type ProductFormData = {
   private_description: string | null;
   shared_label: string | null;
   private_label: string | null;
+  variation_config: unknown | null;
   in_stock: boolean;
   featured: boolean;
   show_in_related: boolean;
@@ -48,6 +49,16 @@ function parseForm(formData: FormData): ProductFormData {
   const gallery = parseStringArray(str(formData.get("gallery")));
   const related_product_ids = parseStringArray(str(formData.get("related_product_ids")));
   const features = parseStringArray(str(formData.get("features")));
+  function parseVariationConfig(raw: string): unknown | null {
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
 
   return {
     name: str(formData.get("name")),
@@ -79,6 +90,7 @@ function parseForm(formData: FormData): ProductFormData {
     private_description: str(formData.get("private_description")) || null,
     shared_label: str(formData.get("shared_label")) || null,
     private_label: str(formData.get("private_label")) || null,
+    variation_config: parseVariationConfig(str(formData.get("variation_config"))),
     in_stock: formData.get("in_stock") === "on",
     featured: formData.get("featured") === "on",
     // Default to true unless the checkbox is explicitly omitted (it's `_off`
@@ -101,6 +113,16 @@ function bustCaches(id: string) {
   revalidatePath(`/product/${id}`);
   revalidatePath("/sitemap.xml");
   revalidatePath("/admin/products");
+}
+
+function missingVariationColumn(error: any): boolean {
+  const msg = String(error?.message || "");
+  return msg.includes("variation_config") && /column|schema|cache/i.test(msg);
+}
+
+function withoutVariationConfig(p: ProductFormData) {
+  const { variation_config, ...rest } = p;
+  return rest;
 }
 
 type ReviewInput = {
@@ -189,7 +211,10 @@ export async function createProduct(formData: FormData): Promise<{ ok: false; er
   // we'll get "chatgpt-plus-2" automatically.
   const id = await ensureUniqueSlug(supabase, "products", "id", slugify(p.name));
 
-  const { error } = await supabase.from("products").insert({ id, ...p });
+  let { error } = await supabase.from("products").insert({ id, ...p });
+  if (error && missingVariationColumn(error)) {
+    ({ error } = await supabase.from("products").insert({ id, ...withoutVariationConfig(p) }));
+  }
   if (error) return { ok: false, error: error.message };
 
   // Reviews (best-effort — don't block the product save if this fails).
@@ -213,7 +238,10 @@ export async function updateProduct(formData: FormData): Promise<{ ok: false; er
   // Slug is sticky on edits — keep the existing URL stable so external links
   // don't break when admins tweak the product name.
   const supabase = await getSupabaseServer();
-  const { error } = await supabase.from("products").update(p).eq("id", originalId);
+  let { error } = await supabase.from("products").update(p).eq("id", originalId);
+  if (error && missingVariationColumn(error)) {
+    ({ error } = await supabase.from("products").update(withoutVariationConfig(p)).eq("id", originalId));
+  }
   if (error) return { ok: false, error: error.message };
 
   try {

@@ -36,7 +36,6 @@ export default function TermsPage() {
               <li><strong>AI subscription access</strong> — login credentials or invite to a plan we operate. Period of access matches what you paid for.</li>
               <li><strong>Automation packs</strong> — files (Make.com / Zapier blueprints) you import into your own account. One-time purchase, lifetime access to the files you bought.</li>
               <li><strong>Courses</strong> — streaming video access plus downloadable templates. One-time purchase, lifetime access.</li>
-              <li><strong>Freebies</strong> — free downloads delivered via WhatsApp or email.</li>
             </ul>
           </section>
 

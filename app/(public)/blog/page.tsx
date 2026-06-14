@@ -1,132 +1,110 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { getAllPosts, type Post } from "@/lib/blog";
-import { getRegion } from "@/lib/region";
+import BlogCard from "@/components/blog/BlogCard";
+import BlogHero from "@/components/blog/BlogHero";
+import BlogSidebar from "@/components/blog/BlogSidebar";
+import { getAllPosts } from "@/lib/blog";
 
-export const metadata = { title: "Blog · SubscribAI" };
-export const revalidate = 60;
-
-const TAG_COLORS: Record<Post["tag"], { c: string; bg: string; icon: string }> = {
-  Guide:      { c: "var(--brand-300)",   bg: "var(--brand-soft)",   icon: "fa-book-open" },
-  Compare:    { c: "var(--accent-300)",  bg: "var(--accent-soft)",  icon: "fa-scale-balanced" },
-  Automation: { c: "var(--info-500)",    bg: "var(--info-soft)",    icon: "fa-diagram-project" },
-  News:       { c: "var(--warning-500)", bg: "var(--warning-soft)", icon: "fa-bullhorn" },
+export const metadata: Metadata = {
+  title: "Latest Tech Tricks, Tutorials & Guides",
+  description: "Explore premium tools, AI guides, subscriptions, tutorials, and digital growth methods.",
+  alternates: { canonical: "/blog" },
+  openGraph: {
+    title: "Latest Tech Tricks, Tutorials & Guides",
+    description: "Explore premium tools, AI guides, subscriptions, tutorials, and digital growth methods.",
+    type: "website",
+    url: "/blog",
+  },
 };
 
-const MEDIA_VARIANTS = ["media-orange", "media-blue", "media-pink", "media-green"] as const;
+export const revalidate = 60;
 
-export default async function BlogPage() {
-  const [allPosts, region] = await Promise.all([getAllPosts(), getRegion()]);
-  const isPK = region === "PK";
-  const POSTS = isPK ? allPosts : allPosts.filter((p) => !p.pkOnly);
+export default async function BlogPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ search?: string; category?: string; tag?: string; archive?: string }>;
+}) {
+  const emptyQuery: { search?: string; category?: string; tag?: string; archive?: string } = {};
+  const [allPosts, query] = await Promise.all([
+    getAllPosts(),
+    searchParams ?? Promise.resolve(emptyQuery),
+  ]);
+  const search = (query.search || "").trim().toLowerCase();
+  const category = (query.category || "").trim();
+  const tag = (query.tag || "").trim();
+  const archive = (query.archive || "").trim();
 
-  if (POSTS.length === 0) {
-    return (
-      <section style={{ padding: "var(--space-7) 0 var(--space-9)" }}>
-        <div className="v2-container">
-          <header style={{ marginBottom: "var(--space-6)", maxWidth: 720 }}>
-            <p className="v2-eyebrow">Blog</p>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(1.8rem, 3.6vw, 2.5rem)", color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.1, margin: "var(--space-3) 0" }}>
-              Notes from the team
-            </h1>
-          </header>
-          <div className="surface-card" style={{ textAlign: "center", padding: "var(--space-7)" }}>
-            <p style={{ color: "var(--text-muted)" }}>New posts coming soon. Check back in a few days.</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  const filteredPosts = allPosts.filter((post) => {
+    const archiveLabel = new Date(post.date).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const matchesSearch = !search || `${post.title} ${post.excerpt} ${post.tags.join(" ")}`.toLowerCase().includes(search);
+    const matchesCategory = !category || post.category === category;
+    const matchesTag = !tag || post.tags.includes(tag);
+    const matchesArchive = !archive || archiveLabel === archive;
+    return matchesSearch && matchesCategory && matchesTag && matchesArchive;
+  });
 
-  // POSTS guaranteed non-empty here.
-  const featured = POSTS.find((p) => p.featured) || POSTS[0];
-  const rest = POSTS.filter((p) => p.slug !== featured.slug);
+  const activeFilter = search || category || tag || archive;
+  const featuredPosts = allPosts.filter((post) => post.featured).slice(0, 3);
+  const popularPosts = allPosts.slice().sort((a, b) => b.views.localeCompare(a.views)).slice(0, 4);
+  const visiblePosts = filteredPosts.slice(0, 9);
 
   return (
-    <section style={{ padding: "var(--space-7) 0 var(--space-9)" }}>
-      <div className="v2-container">
-        <header style={{ marginBottom: "var(--space-6)", maxWidth: 720 }}>
-          <p className="v2-eyebrow">Blog</p>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(1.8rem, 3.6vw, 2.5rem)", color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.1, margin: "var(--space-3) 0" }}>
-            Notes from the team
-          </h1>
-          <p style={{ color: "var(--text-soft)", fontSize: "var(--fs-md)" }}>
-            {isPK
-              ? "Practical writing on AI tools, automation, and getting work done in Pakistan."
-              : "Practical writing on AI tools, automation, and getting work done."}
-          </p>
-        </header>
+    <>
+      <BlogHero
+        current="Blog"
+        title="Latest Tech Tricks, Tutorials & Guides"
+        subtitle="Explore premium tools, AI guides, subscriptions, tutorials, and digital growth methods."
+      />
 
-        {/* Featured post */}
-        <Link href={`/blog/${featured.slug}`} className="surface-card is-interactive blog-featured">
-          {featured.coverUrl ? (
-            <div className="blog-featured-media blog-featured-media-img" aria-hidden>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={featured.coverUrl} alt="" loading="eager" />
-            </div>
-          ) : (
-            <div className={`product-media ${MEDIA_VARIANTS[POSTS.indexOf(featured) % 4]} blog-featured-media`} aria-hidden>
-              <span className="blog-featured-icon" style={{ color: TAG_COLORS[featured.tag].c }}>
-                <i className={`fa-solid ${TAG_COLORS[featured.tag].icon}`}></i>
+      <main className="pro-blog-shell v2-container">
+        <section className="pro-blog-main" aria-label="Blog posts">
+          {!activeFilter && featuredPosts.length > 0 && (
+            <section className="pro-featured-blog-section" aria-label="Featured blog posts">
+              <div className="pro-section-kicker">Featured</div>
+              <div className="pro-featured-blog-grid">
+                {featuredPosts.map((post) => <BlogCard key={post.slug} post={post} />)}
+              </div>
+            </section>
+          )}
+
+          {activeFilter && (
+            <div className="pro-filter-bar">
+              <span>
+                Showing {filteredPosts.length} result{filteredPosts.length === 1 ? "" : "s"}
+                {search ? ` for "${query.search}"` : category ? ` in ${category}` : tag ? ` tagged ${tag}` : archive ? ` from ${archive}` : ""}
               </span>
+              <Link href="/blog">Clear filters</Link>
             </div>
           )}
-          <div className="blog-featured-body">
-            <span className="badge" style={{ background: TAG_COLORS[featured.tag].bg, color: TAG_COLORS[featured.tag].c, marginBottom: "var(--space-3)" }}>
-              {featured.tag} · Featured
-            </span>
-            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-2xl)", color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.15, marginBottom: "var(--space-3)" }}>
-              {featured.title}
-            </h2>
-            <p style={{ color: "var(--text-soft)", marginBottom: "var(--space-5)" }}>
-              {featured.excerpt}
-            </p>
-            <div className="blog-meta">
-              <span className="blog-avatar" style={{ background: featured.authorColor }}>{featured.authorInitials}</span>
-              <div>
-                <strong>{featured.author}</strong>
-                <small>{featured.date} · {featured.readMins} min read</small>
-              </div>
-            </div>
-          </div>
-        </Link>
 
-        {/* Recent posts grid */}
-        <h3 style={{ fontFamily: "var(--font-heading)", color: "var(--text)", fontSize: "var(--fs-lg)", margin: "var(--space-7) 0 var(--space-4)" }}>
-          More from the team
-        </h3>
-        <div className="blog-grid">
-          {rest.map((p) => (
-            <Link key={p.slug} href={`/blog/${p.slug}`} className="surface-card is-interactive blog-card">
-              {p.coverUrl ? (
-                <div className="blog-card-cover" aria-hidden>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.coverUrl} alt="" loading="lazy" />
-                </div>
-              ) : (
-                <div className="blog-card-stripe" style={{ background: TAG_COLORS[p.tag].c }} aria-hidden />
-              )}
-              <div className="blog-card-body">
-                <span className="badge" style={{ background: TAG_COLORS[p.tag].bg, color: TAG_COLORS[p.tag].c, marginBottom: "var(--space-3)", alignSelf: "flex-start" }}>
-                  {p.tag} · {p.readMins} min read
-                </span>
-                <h4 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-lg)", color: "var(--text)", letterSpacing: "-0.01em", lineHeight: 1.25, marginBottom: "var(--space-2)" }}>
-                  {p.title}
-                </h4>
-                <p style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)", lineHeight: 1.5, marginBottom: "var(--space-4)" }}>
-                  {p.excerpt}
-                </p>
-                <div className="blog-meta blog-meta-sm">
-                  <span className="blog-avatar blog-avatar-sm" style={{ background: p.authorColor }}>{p.authorInitials}</span>
-                  <div>
-                    <strong>{p.author}</strong>
-                    <small>{p.date}</small>
-                  </div>
+          {visiblePosts.length > 0 ? (
+            <>
+              <div className="pro-blog-section-head">
+                <div>
+                  <span>Latest posts</span>
+                  <h2>Fresh SEO guides and tutorials</h2>
                 </div>
               </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
+              <div className="pro-blog-list">
+                {visiblePosts.map((post) => <BlogCard key={post.slug} post={post} />)}
+              </div>
+              {filteredPosts.length > visiblePosts.length && (
+                <div className="pro-load-more">
+                  <button type="button">Load More <i className="fa-solid fa-arrow-down"></i></button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="pro-empty-blog">
+              <h2>No posts found</h2>
+              <p>Try a different search, category, or tag.</p>
+              <Link href="/blog" className="btn btn-primary">View all posts</Link>
+            </div>
+          )}
+        </section>
+
+        <BlogSidebar posts={allPosts} popularPosts={popularPosts} />
+      </main>
+    </>
   );
 }

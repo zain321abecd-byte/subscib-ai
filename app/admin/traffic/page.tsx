@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import type { OrderRow } from "@/lib/supabase/types";
+import type { OrderRow, TrafficSessionRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Traffic" };
 
 type Range = "7d" | "30d" | "90d" | "all";
 const RANGE_OPTIONS: { value: Range; label: string; days?: number }[] = [
-  { value: "7d",  label: "Last 7 days",  days: 7 },
+  { value: "7d", label: "Last 7 days", days: 7 },
   { value: "30d", label: "Last 30 days", days: 30 },
   { value: "90d", label: "Last 90 days", days: 90 },
   { value: "all", label: "All time" },
@@ -16,8 +16,10 @@ const RANGE_OPTIONS: { value: Range; label: string; days?: number }[] = [
 type Bucket = {
   key: string;
   label: string;
+  visitors: number;
+  pageviews: number;
+  activeVisitors: number;
   orders: number;
-  paidOrders: number;
   revenuePkr: number;
 };
 
@@ -32,25 +34,59 @@ function hostnameOf(url: string | null) {
   if (!url) return "";
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; }
 }
+function normalizeSource(value: string | null) {
+  const v = (value || "").toLowerCase();
+  if (!v) return "direct";
+  if (/google|gclid/.test(v)) return "google";
+  if (/instagram|insta|ig/.test(v)) return "instagram";
+  if (/facebook|fb\.|fb$|meta/.test(v)) return "facebook";
+  if (/tiktok/.test(v)) return "tiktok";
+  if (/youtube|youtu\.be/.test(v)) return "youtube";
+  if (/twitter|x\.com/.test(v)) return "x";
+  if (/linkedin/.test(v)) return "linkedin";
+  if (/whatsapp|wa\.me/.test(v)) return "whatsapp";
+  return v;
+}
+function sourceForOrder(o: OrderRow) {
+  return normalizeSource(o.utm_source || hostnameOf(o.referrer || null));
+}
+function isPaid(o: OrderRow) {
+  return o.status === "paid" || o.status === "delivered";
+}
+function isActive(lastSeen: string, now = Date.now()) {
+  return now - new Date(lastSeen).getTime() <= 2 * 60_000;
+}
 
-function bucketize(
+function bucketizeSessions(
+  sessions: TrafficSessionRow[],
   orders: OrderRow[],
-  pickKey: (o: OrderRow) => string | null,
-  pickLabel?: (key: string) => string,
+  pickSessionKey: (s: TrafficSessionRow) => string | null,
+  pickOrderKey?: (o: OrderRow) => string | null,
 ): Bucket[] {
+  const now = Date.now();
   const map = new Map<string, Bucket>();
-  for (const o of orders) {
-    const k = (pickKey(o) || "direct").toLowerCase();
-    const label = pickLabel ? pickLabel(k) : k;
-    const cur = map.get(k) ?? { key: k, label, orders: 0, paidOrders: 0, revenuePkr: 0 };
-    cur.orders += 1;
-    if (o.status === "paid" || o.status === "delivered") {
-      cur.paidOrders += 1;
-      cur.revenuePkr += Number(o.subtotal_pkr ?? o.subtotal_usd ?? 0);
-    }
+  const ensure = (key: string) => {
+    const k = (key || "direct").toLowerCase();
+    const cur = map.get(k) ?? { key: k, label: k, visitors: 0, pageviews: 0, activeVisitors: 0, orders: 0, revenuePkr: 0 };
     map.set(k, cur);
+    return cur;
+  };
+
+  for (const s of sessions) {
+    const cur = ensure(pickSessionKey(s) || "direct");
+    cur.visitors += 1;
+    cur.pageviews += Number(s.pageviews || 0);
+    if (isActive(s.last_seen, now)) cur.activeVisitors += 1;
   }
-  return [...map.values()].sort((a, b) => b.orders - a.orders);
+  if (pickOrderKey) {
+    for (const o of orders) {
+      const cur = ensure(pickOrderKey(o) || "direct");
+      cur.orders += 1;
+      if (isPaid(o)) cur.revenuePkr += Number(o.subtotal_pkr ?? o.subtotal_usd ?? 0);
+    }
+  }
+
+  return [...map.values()].sort((a, b) => b.visitors - a.visitors || b.orders - a.orders);
 }
 
 export default async function TrafficPage({
@@ -64,37 +100,53 @@ export default async function TrafficPage({
   const sinceIso = days ? new Date(Date.now() - days * 86400_000).toISOString() : null;
 
   const supabase = await getSupabaseServer();
-  let q = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(2000);
-  if (sinceIso) q = q.gte("created_at", sinceIso);
-  const { data, error } = await q;
 
-  const orders = (data ?? []) as OrderRow[];
+  let sessionsQuery = supabase.from("traffic_sessions").select("*").order("last_seen", { ascending: false }).limit(5000);
+  if (sinceIso) sessionsQuery = sessionsQuery.gte("first_seen", sinceIso);
 
-  // Top-level totals
+  let ordersQuery = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(2000);
+  if (sinceIso) ordersQuery = ordersQuery.gte("created_at", sinceIso);
+
+  const [{ data: sessionData, error: sessionsError }, { data: orderData, error: ordersError }] = await Promise.all([
+    sessionsQuery,
+    ordersQuery,
+  ]);
+
+  const sessions = (sessionData ?? []) as TrafficSessionRow[];
+  const orders = (orderData ?? []) as OrderRow[];
+  const activeVisitors = sessions.filter((s) => isActive(s.last_seen)).length;
+  const totalVisitors = sessions.length;
+  const pageviews = sessions.reduce((sum, s) => sum + Number(s.pageviews || 0), 0);
+  const loggedInVisitors = sessions.filter((s) => s.user_email).length;
   const totalOrders = orders.length;
-  const paidOrders = orders.filter((o) => o.status === "paid" || o.status === "delivered").length;
-  const revenuePkr = orders
-    .filter((o) => o.status === "paid" || o.status === "delivered")
-    .reduce((s, o) => s + Number(o.subtotal_pkr ?? o.subtotal_usd ?? 0), 0);
-  const directOrders = orders.filter((o) => !o.utm_source && !o.referrer).length;
-  const attributedOrders = totalOrders - directOrders;
+  const paidOrders = orders.filter(isPaid).length;
+  const revenuePkr = orders.filter(isPaid).reduce((s, o) => s + Number(o.subtotal_pkr ?? o.subtotal_usd ?? 0), 0);
 
-  // Buckets
-  const bySource   = bucketize(orders, (o) => o.utm_source);
-  const byMedium   = bucketize(orders, (o) => o.utm_medium);
-  const byCampaign = bucketize(orders, (o) => o.utm_campaign);
-  const byReferrer = bucketize(orders, (o) => hostnameOf(o.referrer || null) || (o.utm_source ? null : "direct"));
+  const bySource = bucketizeSessions(sessions, orders, (s) => s.source || normalizeSource(s.utm_source || hostnameOf(s.referrer)), sourceForOrder);
+  const byPlatform = bucketizeSessions(sessions, orders, (s) => s.platform || s.device_type || "unknown");
+  const byDevice = bucketizeSessions(sessions, orders, (s) => s.device_type || "unknown");
+  const byCampaign = bucketizeSessions(sessions, orders, (s) => s.utm_campaign || "none", (o) => o.utm_campaign || "none");
+
+  const emails = [
+    ...new Set(
+      [
+        ...sessions.map((s) => s.user_email),
+        ...orders.map((o) => o.user_id ? o.customer_email : null),
+      ]
+        .filter((email): email is string => !!email)
+        .map((email) => email.toLowerCase()),
+    ),
+  ].sort();
 
   return (
     <>
       <header className="admin-page-head">
         <div>
           <h1>Traffic</h1>
-          <p>Where your customers are coming from. Filtered to {RANGE_OPTIONS.find((r) => r.value === range)?.label.toLowerCase()}.</p>
+          <p>Live visitors, traffic sources, platforms, and logged-in customer emails.</p>
         </div>
       </header>
 
-      {/* Range tabs */}
       <div className="admin-range-tabs" role="tablist">
         {RANGE_OPTIONS.map((r) => (
           <Link
@@ -109,86 +161,75 @@ export default async function TrafficPage({
         ))}
       </div>
 
-      {error && (
+      {(sessionsError || ordersError) && (
         <div className="admin-card" style={{ background: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)", color: "#fca5a5", marginBottom: 14 }}>
-          {error.message}
+          {sessionsError?.message || ordersError?.message}
+          {sessionsError?.message?.includes("traffic_sessions") ? " Run supabase/3-traffic-sessions.sql in Supabase to enable live traffic tracking." : ""}
         </div>
       )}
 
-      {/* Top stats */}
       <section className="admin-stats">
         <div className="admin-stat">
-          <div className="admin-stat-label">Total orders</div>
-          <div className="admin-stat-value">{totalOrders}</div>
-          <div className="admin-stat-meta">in this period</div>
+          <div className="admin-stat-label">Users online now</div>
+          <div className="admin-stat-value">{activeVisitors}</div>
+          <div className="admin-stat-meta">active in last 2 minutes</div>
         </div>
         <div className="admin-stat">
-          <div className="admin-stat-label">Paid orders</div>
-          <div className="admin-stat-value">{paidOrders}</div>
-          <div className="admin-stat-meta">{fmtPct(paidOrders, totalOrders)} conversion</div>
+          <div className="admin-stat-label">Visitors</div>
+          <div className="admin-stat-value">{totalVisitors}</div>
+          <div className="admin-stat-meta">{pageviews} pageviews</div>
+        </div>
+        <div className="admin-stat">
+          <div className="admin-stat-label">Logged-in emails</div>
+          <div className="admin-stat-value">{emails.length}</div>
+          <div className="admin-stat-meta">{loggedInVisitors} signed-in visitor sessions</div>
         </div>
         <div className="admin-stat">
           <div className="admin-stat-label">Revenue</div>
           <div className="admin-stat-value">{fmtPKR(revenuePkr)}</div>
-          <div className="admin-stat-meta">paid + delivered orders</div>
-        </div>
-        <div className="admin-stat">
-          <div className="admin-stat-label">Attribution rate</div>
-          <div className="admin-stat-value">{fmtPct(attributedOrders, totalOrders)}</div>
-          <div className="admin-stat-meta">{attributedOrders} attributed · {directOrders} direct</div>
+          <div className="admin-stat-meta">{paidOrders} paid of {totalOrders} orders</div>
         </div>
       </section>
 
-      {/* Breakdown grid */}
       <section className="admin-traffic-grid">
-        <BreakdownCard
-          title="Top sources"
-          subtitle="utm_source — where the visitor came from (e.g. instagram, google)"
-          buckets={bySource}
-          icon="fa-bullhorn"
-        />
-        <BreakdownCard
-          title="Top mediums"
-          subtitle="utm_medium — type of channel (cpc, social, email, organic…)"
-          buckets={byMedium}
-          icon="fa-shapes"
-        />
-        <BreakdownCard
-          title="Top campaigns"
-          subtitle="utm_campaign — specific named campaign"
-          buckets={byCampaign}
-          icon="fa-flag"
-        />
-        <BreakdownCard
-          title="Top referrers"
-          subtitle="Where the click came from (when no UTM was set)"
-          buckets={byReferrer}
-          icon="fa-link"
-        />
+        <BreakdownCard title="Traffic sources" subtitle="Google, Instagram, Facebook, direct, and other referrers" buckets={bySource} icon="fa-bullhorn" />
+        <BreakdownCard title="Platforms" subtitle="Device and operating system used by visitors" buckets={byPlatform} icon="fa-desktop" />
+        <BreakdownCard title="Devices" subtitle="Desktop, mobile, and tablet split" buckets={byDevice} icon="fa-mobile-screen" />
+        <BreakdownCard title="Campaigns" subtitle="utm_campaign values attached to visits and orders" buckets={byCampaign} icon="fa-flag" />
       </section>
 
       <section className="admin-card" style={{ marginTop: 22 }}>
-        <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", color: "var(--text)", margin: "0 0 8px" }}>How attribution works</h3>
+        <div className="admin-traffic-head" style={{ marginBottom: 12 }}>
+          <span className="admin-traffic-icon"><i className="fa-solid fa-envelope"></i></span>
+          <div>
+            <h3>Promotional email list</h3>
+            <p>Signed-in visitors and logged-in customers seen in this date range.</p>
+          </div>
+        </div>
+        {emails.length === 0 ? (
+          <div className="admin-empty" style={{ padding: 22 }}>
+            <i className="fa-solid fa-envelope-open-text"></i>
+            <div>No logged-in emails in this range.</div>
+          </div>
+        ) : (
+          <div className="admin-email-list" aria-label="Logged-in email addresses">
+            {emails.map((email) => <span key={email}>{email}</span>)}
+          </div>
+        )}
+      </section>
+
+      <section className="admin-card" style={{ marginTop: 22 }}>
+        <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", color: "var(--text)", margin: "0 0 8px" }}>How tracking works</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.88rem", margin: 0 }}>
-          When a visitor lands with a UTM parameter (e.g. <code>?utm_source=instagram&utm_medium=stories&utm_campaign=spring</code>), we save it to a 30-day cookie. Whatever they buy in that window is attributed to that first touch. If no UTM is present, we fall back to the HTTP referrer (e.g. Google, a blog). Visitors with no UTM and no referrer count as <strong>direct</strong>.
+          The public site stores a first-party visitor session and refreshes it while the visitor stays active. Source is taken from UTM parameters first, then referrer host, then direct. Logged-in emails are attached only when Supabase Auth confirms the current user session.
         </p>
       </section>
     </>
   );
 }
 
-function BreakdownCard({
-  title,
-  subtitle,
-  buckets,
-  icon,
-}: {
-  title: string;
-  subtitle: string;
-  buckets: Bucket[];
-  icon: string;
-}) {
-  const max = buckets[0]?.orders || 1;
+function BreakdownCard({ title, subtitle, buckets, icon }: { title: string; subtitle: string; buckets: Bucket[]; icon: string }) {
+  const max = buckets[0]?.visitors || 1;
   return (
     <div className="admin-card admin-traffic-card">
       <header className="admin-traffic-head">
@@ -207,19 +248,19 @@ function BreakdownCard({
       ) : (
         <ul className="admin-traffic-list">
           {buckets.slice(0, 8).map((b) => {
-            const pct = (b.orders / max) * 100;
+            const pct = (b.visitors / max) * 100;
             return (
               <li key={b.key}>
                 <div className="admin-traffic-row-head">
-                  <strong>{b.label || "—"}</strong>
-                  <span>{b.orders} {b.orders === 1 ? "order" : "orders"}</span>
+                  <strong>{b.label || "direct"}</strong>
+                  <span>{b.visitors} {b.visitors === 1 ? "visitor" : "visitors"}</span>
                 </div>
                 <div className="admin-traffic-bar">
                   <div className="admin-traffic-bar-fill" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="admin-traffic-row-foot">
-                  <span>{b.paidOrders} paid</span>
-                  <span>{fmtPKR(b.revenuePkr)}</span>
+                  <span>{b.activeVisitors} online - {b.pageviews} views</span>
+                  <span>{b.orders} orders - {fmtPKR(b.revenuePkr)}</span>
                 </div>
               </li>
             );

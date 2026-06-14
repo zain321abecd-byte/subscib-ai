@@ -50,7 +50,6 @@ export default async function Footer() {
           <Link href="/shop#productivity">Productivity</Link>
           <Link href="/shop#automation">Automation</Link>
           <Link href="/shop#courses">Courses</Link>
-          <Link href="/freebies">Freebies</Link>
         </div>
 
         <div>

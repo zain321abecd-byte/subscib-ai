@@ -6,3 +6,11 @@ out
 *.tsbuildinfo
 next-env.d.ts
 vercel.env
+.env*
+
+# dev server logs
+*.log
+dev-server.*.log
+
+# local Claude Code settings
+.claude/settings.local.json

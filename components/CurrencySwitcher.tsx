@@ -1,19 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useFx } from "@/lib/fx";
+import { useFx, type Currency } from "@/lib/fx";
 
-function setRegionCookie(value: "PK" | "OTHER") {
-  if (typeof document === "undefined") return;
-  const expires = new Date(Date.now() + 365 * 86400_000).toUTCString();
-  document.cookie = `region=${value}; expires=${expires}; path=/; SameSite=Lax`;
-}
+const CURRENCIES: Array<{ code: Currency; label: string }> = [
+  { code: "USD", label: "US Dollar" },
+  { code: "PKR", label: "Pakistan Rupee" },
+  { code: "INR", label: "Indian Rupee" },
+];
 
-// Compact USD ↔ PKR toggle. Hidden when the admin's `currency_mode` forces a
-// single currency (always_pkr / always_usd / dual) — only "auto" mode lets the
-// user override their region default.
 export default function CurrencySwitcher() {
-  const { currency, mode, region, setCurrency } = useFx();
+  const { currency, setCurrency } = useFx();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -24,11 +21,6 @@ export default function CurrencySwitcher() {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
-
-  if (mode !== "auto") return null;
-  // Foreign visitors don't get a PKR option — hide the switcher entirely so they
-  // never see "Pakistan Rupee" labels or local-only payment hints.
-  if (region !== "PK") return null;
 
   return (
     <div ref={ref} className="currency-switcher">
@@ -46,29 +38,20 @@ export default function CurrencySwitcher() {
       </button>
       {open && (
         <ul className="currency-switcher-menu" role="listbox">
-          {(["PKR", "USD"] as const).map((c) => (
+          {CURRENCIES.map((c) => (
             <li
-              key={c}
+              key={c.code}
               role="option"
-              aria-selected={currency === c}
-              className={`currency-switcher-option ${currency === c ? "is-selected" : ""}`}
+              aria-selected={currency === c.code}
+              className={`currency-switcher-option ${currency === c.code ? "is-selected" : ""}`}
               onClick={() => {
-                setCurrency(c);
-                // Picking PKR also flips the region to PK (so payment methods
-                // like JazzCash/Easypaisa show); picking USD flips to OTHER
-                // (only Card visible). This keeps copy + payments in sync with
-                // what the user actually wants to see.
-                setRegionCookie(c === "PKR" ? "PK" : "OTHER");
+                setCurrency(c.code);
                 setOpen(false);
-                // Hard reload so server-rendered region/currency take effect.
-                if (typeof window !== "undefined") {
-                  window.location.reload();
-                }
               }}
             >
-              <span>{c}</span>
-              {c === "PKR" ? <small>Pakistan Rupee</small> : <small>US Dollar</small>}
-              {currency === c && <i className="fa-solid fa-check"></i>}
+              <span>{c.code}</span>
+              <small>{c.label}</small>
+              {currency === c.code && <i className="fa-solid fa-check"></i>}
             </li>
           ))}
         </ul>

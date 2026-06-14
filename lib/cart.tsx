@@ -9,6 +9,13 @@ export type CartItem = {
   qty: number;
   thumbClass?: string;
   iconClass?: string;
+  variation?: {
+    plan?: string;
+    accountType?: "private" | "shared";
+    accountLabel?: string;
+    duration?: string;
+    summary?: string;
+  };
 };
 
 export type Order = {

@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import ProductGallery from "@/components/ProductGallery";
 import BrandIcon from "@/components/BrandIcon";
 import MobileHeroProductCard from "@/components/MobileHeroProductCard";
-import Reviews, { REVIEWS, REVIEWS_GLOBAL } from "@/components/Reviews";
+import { REVIEWS, REVIEWS_GLOBAL } from "@/components/Reviews";
+import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTestimonials";
 import PackageBuy from "./PackageBuy";
 import { STATIC_PRODUCTS, getAllProducts, getProduct } from "@/lib/products";
 import { getRegion } from "@/lib/region";
@@ -93,6 +94,21 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     ? `Rs ${Math.round(pkr).toLocaleString("en-PK")} / mo`
     : `$${(pkr / fxRate).toFixed(2)} / mo`;
   const productById = new Map(allProducts.map((p) => [p.id, p]));
+  const reviewPool = dbReviews.length > 0
+    ? dbReviews
+    : (!isSupabaseConfigured() ? (isPK ? REVIEWS : REVIEWS_GLOBAL) : []);
+  const matchedReviews = reviewPool.filter((r) => r.product === product.name);
+  const otherReviews = reviewPool.filter((r) => r.product !== product.name);
+  const testimonialSlides: Testimonial[] = [...matchedReviews, ...otherReviews].slice(0, 6).map((r, i) => ({
+    id: i + 1,
+    name: r.name,
+    role: r.product || r.role || "Customer",
+    rating: 5,
+    text: r.text,
+    mainImage: r.photoUrl,
+    mainInitials: r.initials || r.name.slice(0, 2).toUpperCase(),
+    mainBg: r.color || "#c2410c",
+  }));
 
   // Prefer the admin's hand-picked recommendations (preserve order). If empty,
   // fall back to category-based suggestions filtered by show_in_related.
@@ -189,21 +205,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
       </div>
 
-      {/* Customer reviews — admin-curated from DB. Product-matched shown first.
-          Static region pool only used in dev (no Supabase configured). */}
-      <Reviews
-        eyebrow="Customer reviews"
-        title="What customers say about us"
-        reviews={(() => {
-          let pool: typeof dbReviews;
-          if (dbReviews.length > 0) pool = dbReviews;
-          else if (!isSupabaseConfigured()) pool = isPK ? REVIEWS : REVIEWS_GLOBAL;
-          else pool = [];
-          const matched = pool.filter((r) => r.product === product.name);
-          const others  = pool.filter((r) => r.product !== product.name);
-          return [...matched, ...others].slice(0, 3);
-        })()}
-      />
+      {/* Customer reviews - same premium section as homepage, product-matched first. */}
+      <PremiumTestimonials slides={testimonialSlides} />
 
       {related.length > 0 && (
         <div className="v2-container" style={{ marginTop: "var(--space-7)", marginBottom: "var(--space-9)" }}>

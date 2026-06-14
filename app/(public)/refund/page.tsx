@@ -60,7 +60,7 @@ export default function RefundPage() {
           <section>
             <h2 style={H2}>3. Non-refundable items</h2>
             <ul style={UL}>
-              <li><strong>Digital downloads</strong> (prompt packs, automation blueprints, course videos, freebies). Once delivered, can&rsquo;t be un-delivered.</li>
+              <li><strong>Digital downloads</strong> (prompt packs, automation blueprints, course videos). Once delivered, can&rsquo;t be un-delivered.</li>
               <li><strong>Subscriptions you&rsquo;ve already used</strong> for more than 7 days, unless covered by Section 1.</li>
               <li><strong>Custom work</strong> (Business-tier custom automation builds) once development has started.</li>
             </ul>

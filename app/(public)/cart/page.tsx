@@ -6,10 +6,10 @@ import { useFx, formatPriceFromPKR } from "@/lib/fx";
 
 export default function CartPage() {
   const cart = useCart();
-  const { currency, usdToPkr, ready: fxReady } = useFx();
+  const { currency, usdToPkr, usdToInr, ready: fxReady } = useFx();
   // Cart prices are stored in PKR (the canonical currency since 2026-05).
   // For non-PK visitors, formatPriceFromPKR converts via the live FX rate.
-  const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady);
+  const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
 
   if (!cart.ready) {
     return (
@@ -68,6 +68,9 @@ export default function CartPage() {
 
                   <div style={{ minWidth: 0 }}>
                     <strong style={{ display: "block", color: "var(--text)", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "var(--fs-md)" }}>{item.name}</strong>
+                    {item.variation?.summary && (
+                      <span className="cart-variation-summary">{item.variation.summary}</span>
+                    )}
                     <small style={{ color: "var(--text-muted)", display: "block", marginTop: 2 }}>{fmtMoney(item.price)} each</small>
                   </div>
 

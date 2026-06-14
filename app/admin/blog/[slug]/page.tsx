@@ -9,7 +9,10 @@ export const dynamic = "force-dynamic";
 export default async function EditPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await getSupabaseServer();
-  const { data, error } = await supabase.from("blog_posts").select("*").eq("slug", slug).maybeSingle();
+  const [{ data, error }, { data: allPosts }] = await Promise.all([
+    supabase.from("blog_posts").select("*").eq("slug", slug).maybeSingle(),
+    supabase.from("blog_posts").select("*").order("date", { ascending: false }),
+  ]);
   if (error || !data) notFound();
   const post = data as BlogPostRow;
 
@@ -28,7 +31,7 @@ export default async function EditPostPage({ params }: { params: Promise<{ slug:
           )}
         </div>
       </header>
-      <PostForm post={post} />
+      <PostForm post={post} posts={(allPosts ?? []) as BlogPostRow[]} />
     </>
   );
 }

@@ -20,6 +20,7 @@ create table if not exists products (
   in_stock      boolean not null default true,
   featured      boolean not null default false,
   sort_order    int not null default 0,
+  variation_config jsonb,                       -- 3-step variation selector config
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
@@ -31,6 +32,7 @@ create index if not exists products_featured_idx on products(featured);
 -- 2. BLOG POSTS
 -- ============================================================
 create table if not exists blog_posts (
+  id               uuid unique default gen_random_uuid(),
   slug             text primary key,
   title            text not null,
   excerpt          text not null,
@@ -41,14 +43,79 @@ create table if not exists blog_posts (
   author           text not null,
   author_initials  text not null,
   author_color     text not null,
+  author_id        uuid,
+  author_bio       text,
+  author_image     text,
+  author_social_links jsonb not null default '{}'::jsonb,
+  category_id      uuid,
+  category_name    text,
+  tags             text[] not null default '{}'::text[],
   cover_url        text,
+  featured_image_alt text,
   featured         boolean not null default false,
   published        boolean not null default true,
+  status           text not null default 'Published',
+  scheduled_at     timestamptz,
+  meta_title       text,
+  meta_description text,
+  focus_keyword    text,
+  secondary_keywords text[] not null default '{}'::text[],
+  canonical_url    text,
+  robots_index     boolean not null default true,
+  robots_follow    boolean not null default true,
+  og_title         text,
+  og_description   text,
+  og_image         text,
+  twitter_title    text,
+  twitter_description text,
+  twitter_image    text,
+  schema_type      text not null default 'BlogPosting',
+  faq_items        jsonb not null default '[]'::jsonb,
+  related_post_ids text[] not null default '{}'::text[],
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now()
 );
 
 create index if not exists blog_posts_published_idx on blog_posts(published, date desc);
+create index if not exists blog_posts_status_idx on blog_posts(status, scheduled_at);
+create index if not exists blog_posts_featured_idx on blog_posts(featured, date desc);
+create index if not exists blog_posts_tags_idx on blog_posts using gin(tags);
+
+create table if not exists blog_categories (
+  id               uuid primary key default gen_random_uuid(),
+  name             text not null,
+  slug             text unique not null,
+  description      text,
+  meta_title       text,
+  meta_description text,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+
+create table if not exists blog_tags (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  slug       text unique not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists blog_authors (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null,
+  bio          text,
+  image        text,
+  social_links jsonb not null default '{}'::jsonb,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+create table if not exists redirects (
+  id          uuid primary key default gen_random_uuid(),
+  old_slug    text unique not null,
+  new_slug    text not null,
+  status_code int not null default 301,
+  created_at  timestamptz not null default now()
+);
 
 -- ============================================================
 -- 3. ORDERS
@@ -75,6 +142,64 @@ create table if not exists orders (
 create index if not exists orders_status_idx on orders(status);
 create index if not exists orders_created_idx on orders(created_at desc);
 create index if not exists orders_email_idx on orders(customer_email);
+
+-- ============================================================
+-- 3B. TRAFFIC SESSIONS
+-- ============================================================
+create table if not exists traffic_sessions (
+  session_id   text primary key,
+  first_seen   timestamptz not null default now(),
+  last_seen    timestamptz not null default now(),
+  pageviews    int not null default 0,
+  source       text,
+  utm_source   text,
+  utm_medium   text,
+  utm_campaign text,
+  referrer     text,
+  landing_page text,
+  last_page    text,
+  user_id      uuid references auth.users(id) on delete set null,
+  user_email   text,
+  browser      text,
+  os           text,
+  device_type  text,
+  platform     text,
+  user_agent   text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+create index if not exists traffic_sessions_last_seen_idx on traffic_sessions(last_seen desc);
+create index if not exists traffic_sessions_first_seen_idx on traffic_sessions(first_seen desc);
+create index if not exists traffic_sessions_source_idx on traffic_sessions(source);
+create index if not exists traffic_sessions_user_email_idx on traffic_sessions(user_email);
+
+-- ============================================================
+-- 3C. STOCK EXPIRY MANAGEMENT
+-- ============================================================
+create table if not exists stock_items (
+  id                          uuid primary key default gen_random_uuid(),
+  item_name                   text not null,
+  category                    text,
+  quantity                    numeric(12, 2) not null check (quantity > 0),
+  unit                        text,
+  expiry_date                 date not null,
+  reminder_days_before_expiry int not null default 7 check (reminder_days_before_expiry >= 0),
+  contact_email               text not null,
+  supplier_name               text,
+  status                      text not null default 'active'
+                              check (status in ('active', 'expiringSoon', 'expired', 'renewed')),
+  notes                       text,
+  last_reminder_sent_at       timestamptz,
+  last_expired_reminder_sent_at timestamptz,
+  renewed_at                  timestamptz,
+  created_at                  timestamptz not null default now(),
+  updated_at                  timestamptz not null default now()
+);
+
+create index if not exists stock_items_expiry_date_idx on stock_items(expiry_date);
+create index if not exists stock_items_status_idx on stock_items(status);
+create index if not exists stock_items_supplier_idx on stock_items(supplier_name);
 
 -- ============================================================
 -- 4. REVIEWS
@@ -161,8 +286,20 @@ drop trigger if exists trg_blog_posts_updated_at on blog_posts;
 create trigger trg_blog_posts_updated_at before update on blog_posts
   for each row execute function set_updated_at();
 
+drop trigger if exists trg_blog_categories_updated_at on blog_categories;
+create trigger trg_blog_categories_updated_at before update on blog_categories
+  for each row execute function set_updated_at();
+
+drop trigger if exists trg_blog_authors_updated_at on blog_authors;
+create trigger trg_blog_authors_updated_at before update on blog_authors
+  for each row execute function set_updated_at();
+
 drop trigger if exists trg_orders_updated_at on orders;
 create trigger trg_orders_updated_at before update on orders
+  for each row execute function set_updated_at();
+
+drop trigger if exists trg_stock_items_updated_at on stock_items;
+create trigger trg_stock_items_updated_at before update on stock_items
   for each row execute function set_updated_at();
 
 drop trigger if exists trg_site_settings_updated_at on site_settings;
@@ -177,7 +314,13 @@ create trigger trg_site_settings_updated_at before update on site_settings
 
 alter table products       enable row level security;
 alter table blog_posts     enable row level security;
+alter table blog_categories enable row level security;
+alter table blog_tags      enable row level security;
+alter table blog_authors   enable row level security;
+alter table redirects      enable row level security;
 alter table orders         enable row level security;
+alter table traffic_sessions enable row level security;
+alter table stock_items    enable row level security;
 alter table reviews        enable row level security;
 alter table freebies       enable row level security;
 alter table site_settings  enable row level security;
@@ -204,11 +347,46 @@ create policy "blog read published" on blog_posts for select
 create policy "blog admin write" on blog_posts for all
   using (is_admin()) with check (is_admin());
 
+drop policy if exists "blog categories read public" on blog_categories;
+drop policy if exists "blog categories admin write" on blog_categories;
+create policy "blog categories read public" on blog_categories for select using (true);
+create policy "blog categories admin write" on blog_categories for all
+  using (is_admin()) with check (is_admin());
+
+drop policy if exists "blog tags read public" on blog_tags;
+drop policy if exists "blog tags admin write" on blog_tags;
+create policy "blog tags read public" on blog_tags for select using (true);
+create policy "blog tags admin write" on blog_tags for all
+  using (is_admin()) with check (is_admin());
+
+drop policy if exists "blog authors read public" on blog_authors;
+drop policy if exists "blog authors admin write" on blog_authors;
+create policy "blog authors read public" on blog_authors for select using (true);
+create policy "blog authors admin write" on blog_authors for all
+  using (is_admin()) with check (is_admin());
+
+drop policy if exists "redirects read public" on redirects;
+drop policy if exists "redirects admin write" on redirects;
+create policy "redirects read public" on redirects for select using (true);
+create policy "redirects admin write" on redirects for all
+  using (is_admin()) with check (is_admin());
+
 -- ----- orders (admin-only; clients post orders via service-role server action) -----
 drop policy if exists "orders admin read"  on orders;
 drop policy if exists "orders admin write" on orders;
 create policy "orders admin read"  on orders for select using (is_admin());
 create policy "orders admin write" on orders for all
+  using (is_admin()) with check (is_admin());
+
+-- ----- traffic_sessions (written by server route; admin-only read) -----
+drop policy if exists "traffic sessions admin read" on traffic_sessions;
+create policy "traffic sessions admin read" on traffic_sessions for select using (is_admin());
+
+-- ----- stock_items (admin-only) -----
+drop policy if exists "stock items admin read" on stock_items;
+drop policy if exists "stock items admin write" on stock_items;
+create policy "stock items admin read" on stock_items for select using (is_admin());
+create policy "stock items admin write" on stock_items for all
   using (is_admin()) with check (is_admin());
 
 -- ----- reviews -----

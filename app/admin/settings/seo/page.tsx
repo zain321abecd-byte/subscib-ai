@@ -1,8 +1,8 @@
 import SectionShell from "../SectionShell";
 import FloatField from "../../FloatField";
-import { dynamic, loadSettings, asString } from "../_shared";
+import { loadSettings, asString } from "../_shared";
 
-export { dynamic };
+export const dynamic = "force-dynamic";
 export const metadata = { title: "SEO · Settings" };
 
 export default async function SeoSettings({

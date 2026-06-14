@@ -1,9 +1,9 @@
 import SectionShell from "../SectionShell";
 import StyledSelectField from "../../StyledSelectField";
 import FloatField from "../../FloatField";
-import { dynamic, loadSettings, asString } from "../_shared";
+import { loadSettings, asString } from "../_shared";
 
-export { dynamic };
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Currency · Settings" };
 
 const CURRENCY_MODES = [

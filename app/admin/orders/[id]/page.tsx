@@ -49,6 +49,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     <tr key={`${it.id}-${i}`}>
                       <td>
                         <div style={{ fontWeight: 600, color: "var(--text)" }}>{it.name}</div>
+                        {it.variation?.summary && (
+                          <div style={{ fontSize: "0.78rem", color: "var(--brand-300)", marginTop: 2 }}>
+                            {it.variation.summary}
+                          </div>
+                        )}
                         <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}><code>{it.id}</code></div>
                       </td>
                       <td>{it.qty}</td>

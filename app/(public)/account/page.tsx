@@ -101,6 +101,7 @@ export default async function AccountPage() {
                     {items.map((it: any, i: number) => (
                       <li key={`${it.id}-${i}`}>
                         <span>{it.name}</span>
+                        {it.variation?.summary && <small>{it.variation.summary}</small>}
                         <small>× {it.qty} · {isPK ? fmtPKR(Number(it.price)) : fmtUSD(Number(it.price))}</small>
                       </li>
                     ))}

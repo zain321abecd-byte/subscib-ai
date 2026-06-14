@@ -19,7 +19,6 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/products", label: "Products",  icon: "fa-box" },
       { href: "/admin/blog",     label: "Blog posts", icon: "fa-newspaper" },
-      { href: "/admin/freebies", label: "Freebies",   icon: "fa-gift" },
       { href: "/admin/reviews",  label: "Reviews",    icon: "fa-star" },
     ],
   },
@@ -27,6 +26,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: "Operations",
     items: [
       { href: "/admin/orders",  label: "Orders",  icon: "fa-receipt" },
+      { href: "/admin/stock",   label: "Stock",   icon: "fa-boxes-stacked" },
       { href: "/admin/traffic", label: "Traffic", icon: "fa-chart-line" },
     ],
   },

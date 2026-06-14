@@ -35,6 +35,8 @@ export type Product = {
   privateDescription?: string;
   sharedLabel?: string;
   privateLabel?: string;
+  /** Three-step product variation setup: plans, durations, and combination prices. */
+  variationConfig?: unknown;
   /** Custom bullet lines shown under the price on the product detail page. */
   features?: string[];
 };
@@ -105,6 +107,7 @@ function rowToProduct(row: ProductRow): Product {
     privateDescription: row.private_description ?? undefined,
     sharedLabel: row.shared_label ?? undefined,
     privateLabel: row.private_label ?? undefined,
+    variationConfig: row.variation_config ?? undefined,
     features: Array.isArray(row.features)
       ? row.features.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
       : undefined,

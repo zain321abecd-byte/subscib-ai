@@ -1,8 +1,15 @@
 import { headers, cookies } from "next/headers";
 
-export type Region = "PK" | "OTHER";
-export type Currency = "PKR" | "USD";
+export type Region = "PK" | "IN" | "OTHER";
+export type Currency = "PKR" | "USD" | "INR";
 export type CurrencyMode = "auto" | "always_pkr" | "always_usd" | "dual";
+
+function countryToRegion(country: string): Region {
+  const code = country.toUpperCase();
+  if (code === "PK") return "PK";
+  if (code === "IN") return "IN";
+  return "OTHER";
+}
 
 /**
  * Resolve the visitor's region.
@@ -15,11 +22,11 @@ export type CurrencyMode = "auto" | "always_pkr" | "always_usd" | "dual";
 export async function getRegion(): Promise<Region> {
   const c = await cookies();
   const cookieRegion = c.get("region")?.value;
-  if (cookieRegion === "PK" || cookieRegion === "OTHER") return cookieRegion;
+  if (cookieRegion === "PK" || cookieRegion === "IN") return cookieRegion;
 
   const h = await headers();
   const country = (h.get("x-user-country") || "").toUpperCase();
-  if (country) return country === "PK" ? "PK" : "OTHER";
+  if (country) return countryToRegion(country);
 
   // No cookie + no geo header. In production this is a foreign visitor on a
   // non-Vercel host → OTHER. In local dev there is no geo header at all, so
@@ -32,19 +39,14 @@ export async function getRegion(): Promise<Region> {
  * Resolve the active currency given the admin's currency_mode + region +
  * the user's manual cookie override.
  */
-export async function resolveCurrency(mode: CurrencyMode): Promise<Currency> {
-  if (mode === "always_pkr") return "PKR";
-  if (mode === "always_usd") return "USD";
-
-  // Currency cookie takes precedence over region default in auto mode.
+export async function resolveCurrency(_mode: CurrencyMode): Promise<Currency> {
+  // Currency cookie takes precedence over location defaults.
   const c = await cookies();
   const pref = c.get("currency")?.value;
-  if (pref === "PKR" || pref === "USD") return pref;
+  if (pref === "PKR" || pref === "USD" || pref === "INR") return pref;
 
-  // Mode "dual" implicitly defaults to USD as the "primary" but renders both.
-  if (mode === "dual") return "USD";
-
-  // mode === "auto"
   const region = await getRegion();
-  return region === "PK" ? "PKR" : "USD";
+  if (region === "PK") return "PKR";
+  if (region === "IN") return "INR";
+  return "USD";
 }

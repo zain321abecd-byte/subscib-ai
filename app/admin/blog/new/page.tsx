@@ -1,9 +1,15 @@
 import Link from "next/link";
+import { getSupabaseServer } from "@/lib/supabase/server";
 import PostForm from "../PostForm";
+import type { BlogPostRow } from "@/lib/supabase/types";
 
 export const metadata = { title: "New blog post" };
+export const dynamic = "force-dynamic";
 
-export default function NewPostPage() {
+export default async function NewPostPage() {
+  const supabase = await getSupabaseServer();
+  const { data } = await supabase.from("blog_posts").select("*").order("date", { ascending: false });
+
   return (
     <>
       <header className="admin-page-head">
@@ -12,7 +18,7 @@ export default function NewPostPage() {
           <h1>New blog post</h1>
         </div>
       </header>
-      <PostForm />
+      <PostForm posts={(data ?? []) as BlogPostRow[]} />
     </>
   );
 }

@@ -4,10 +4,10 @@
  */
 export default function TrustBadges() {
   const BADGES = [
-    { icon: "fa-shield-halved",  title: "Secure payment",        sub: "SahulatPay encrypted gateway" },
-    { icon: "fa-bolt",           title: "Fast delivery",         sub: "Activated in under 30 minutes" },
-    { icon: "fa-rotate",         title: "Replacement guarantee", sub: "Re-issued within 24 hours" },
-    { icon: "fa-circle-check",   title: "Verified accounts",     sub: "Authorized resale only" },
+    { icon: "fa-shield-halved",  title: "Secure checkout",       sub: "Encrypted payment gateway" },
+    { icon: "fa-bolt",           title: "Fast delivery",         sub: "Access in under 30 minutes" },
+    { icon: "fa-rotate",         title: "Replacement cover",     sub: "Re-issued within 24 hours" },
+    { icon: "fa-circle-check",   title: "Verified access",       sub: "No cracked or shared tools" },
   ];
 
   return (

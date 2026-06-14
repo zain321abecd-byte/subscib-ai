@@ -2,27 +2,30 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-export type Currency = "PKR" | "USD";
+export type Currency = "PKR" | "USD" | "INR";
 export type CurrencyMode = "auto" | "always_pkr" | "always_usd" | "dual";
-export type Region = "PK" | "OTHER";
+export type Region = "PK" | "IN" | "OTHER";
 
 type FxState = {
-  /** Live (or admin-overridden) FX rate. */
+  /** Live or admin-overridden USD to PKR rate. */
   usdToPkr: number;
-  /** Whether the FX rate has loaded from the API yet. */
+  /** Live USD to INR rate, used for Indian previews. */
+  usdToInr: number;
+  /** Whether FX rates have loaded from the API yet. */
   ready: boolean;
-  /** Active currency for THIS user (after resolving mode + region + cookie). */
+  /** Active currency for this user after geo default + cookie override. */
   currency: Currency;
-  /** Admin-configured display mode. */
+  /** Admin-configured display mode, retained for settings compatibility. */
   mode: CurrencyMode;
-  /** Detected geo region for the visitor — drives copy + payment options. */
+  /** Detected geo region for copy and payment-method visibility. */
   region: Region;
-  /** Switch the active currency (writes a cookie so it persists). */
+  /** Switch the active currency and persist it. */
   setCurrency: (c: Currency) => void;
 };
 
 const FxCtx = createContext<FxState>({
   usdToPkr: 280,
+  usdToInr: 83,
   ready: false,
   currency: "USD",
   mode: "auto",
@@ -44,34 +47,37 @@ export function FxProvider({
   region = "OTHER",
 }: {
   children: ReactNode;
-  /** Resolved on the server in the layout, used as the initial value. */
   initialCurrency: Currency;
-  /** Admin-configured currency mode. */
   mode: CurrencyMode;
-  /** Optional manual FX rate from admin settings (0/undefined → use live API). */
   fxOverride?: number;
-  /** Detected region — drives copy + payment-method visibility. */
   region?: Region;
 }) {
   const [usdToPkr, setUsdToPkr] = useState(fxOverride && fxOverride > 0 ? fxOverride : 280);
-  const [ready, setReady] = useState(!!fxOverride && fxOverride > 0);
+  const [usdToInr, setUsdToInr] = useState(83);
+  // Fallback rates (280 PKR/USD, 83 INR/USD) are always present, so ready is
+  // always true from the start. The API call below refreshes to live rates.
+  const [ready, setReady] = useState(true);
   const [currency, setCurrencyState] = useState<Currency>(initialCurrency);
 
   useEffect(() => {
-    if (fxOverride && fxOverride > 0) {
-      setUsdToPkr(fxOverride);
-      setReady(true);
-      return;
-    }
     let cancelled = false;
+
     fetch("/api/fx-rate")
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
-        if (Number.isFinite(d?.usdToPkr)) setUsdToPkr(d.usdToPkr);
+        if (!(fxOverride && fxOverride > 0) && Number.isFinite(d?.usdToPkr)) {
+          setUsdToPkr(d.usdToPkr);
+        }
+        if (Number.isFinite(d?.usdToInr)) setUsdToInr(d.usdToInr);
         setReady(true);
       })
-      .catch(() => setReady(true));
+      .catch(() => {});
+
+    if (fxOverride && fxOverride > 0) {
+      setUsdToPkr(fxOverride);
+    }
+
     return () => {
       cancelled = true;
     };
@@ -83,7 +89,7 @@ export function FxProvider({
   }
 
   return (
-    <FxCtx.Provider value={{ usdToPkr, ready, currency, mode, region, setCurrency }}>
+    <FxCtx.Provider value={{ usdToPkr, usdToInr, ready, currency, mode, region, setCurrency }}>
       {children}
     </FxCtx.Provider>
   );
@@ -101,31 +107,31 @@ export function formatUSD(n: number) {
   return `$${Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 }
 
-/**
- * Format a PKR amount for the resolved active currency. If the visitor's
- * active currency is USD, the amount is converted via the live FX rate.
- * Returns "—" while the FX rate is still loading on the client.
- */
-export function formatPriceFromPKR(pkr: number, currency: Currency, usdToPkr: number, ready: boolean): string {
+export function formatINR(n: number) {
+  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+}
+
+export function formatPriceFromPKR(
+  pkr: number,
+  currency: Currency,
+  usdToPkr: number,
+  ready: boolean,
+  usdToInr = 83,
+): string {
   if (currency === "PKR") return formatPKR(pkr);
-  // USD requires the FX rate. Show a placeholder until the rate has loaded
-  // (avoids flashing a stale 280-default value).
-  if (!ready || !usdToPkr) return "—";
-  return formatUSD(pkr / usdToPkr);
+  if (!ready || !usdToPkr) return "-";
+  const usd = pkr / usdToPkr;
+  if (currency === "INR") return formatINR(usd * usdToInr);
+  return formatUSD(usd);
 }
 
 /**
- * Render a price in the visitor's currency. The `pkr` prop is the canonical
- * stored amount (in Rupees) — conversion to USD happens here for foreign
- * visitors. Behaviour by mode:
- *   - "auto"        — show ONE currency (PKR for PK / mode-PKR users, USD
- *                     otherwise), respecting the manual switcher cookie.
- *   - "always_pkr"  — show PKR primary with a small USD note.
- *   - "always_usd"  — show USD only.
- *   - "dual"        — show both (PKR primary, USD secondary).
+ * Render a canonical PKR amount in the currently selected currency. Only one
+ * currency module is shown at a time; geo picks the initial currency and the
+ * switcher can override it immediately on the client.
  */
 export function Price({ pkr, large = false }: { pkr: number; large?: boolean }) {
-  const { usdToPkr, ready, currency, mode } = useFx();
+  const { usdToPkr, usdToInr, ready, currency } = useFx();
   const usd = ready && usdToPkr ? pkr / usdToPkr : 0;
 
   const primaryStyle: React.CSSProperties = {
@@ -133,34 +139,9 @@ export function Price({ pkr, large = false }: { pkr: number; large?: boolean }) 
     fontSize: large ? "var(--fs-3xl)" : undefined,
     color: "var(--text)",
   };
-  const secondaryStyle: React.CSSProperties = {
-    color: "var(--text-muted)",
-    fontSize: "var(--fs-xs)",
-  };
 
-  if (mode === "dual") {
-    return (
-      <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
-        <strong style={primaryStyle}>{formatPKR(pkr)}</strong>
-        {ready && <small style={secondaryStyle}>≈ {formatUSD(usd)}</small>}
-      </span>
-    );
-  }
-  if (mode === "always_pkr") {
-    return (
-      <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
-        <strong style={primaryStyle}>{formatPKR(pkr)}</strong>
-        {ready && <small style={secondaryStyle}>≈ {formatUSD(usd)}</small>}
-      </span>
-    );
-  }
-  if (mode === "always_usd") {
-    return <strong style={primaryStyle}>{ready ? formatUSD(usd) : "—"}</strong>;
-  }
-
-  // mode === "auto" — show only the user's resolved currency.
-  if (currency === "PKR") {
-    return <strong style={primaryStyle}>{formatPKR(pkr)}</strong>;
-  }
-  return <strong style={primaryStyle}>{ready ? formatUSD(usd) : "—"}</strong>;
+  if (currency === "PKR") return <strong style={primaryStyle}>{formatPKR(pkr)}</strong>;
+  if (!ready || !usdToPkr) return <strong style={primaryStyle}>-</strong>;
+  if (currency === "INR") return <strong style={primaryStyle}>{formatINR(usd * usdToInr)}</strong>;
+  return <strong style={primaryStyle}>{formatUSD(usd)}</strong>;
 }

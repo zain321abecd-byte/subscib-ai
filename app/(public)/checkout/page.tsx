@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
-import { useFx } from "@/lib/fx";
+import { formatPriceFromPKR, useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
 import PaymentLogo from "@/components/PaymentLogo";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
@@ -21,7 +21,7 @@ function newOrderId(): string {
 /**
  * Translates SahulatPay's raw gateway error text into plain-English guidance.
  * The gateway returns terse codes like "Insufficient Balance" or
- * "Transaction Cancelled by User" — we turn those into actionable messages.
+ * "Transaction Cancelled by User" â€” we turn those into actionable messages.
  */
 function humanizeFailureReason(raw: unknown, providerLabel = "wallet"): string {
   const r = String(raw || "").toLowerCase();
@@ -47,7 +47,7 @@ function humanizeFailureReason(raw: unknown, providerLabel = "wallet"): string {
     return `The bank or wallet declined this payment. Try again, use a different method, or contact your bank.`;
   }
   if (/merchant\s*not\s*found|invalid\s*merchant/.test(r)) {
-    return `Payment gateway is misconfigured on our side. Please contact support — we'll fix it ASAP.`;
+    return `Payment gateway is misconfigured on our side. Please contact support â€” we'll fix it ASAP.`;
   }
   if (/network|connect/.test(r)) {
     return `Couldn't reach the payment gateway. Check your internet connection and try again.`;
@@ -72,20 +72,28 @@ function extractFailureReason(data: any): string {
 export default function CheckoutPage() {
   const router = useRouter();
   const cart = useCart();
-  const { usdToPkr, ready: fxReady, region } = useFx();
+  const { currency, usdToPkr, usdToInr, ready: fxReady, region } = useFx();
   const isPK = region === "PK";
+  const showWalletMethods = isPK && currency === "PKR";
+  const paymentMethods: Array<{ id: Provider; label: string }> = showWalletMethods
+    ? [
+        { id: "jazzcash", label: "Wallet" },
+        { id: "easypaisa", label: "Wallet" },
+        { id: "card", label: "Credit / Debit Card" },
+      ]
+    : [{ id: "card", label: "Credit / Debit Card" }];
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   // Default provider: jazzcash for PK, card for everyone else.
   const [provider, setProvider] = useState<Provider>("jazzcash");
   useEffect(() => {
-    // Region resolves async — once known, switch the default for non-PK users.
-    if (!isPK && (provider === "jazzcash" || provider === "easypaisa")) {
+    // Region resolves async â€” once known, switch the default for non-PK users.
+    if (!showWalletMethods && (provider === "jazzcash" || provider === "easypaisa")) {
       setProvider("card");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPK]);
+  }, [showWalletMethods]);
   const [status, setStatus] = useState<StatusPill>("idle");
   const [message, setMessage] = useState("");
   const [orderId, setOrderId] = useState("");
@@ -94,34 +102,22 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const pollRef = useRef<number | null>(null);
 
-  // Client-side auth check. Customers must be signed in to place an order.
-  // We resolve the session on mount and listen for changes (sign-in/out).
-  const [authState, setAuthState] = useState<"loading" | "signed-in" | "signed-out">("loading");
-  const [userId, setUserId] = useState<string | null>(null);
+  // Optional auth prefill. Guests can check out; signed-in customers get their
+  // profile details pre-filled and the API links their order from the session.
   useEffect(() => {
     const supabase = getSupabaseBrowser();
     let cancelled = false;
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (cancelled) return;
       if (user) {
-        setAuthState("signed-in");
-        setUserId(user.id);
-        // Pre-fill from the auth profile.
         if (user.email) setEmail(user.email);
         const fullName = (user.user_metadata as any)?.full_name;
         if (fullName) setName(fullName);
-      } else {
-        setAuthState("signed-out");
       }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
       if (session?.user) {
-        setAuthState("signed-in");
-        setUserId(session.user.id);
         if (session.user.email) setEmail(session.user.email);
-      } else {
-        setAuthState("signed-out");
-        setUserId(null);
       }
     });
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
@@ -129,11 +125,12 @@ export default function CheckoutPage() {
 
   // Cart subtotal is now PKR-canonical (since 2026-05). PK visitors pay
   // exactly that. Foreign visitors are billed in USD via the gateway, so we
-  // convert PKR → USD using the live FX rate at checkout time.
+  // convert PKR â†’ USD using the live FX rate at checkout time.
   const pkrTotal = Math.round(cart.subtotal);
   const pkrFormatted = pkrTotal.toLocaleString("en-PK");
   const usdTotal = fxReady && usdToPkr > 0 ? cart.subtotal / usdToPkr : 0;
   const usdFormatted = usdTotal.toFixed(2);
+  const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
 
   useEffect(() => {
     return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
@@ -170,29 +167,28 @@ export default function CheckoutPage() {
     if (!validate()) return;
     if (cart.items.length === 0) return;
     if (!fxReady) {
-      setMessage("Loading exchange rate, please retry in a moment…");
+      setMessage("Loading exchange rate, please retry in a momentâ€¦");
       return;
     }
 
     setStatus("submitting");
-    setMessage("Creating payment…");
+    setMessage("Creating paymentâ€¦");
     const id = newOrderId();
     setOrderId(id);
 
-    // Snapshot the cart contents — once we record the order we still want
+    // Snapshot the cart contents â€” once we record the order we still want
     // to show the items in account history even after the cart is cleared.
     const orderItemsSnapshot = cart.items.map((i) => ({ ...i }));
     const orderSubtotalSnapshot = cart.subtotal;
 
-    // Best-effort: record the order to Supabase (non-blocking — payment proceeds
+    // Best-effort: record the order to Supabase (non-blocking â€” payment proceeds
     // even if the DB write fails, so a Supabase outage can't break checkout).
     // Also attach traffic attribution captured at first landing.
     const attribution = readAttribution();
-    // Detect package tier from cart item ids (we encoded "<id>::shared|private" in PackageBuy).
+    // Detect selected account type from cart variation metadata.
     const tiers = new Set<string>();
     for (const i of orderItemsSnapshot) {
-      const m = String(i.id).match(/::(shared|private)$/);
-      if (m) tiers.add(m[1]);
+      if (i.variation?.accountType) tiers.add(i.variation.accountType);
     }
     const package_tier = tiers.size === 1 ? [...tiers][0] : tiers.size > 1 ? "mixed" : null;
 
@@ -200,7 +196,7 @@ export default function CheckoutPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        items: orderItemsSnapshot.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: i.price })),
+        items: orderItemsSnapshot.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: i.price, variation: i.variation })),
         customer_email: email,
         customer_phone: phone,
         customer_name: name,
@@ -214,7 +210,6 @@ export default function CheckoutPage() {
         referrer: attribution.referrer ?? null,
         landing_page: attribution.landing_page ?? null,
         package_tier,
-        user_id: userId,
       }),
     }).catch(() => {});
 
@@ -239,7 +234,7 @@ export default function CheckoutPage() {
         // Card payments (and any hosted-fallback wallet flow) come back from
         // SahulatPay with a hosted payment URL where the customer enters their
         // card details. The wallet flow (JazzCash / Easypaisa direct push)
-        // does NOT need a redirect — the user approves in their app, so we
+        // does NOT need a redirect â€” the user approves in their app, so we
         // just poll for status.
         const usesHostedPage =
           provider === "card" ||
@@ -259,7 +254,7 @@ export default function CheckoutPage() {
 
         if (usesHostedPage && data.redirectUrl) {
           setStatus("pending");
-          setMessage("Redirecting you to the secure payment page…");
+          setMessage("Redirecting you to the secure payment pageâ€¦");
           // Use top-level navigation so SahulatPay can post-back to our
           // /api/sahulatpay-callback when the customer finishes paying.
           window.location.assign(data.redirectUrl);
@@ -334,7 +329,7 @@ export default function CheckoutPage() {
 
   async function checkStatusNow() {
     if (!orderId) return;
-    setMessage("Checking payment status…");
+    setMessage("Checking payment statusâ€¦");
     try {
       const r = await fetch(`/api/payment-status?orderId=${encodeURIComponent(orderId)}&transactionId=${encodeURIComponent(transactionId || orderId)}&provider=${provider}`);
       const data = await r.json();
@@ -352,45 +347,6 @@ export default function CheckoutPage() {
     } catch (e: any) {
       setMessage("Couldn't reach the gateway. Check your connection and try again.");
     }
-  }
-
-  // Sign-in gate — block the form when the customer isn't authenticated.
-  if (authState === "loading") {
-    return (
-      <section className="v2-section">
-        <div className="v2-container" style={{ display: "grid", placeItems: "center", padding: "60px 0" }}>
-          <span className="admin-spinner lg" style={{ color: "var(--brand-300)" }} />
-        </div>
-      </section>
-    );
-  }
-
-  if (authState === "signed-out") {
-    return (
-      <section className="v2-section">
-        <div className="v2-container">
-          <div className="surface-card checkout-auth-gate">
-            <div className="checkout-auth-icon"><i className="fa-solid fa-lock"></i></div>
-            <h2>Sign in to place your order</h2>
-            <p>
-              To track your purchases and get instant credentials delivered to your inbox, please
-              sign in or create a free account first.
-            </p>
-            <div className="checkout-auth-actions">
-              <Link href="/login?next=/checkout" className="btn btn-primary btn-large">
-                <i className="fa-solid fa-right-to-bracket"></i> Sign in
-              </Link>
-              <Link href="/login?mode=signup&next=/checkout" className="btn btn-outline btn-large">
-                Create account
-              </Link>
-            </div>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 18 }}>
-              Your cart is saved — it&rsquo;ll be waiting after you sign in.
-            </p>
-          </div>
-        </div>
-      </section>
-    );
   }
 
   return (
@@ -422,17 +378,8 @@ export default function CheckoutPage() {
             <div className="surface-card">
               <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-xl)", color: "var(--text)", marginBottom: "var(--space-4)" }}>Payment method</h3>
 
-              <div style={{ display: "grid", gridTemplateColumns: `repeat(${isPK ? 3 : 1}, 1fr)`, gap: "var(--space-3)" }}>
-                {(isPK
-                  ? [
-                      { id: "jazzcash" as const,  label: "Wallet" },
-                      { id: "easypaisa" as const, label: "Wallet" },
-                      { id: "card" as const,      label: "Credit / Debit Card" },
-                    ]
-                  : [
-                      { id: "card" as const,      label: "Credit / Debit Card" },
-                    ]
-                ).map(({ id, label }) => (
+              <div style={{ display: "grid", gridTemplateColumns: `repeat(${paymentMethods.length}, 1fr)`, gap: "var(--space-3)" }}>
+                {paymentMethods.map(({ id, label }) => (
                   <label key={id} style={{
                     display: "block", cursor: "pointer", padding: "var(--space-4)",
                     border: "1px solid " + (provider === id ? "var(--brand-500)" : "var(--border)"),
@@ -466,12 +413,13 @@ export default function CheckoutPage() {
             <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-xl)", color: "var(--text)", marginBottom: "var(--space-4)" }}>Order summary</h3>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10, marginBottom: "var(--space-4)" }}>
               {cart.items.map((i) => (
-                <li key={i.id} style={{ display: "flex", justifyContent: "space-between", color: "var(--text-soft)", fontSize: "var(--fs-sm)" }}>
-                  <span>{i.name} × {i.qty}</span>
+                <li key={i.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, color: "var(--text-soft)", fontSize: "var(--fs-sm)" }}>
                   <span>
-                    {isPK
-                      ? `Rs ${(i.price * i.qty).toLocaleString("en-PK")}`
-                      : fxReady ? `$${((i.price * i.qty) / usdToPkr).toFixed(2)}` : "—"}
+                    <span style={{ display: "block" }}>{i.name} Ã— {i.qty}</span>
+                    {i.variation?.summary && <small className="cart-variation-summary">{i.variation.summary}</small>}
+                  </span>
+                  <span>
+                    {fmtMoney(i.price * i.qty)}
                   </span>
                 </li>
               ))}
@@ -479,27 +427,27 @@ export default function CheckoutPage() {
             <div style={{ paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "baseline", color: "var(--text)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-lg)" }}>
               <span>Total</span>
               <span style={{ textAlign: "right" }}>
-                {isPK ? (
+                {currency === "PKR" ? (
                   <>
                     <span>Rs {pkrFormatted}</span>
-                    {fxReady && <small style={{ display: "block", color: "var(--text-muted)", fontSize: "var(--fs-xs)", fontWeight: 500, fontFamily: "var(--font-body)", marginTop: 2 }}>≈ ${usdFormatted} USD</small>}
+                    {fxReady && <small style={{ display: "block", color: "var(--text-muted)", fontSize: "var(--fs-xs)", fontWeight: 500, fontFamily: "var(--font-body)", marginTop: 2 }}>â‰ˆ ${usdFormatted} USD</small>}
                   </>
                 ) : (
-                  <span>{fxReady ? `$${usdFormatted} USD` : "—"}</span>
+                  <span>{fmtMoney(pkrTotal)} {currency}</span>
                 )}
               </span>
             </div>
             {fxReady && isPK && (
               <p style={{ marginTop: 10, fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
                 <i className="fa-solid fa-circle-info" style={{ marginRight: 6 }}></i>
-                Charged in PKR at today&rsquo;s rate (1 USD ≈ Rs {Math.round(usdToPkr).toLocaleString("en-PK")}).
+                Charged in PKR at today&rsquo;s rate (1 USD â‰ˆ Rs {Math.round(usdToPkr).toLocaleString("en-PK")}).
               </p>
             )}
 
             {status !== "idle" && (
               <div style={{ marginTop: "var(--space-4)" }}>
                 <span className={`status-pill ${status === "paid" ? "is-paid" : status === "failed" ? "is-failed" : "is-pending"}`}>
-                  {status === "submitting" ? "Submitting…" : status === "paid" ? "Paid" : status === "failed" ? "Failed" : "Pending — approve in app"}
+                  {status === "submitting" ? "Submittingâ€¦" : status === "paid" ? "Paid" : status === "failed" ? "Failed" : "Pending â€” approve in app"}
                 </span>
                 {message && <p style={{ color: "var(--text-soft)", fontSize: "var(--fs-sm)", marginTop: "var(--space-3)" }}>{message}</p>}
                 {orderId && <p style={{ color: "var(--text-muted)", fontSize: "var(--fs-xs)", marginTop: 4, fontFamily: "ui-monospace, monospace" }}>Order: {orderId}</p>}
@@ -512,7 +460,7 @@ export default function CheckoutPage() {
               style={{ width: "100%", justifyContent: "center", marginTop: "var(--space-5)" }}
               disabled={!fxReady || status === "submitting" || status === "pending" || status === "paid"}
             >
-              {isPK ? `Pay Rs ${pkrFormatted}` : !fxReady ? "Loading…" : `Pay $${usdFormatted}`} <i className="fa-solid fa-arrow-right"></i>
+              {!fxReady ? "Loading..." : `Pay ${fmtMoney(pkrTotal)}`} <i className="fa-solid fa-arrow-right"></i>
             </button>
 
             {status === "pending" && (

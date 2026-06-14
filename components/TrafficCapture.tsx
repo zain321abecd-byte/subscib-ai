@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
 
 // Capture UTM parameters + referrer + landing page on first visit and persist
 // for 30 days. Used by the checkout flow to attribute the order.
@@ -9,6 +11,8 @@ import { useEffect } from "react";
 // Only writes the cookie ONCE per visit (first-touch attribution). Subsequent
 // visits without UTM params don't overwrite the original source.
 export default function TrafficCapture() {
+  const pathname = usePathname();
+
   useEffect(() => {
     try {
       const COOKIE = "subscribai_attribution";
@@ -52,7 +56,74 @@ export default function TrafficCapture() {
     }
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    async function send(eventType: "pageview" | "heartbeat") {
+      try {
+        const sessionId = getOrCreateTrafficSessionId();
+        const attribution = readAttribution();
+        if (isSupabaseConfigured()) {
+          await getSupabaseBrowser().auth.getUser().catch(() => null);
+        }
+        if (cancelled) return;
+
+        const payload = {
+          event_type: eventType,
+          session_id: sessionId,
+          page_url: window.location.href,
+          page_path: window.location.pathname,
+          referrer: document.referrer || attribution.referrer || null,
+          landing_page: attribution.landing_page || window.location.href,
+          utm_source: attribution.utm_source ?? null,
+          utm_medium: attribution.utm_medium ?? null,
+          utm_campaign: attribution.utm_campaign ?? null,
+        };
+
+        const body = JSON.stringify(payload);
+        if (navigator.sendBeacon && eventType === "heartbeat") {
+          navigator.sendBeacon("/api/traffic", new Blob([body], { type: "application/json" }));
+          return;
+        }
+
+        await fetch("/api/traffic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: true,
+        });
+      } catch {
+        // Best-effort analytics. Never block the storefront.
+      }
+    }
+
+    send("pageview");
+    timer = setInterval(() => send("heartbeat"), 45_000);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearInterval(timer);
+    };
+  }, [pathname]);
+
   return null;
+}
+
+function getOrCreateTrafficSessionId() {
+  const KEY = "subscribai_traffic_session";
+  try {
+    const existing = localStorage.getItem(KEY);
+    if (existing) return existing;
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(KEY, id);
+    return id;
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
 }
 
 /** Read the captured attribution from cookie. Returns {} if none. */

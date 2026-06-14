@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import type { CSSProperties } from "react";
 import MobileHeroProductCard from "@/components/MobileHeroProductCard";
 import ProductCard from "@/components/ProductCard";
 import Select from "@/components/Select";
@@ -38,7 +39,7 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
   const [maxPrice, setMaxPrice] = useState(PRICE_BOUNDS.max);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { currency, usdToPkr, ready: fxReady } = useFx();
+  const { currency, usdToPkr, usdToInr, ready: fxReady } = useFx();
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
@@ -46,8 +47,8 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
     return () => { document.body.style.overflow = ""; };
   }, [sheetOpen]);
 
-  const fmtFilterPrice = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady);
-  const fmtPriceLabel = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady) + " / mo";
+  const fmtFilterPrice = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
+  const fmtPriceLabel = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr) + " / mo";
 
   const items = useMemo(() => {
     let list = PRODUCTS.slice();
@@ -72,6 +73,7 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
     selectedCats.size +
     (maxPrice < PRICE_BOUNDS.max ? 1 : 0) +
     (search ? 1 : 0);
+  const heroProducts = items.slice(0, 3);
 
   const toggleCat = (id: string) => {
     setSelectedCats((prev) => {
@@ -150,7 +152,7 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
        *  ambient brand glow, trust pill, large gradient-accented headline,
        *  full-bleed sticky search/filter, premium chip rail.
        * ─────────────────────────────────────────────────────────────── */}
-      <section className="md:hidden relative overflow-hidden bg-ink-1000">
+      <section className="md:hidden relative overflow-hidden bg-ink-1000 shop-mobile-experience">
         {/* Ambient brand glow — matches home hero */}
         <div aria-hidden className="absolute inset-0 pointer-events-none">
           <div className="absolute -top-32 -right-20 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl" />
@@ -158,8 +160,8 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
         </div>
 
         {/* Hero — visually consistent with the home page mobile hero */}
-        <div className="relative px-5 pt-7 pb-5">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/12 ring-1 ring-brand-500/25 px-3 py-1.5 text-[12px] font-medium text-brand-300">
+        <div className="relative px-5 pt-7 pb-5 shop-mobile-hero">
+          <span className="shop-stock-pill">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M3 7h18M6 7v13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7M9 7V5a3 3 0 0 1 6 0v2"/>
             </svg>
@@ -177,14 +179,14 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
           </p>
 
           {/* Trust chips — horizontal scroll, matches home hero */}
-          <div className="mt-5 -mx-5 overflow-x-auto hide-scrollbar">
-            <div className="flex gap-2 px-5 pb-1 whitespace-nowrap">
+          <div className="mt-5 -mx-5 overflow-x-auto hide-scrollbar shop-mobile-trust-wrap">
+            <div className="flex gap-2 px-5 pb-1 whitespace-nowrap shop-mobile-trust-row">
               {[
                 { i: "M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4Z", t: "Secure checkout" },
-                { i: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",  t: "Activated < 30 min" },
+                { i: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",  t: "Delivery in 30 min" },
                 { i: "M21 12a8 8 0 0 1-11.6 7.1L4 20l.9-5.4A8 8 0 1 1 21 12Z", t: "WhatsApp support" },
               ].map((chip) => (
-                <span key={chip.t} className="inline-flex items-center gap-2 rounded-full bg-white/[0.04] ring-1 ring-white/10 px-3 py-2 text-[12px] text-ink-200">
+                <span key={chip.t} className="inline-flex items-center gap-2 rounded-full bg-white/[0.04] ring-1 ring-white/10 px-3 py-2 text-[12px] text-ink-200 shop-mobile-trust-chip">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-accent-500">
                     <path d={chip.i}/>
                   </svg>
@@ -193,6 +195,7 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
               ))}
             </div>
           </div>
+
         </div>
 
         {/* Sticky search + filter — sits under the fixed site header.
@@ -299,7 +302,7 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
         </div>
 
         {/* Result summary + clear */}
-        <div className="px-5 pt-4 pb-1 flex items-center justify-between">
+        <div className="px-5 pt-4 pb-1 flex items-center justify-between shop-result-line">
           <p className="text-[11px] uppercase tracking-[0.14em] font-semibold text-ink-400">
             <span className="text-ink-50">{items.length}</span> {items.length === 1 ? "result" : "results"}
           </p>
@@ -335,7 +338,7 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
             </div>
           </div>
         ) : (
-          <div className="relative px-5 pt-3 pb-8 grid grid-cols-2 gap-3">
+          <div className="relative px-5 pt-3 pb-8 grid grid-cols-2 gap-3 shop-mobile-grid">
             {items.map((p) => (
               <MobileHeroProductCard
                 key={p.id}
@@ -373,16 +376,40 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
        * ─────────────────────────────────────────────────────────────── */}
       <section className="hidden md:block shop-page">
         <div className="v2-container">
-          <header className="shop-head">
-            <p className="v2-eyebrow">Shop</p>
-            <h1>Every AI tool, one cart</h1>
-            <p>Filter by category, search by name, sort by price.</p>
+          <header className="shop-head shop-head-premium">
+            <div>
+              <p className="v2-eyebrow">Premium AI store</p>
+              <h1>Every AI tool, one cart</h1>
+              <p>Subscriptions, design tools, productivity apps, automation packs, and courses delivered fast.</p>
+              <div className="shop-head-actions">
+                <a className="btn btn-primary" href="#shop-results">Browse catalog <i className="fa-solid fa-arrow-down"></i></a>
+                <span><i className="fa-solid fa-bolt"></i> Activated in under 30 minutes</span>
+              </div>
+            </div>
+
+            <div className="shop-hero-showcase" aria-hidden>
+              {heroProducts.map((p, idx) => (
+                <div
+                  key={p.id}
+                  className="shop-hero-mini"
+                  style={{
+                    "--stack-x": `${idx * 36}px`,
+                    "--stack-y": `${idx * 58}px`,
+                    "--stack-rotate": `${(idx - 1) * -5}deg`,
+                  } as CSSProperties}
+                >
+                  <span>{p.tag?.split(",")[0] || "Featured"}</span>
+                  <strong>{p.name}</strong>
+                  <em>{fmtPriceLabel(p.price)}</em>
+                </div>
+              ))}
+            </div>
           </header>
 
           <div className="shop-layout">
             <div className="shop-sidebar-desktop">{DesktopFilterPanel}</div>
 
-            <div>
+            <div id="shop-results">
               <div className="shop-topbar">
                 <div className="shop-search">
                   <i className="fa-solid fa-magnifying-glass"></i>

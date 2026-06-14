@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         // Hide private/transactional pages from search engines
-        disallow: ["/api/", "/cart", "/checkout", "/account"],
+        disallow: ["/api/", "/admin/", "/cart", "/checkout", "/account"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

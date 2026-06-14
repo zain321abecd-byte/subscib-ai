@@ -13,7 +13,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/`,         lastModified: now, changeFrequency: "daily",   priority: 1.0 },
     { url: `${SITE_URL}/shop`,     lastModified: now, changeFrequency: "daily",   priority: 0.9 },
     { url: `${SITE_URL}/prices`,   lastModified: now, changeFrequency: "weekly",  priority: 0.8 },
-    { url: `${SITE_URL}/freebies`, lastModified: now, changeFrequency: "weekly",  priority: 0.7 },
     { url: `${SITE_URL}/blog`,     lastModified: now, changeFrequency: "weekly",  priority: 0.7 },
     { url: `${SITE_URL}/faq`,      lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/contact`,  lastModified: now, changeFrequency: "monthly", priority: 0.5 },
@@ -31,9 +30,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // Per-blog-post pages
-  const blogPages: MetadataRoute.Sitemap = POSTS.map((p) => ({
+  const blogPages: MetadataRoute.Sitemap = POSTS.filter((p) => p.robotsIndex).map((p) => ({
     url: `${SITE_URL}/blog/${p.slug}`,
-    lastModified: now,
+    lastModified: new Date(p.updatedAt || p.date),
     changeFrequency: "monthly",
     priority: p.featured ? 0.7 : 0.6,
   }));

@@ -1,125 +1,194 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCart } from "@/lib/cart";
-import { Price, useFx, formatPriceFromPKR } from "@/lib/fx";
+import { useFx, formatPriceFromPKR } from "@/lib/fx";
 import type { Product } from "@/lib/products";
-
-type Tier = {
-  key: "shared" | "private";
-  label: string;
-  price: number;
-  description: string;
-  icon: string;
-};
+import {
+  ACCOUNT_TYPES,
+  type AccountType,
+  type VariationOption,
+  findVariationPrice,
+  getProductVariationConfig,
+  variationCartId,
+  variationSummary,
+} from "@/lib/product-variations";
 
 export default function PackageBuy({ product }: { product: Product }) {
   const cart = useCart();
+  const config = useMemo(() => getProductVariationConfig(product), [product]);
+  const { currency, usdToPkr, usdToInr, ready: fxReady } = useFx();
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [selectedAccount, setSelectedAccount] = useState<AccountType | "">("");
+  const [selectedDurationId, setSelectedDurationId] = useState<string>("");
+  const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // The "shared_*" DB columns now back the always-shown PRIVATE plan, and the
-  // "private_*" columns back the optional SHARED plan. Names are historical —
-  // see /admin/products ProductForm for the same swap on the editor side.
-  const tiers: Tier[] = [
-    {
-      key: "shared",
-      label: product.sharedLabel || "Private",
-      price: product.price,
-      description: product.description || "Dedicated account, only you have access.",
-      icon: "fa-shield-halved",
-    },
-  ];
-  if (product.privatePrice && product.privatePrice > 0) {
-    tiers.push({
-      key: "private",
-      label: product.privateLabel || "Shared",
-      price: product.privatePrice,
-      description: product.privateDescription || "Shared account login. Best for solo users on a budget.",
-      icon: "fa-users",
-    });
+  const selectedPlan = config.plans.find((p) => p.id === selectedPlanId) ?? null;
+  const selectedDuration = config.durations.find((d) => d.id === selectedDurationId) ?? null;
+  const selectedAccountLabel = ACCOUNT_TYPES.find((a) => a.id === selectedAccount)?.label ?? "";
+  const selectedPrice =
+    selectedPlan && selectedDuration && selectedAccount
+      ? findVariationPrice(config, selectedPlan.id, selectedAccount, selectedDuration.id)
+      : null;
+  const isComplete = Boolean(selectedPlan && selectedDuration && selectedAccount && selectedPrice != null);
+  const total = (selectedPrice ?? 0) * qty;
+
+  function buildSelection() {
+    if (!isComplete || !selectedPlan || !selectedDuration || !selectedAccount || selectedPrice == null) return null;
+    return {
+      plan: selectedPlan,
+      accountType: selectedAccount,
+      accountLabel: selectedAccountLabel,
+      duration: selectedDuration,
+      price: selectedPrice,
+    };
   }
 
-  const [activeKey, setActiveKey] = useState<Tier["key"]>("shared");
-  const active = tiers.find((t) => t.key === activeKey) ?? tiers[0];
-  const { currency, usdToPkr, ready: fxReady } = useFx();
-
-  function handleAdd() {
+  function addToCart() {
+    const selection = buildSelection();
+    if (!selection) return false;
+    const summary = variationSummary(selection);
     cart.add({
-      id: `${product.id}::${active.key}`,
-      name: tiers.length > 1 ? `${product.name} — ${active.label}` : product.name,
-      price: active.price,
+      id: variationCartId(product.id, selection),
+      name: product.name,
+      price: selection.price,
+      qty,
       iconClass: product.iconClass,
       thumbClass: product.mediaClass,
+      variation: {
+        plan: selection.plan.label,
+        accountType: selection.accountType,
+        accountLabel: selection.accountLabel,
+        duration: selection.duration.label,
+        summary,
+      },
     });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
+    return true;
   }
+
+  function handleBuyNow() {
+    if (addToCart()) window.location.assign("/checkout");
+  }
+
+  const priceText = selectedPrice == null
+    ? "Select options"
+    : formatPriceFromPKR(selectedPrice, currency, usdToPkr, fxReady, usdToInr);
 
   return (
     <>
-      <div className="package-buy">
-        {tiers.length > 1 && (
-          <div className="package-tier-row" role="radiogroup" aria-label="Package tier">
-            {tiers.map((t) => (
+      <div className="package-buy product-variation-picker">
+        <OptionGroup
+          label="Plan"
+          options={config.plans}
+          value={selectedPlanId}
+          onChange={setSelectedPlanId}
+        />
+
+        <div className="variation-group">
+          <div className="variation-group-label">Account Type</div>
+          <div className="variation-option-grid two">
+            {ACCOUNT_TYPES.map((opt) => (
               <button
-                key={t.key}
+                key={opt.id}
                 type="button"
-                role="radio"
-                aria-checked={activeKey === t.key}
-                className={`package-tier ${activeKey === t.key ? "is-active" : ""}`}
-                onClick={() => setActiveKey(t.key)}
+                className={`variation-option ${selectedAccount === opt.id ? "is-active" : ""}`}
+                onClick={() => setSelectedAccount(opt.id)}
+                aria-pressed={selectedAccount === opt.id}
               >
-                <div className="package-tier-head">
-                  <i className={`fa-solid ${t.icon}`}></i>
-                  <span className="package-tier-label">{t.label}</span>
-                </div>
-                <div className="package-tier-price">{formatPriceFromPKR(t.price, currency, usdToPkr, fxReady)}</div>
-                <p className="package-tier-desc">{t.description}</p>
-                <span className="package-tier-check">
-                  <i className="fa-solid fa-check"></i>
-                </span>
+                <span>{opt.label}</span>
+                <i className="fa-solid fa-check"></i>
               </button>
             ))}
           </div>
-        )}
+        </div>
+
+        <OptionGroup
+          label="Duration"
+          options={config.durations}
+          value={selectedDurationId}
+          onChange={setSelectedDurationId}
+        />
+
+        <div className="variation-quantity-row">
+          <span>Quantity</span>
+          <div className="variation-qty-control">
+            <button type="button" onClick={() => setQty((n) => Math.max(1, n - 1))} aria-label="Decrease quantity">-</button>
+            <strong>{qty}</strong>
+            <button type="button" onClick={() => setQty((n) => Math.min(99, n + 1))} aria-label="Increase quantity">+</button>
+          </div>
+        </div>
 
         <div className="package-buy-summary">
           <div className="package-buy-price">
-            <Price pkr={active.price} large />
-            <small>one-time / month</small>
+            <strong>{selectedPrice == null ? "Choose options" : formatPriceFromPKR(total, currency, usdToPkr, fxReady, usdToInr)}</strong>
+            <small>{selectedPrice == null ? "Select Plan, Account Type, and Duration" : `${priceText} each`}</small>
           </div>
 
           <div className="package-buy-actions">
-            <button type="button" className="btn btn-primary btn-large" onClick={handleAdd}>
+            <button type="button" className="btn btn-primary btn-large" onClick={addToCart} disabled={!isComplete}>
               {added ? <><i className="fa-solid fa-check"></i> Added to cart</> : <><i className="fa-solid fa-cart-shopping"></i> Add to cart</>}
             </button>
-            <Link href="/cart" className="btn btn-outline btn-large">Go to cart <i className="fa-solid fa-arrow-right"></i></Link>
+            <button type="button" className="btn btn-outline btn-large" onClick={handleBuyNow} disabled={!isComplete}>
+              Buy now <i className="fa-solid fa-arrow-right"></i>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile-only sticky buy bar — portalled so it escapes any
-          containing-block. Hidden on desktop via CSS. */}
       {mounted && createPortal(
         <div className="mobile-buy-bar" role="region" aria-label="Add to cart">
           <div className="mobile-buy-bar-info">
-            <small>{tiers.length > 1 ? active.label : "Price"}</small>
-            <Price pkr={active.price} />
+            <small>{isComplete ? variationSummary(buildSelection()!) : "Select options"}</small>
+            <strong>{selectedPrice == null ? "Choose options" : formatPriceFromPKR(total, currency, usdToPkr, fxReady, usdToInr)}</strong>
           </div>
-          <button type="button" className="btn btn-primary mobile-buy-bar-cta" onClick={handleAdd}>
+          <button type="button" className="btn btn-primary mobile-buy-bar-cta" onClick={addToCart} disabled={!isComplete}>
             {added ? (
               <><i className="fa-solid fa-check"></i> Added</>
             ) : (
-              <><i className="fa-solid fa-cart-shopping"></i> Add to cart</>
+              <><i className="fa-solid fa-cart-shopping"></i> Add</>
             )}
           </button>
         </div>,
         document.body,
       )}
     </>
+  );
+}
+
+function OptionGroup({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: VariationOption[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="variation-group">
+      <div className="variation-group-label">{label}</div>
+      <div className="variation-option-grid">
+        {options.slice(0, 3).map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            className={`variation-option ${value === opt.id ? "is-active" : ""}`}
+            onClick={() => onChange(opt.id)}
+            aria-pressed={value === opt.id}
+          >
+            <span>{opt.label}</span>
+            <i className="fa-solid fa-check"></i>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -31,10 +31,12 @@ export async function GET() {
   const region = await getRegion();
 
   return NextResponse.json({
-    region,                                  // "PK" | "OTHER"
+    region,                                  // "PK" | "IN" | "OTHER"
     interpretation: region === "PK"
-      ? "Visitor is treated as Pakistani — local payment methods + PKR-first copy."
-      : "Visitor is treated as international — Card-only + USD-first copy.",
+      ? "Visitor is treated as Pakistani - local payment methods + PKR-first copy."
+      : region === "IN"
+        ? "Visitor is treated as Indian - INR-first preview with card checkout."
+        : "Visitor is treated as international - Card-only + USD-first copy.",
     detected,                                // raw headers we read
     note: "If x-vercel-ip-country is empty even though you're on Vercel, geolocation may not be enabled for this deployment. Check Vercel project settings.",
   });

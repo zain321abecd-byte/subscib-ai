@@ -13,7 +13,6 @@ const NAV = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/prices", label: "Pricing" },
-  { href: "/freebies", label: "Freebies" },
   { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
 ];
@@ -83,11 +82,11 @@ export default function Header() {
 
         {/* Mobile actions — cart icon + hamburger only. Everything else lives
             in the slide-down menu (MobileMenu). */}
-        <div className="flex md:hidden items-center gap-1">
+        <div className="mobile-header-actions flex md:hidden items-center gap-1">
           <Link
             href="/cart"
             aria-label={`Cart${ready && count > 0 ? `, ${count} item${count === 1 ? "" : "s"}` : ""}`}
-            className="
+            className="mobile-header-icon mobile-header-cart
               relative inline-flex h-11 w-11 items-center justify-center
               rounded-full
               text-ink-50 active:bg-white/10
@@ -119,7 +118,7 @@ export default function Header() {
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"
             aria-expanded={menuOpen}
-            className="
+            className="mobile-header-icon mobile-header-menu
               relative inline-flex h-11 w-11 items-center justify-center
               appearance-none bg-transparent border-0 cursor-pointer
               rounded-full

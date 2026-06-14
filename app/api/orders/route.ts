@@ -4,7 +4,19 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-type ItemInput = { id: string; name: string; qty: number; price: number };
+type ItemInput = {
+  id: string;
+  name: string;
+  qty: number;
+  price: number;
+  variation?: {
+    plan?: string;
+    accountType?: string;
+    accountLabel?: string;
+    duration?: string;
+    summary?: string;
+  };
+};
 
 function shortOrderNumber(): string {
   // 8-char alphanumeric, prefixed with the year-month — easy to read in WhatsApp.

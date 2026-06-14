@@ -59,7 +59,7 @@ export default function MobileMenu({
       aria-modal="true"
       aria-label="Site navigation"
       aria-hidden={!open}
-      className={`
+      className={`premium-mobile-menu
         fixed inset-0 z-[80]
         md:hidden
         bg-ink-1000
@@ -71,19 +71,19 @@ export default function MobileMenu({
       `}
     >
       {/* Top bar — mirrors the site Header so the visual anchor stays put. */}
-      <div className="flex items-center justify-between px-5 pt-3 pb-3 border-b border-white/10">
+      <div className="premium-mobile-menu-top flex items-center justify-between px-5 pt-3 pb-3 border-b border-white/10">
         <Image
           src="/assets/subscribai-logo.png"
           alt="SubscribAI"
           width={140}
           height={36}
-          className="h-7 w-auto"
+          className="premium-mobile-menu-logo h-7 w-auto"
         />
         <button
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="h-11 w-11 grid place-items-center rounded-full appearance-none bg-transparent border-0 cursor-pointer text-ink-50 active:bg-white/10 transition-colors"
+          className="premium-mobile-menu-close h-11 w-11 grid place-items-center rounded-full appearance-none bg-transparent border-0 cursor-pointer text-ink-50 active:bg-white/10 transition-colors"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M6 6l12 12M18 6L6 18" />
@@ -92,11 +92,17 @@ export default function MobileMenu({
       </div>
 
       <div
-        className="flex-1 overflow-y-auto px-5 pt-4 pb-8"
+        className="premium-mobile-menu-scroll flex-1 overflow-y-auto px-5 pt-4 pb-8"
         style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}
       >
         {/* Primary navigation — large taps, no descriptions, just speed. */}
-        <ul className="flex flex-col list-none p-0 m-0">
+        <div className="premium-mobile-menu-hero">
+          <p>Premium AI tools</p>
+          <h2>Choose where you want to go.</h2>
+          <span>Fast checkout, local support, and instant digital delivery.</span>
+        </div>
+
+        <ul className="premium-mobile-menu-list flex flex-col list-none p-0 m-0">
           {PRIMARY.map((link) => {
             const active = link.href === "/"
               ? pathname === "/"
@@ -106,16 +112,16 @@ export default function MobileMenu({
                 <Link
                   href={link.href}
                   onClick={onClose}
-                  className={`
+                  className={`premium-mobile-menu-link
                     flex items-center justify-between gap-3
                     py-4 border-b border-white/5
                     text-[19px] font-semibold tracking-tight
-                    ${active ? "text-brand-500" : "text-ink-50"}
+                    ${active ? "is-active text-brand-500" : "text-ink-50"}
                     active:translate-x-0.5 transition-transform
                   `}
                 >
                   <span className="inline-flex items-center gap-3">
-                    <span className={`
+                    <span className={`premium-mobile-menu-link-icon
                       h-9 w-9 grid place-items-center rounded-sm
                       ${active ? "bg-brand-500/15 text-brand-500" : "bg-white/[0.04] text-ink-200"}
                     `}>
@@ -123,7 +129,7 @@ export default function MobileMenu({
                     </span>
                     {link.label}
                   </span>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ink-400">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="premium-mobile-menu-arrow text-ink-400">
                     <path d="M9 6l6 6-6 6" />
                   </svg>
                 </Link>
@@ -133,8 +139,8 @@ export default function MobileMenu({
         </ul>
 
         {/* Currency + auth + primary CTA */}
-        <div className="mt-6 grid grid-cols-1 gap-3">
-          <div className="
+        <div className="premium-mobile-menu-actions mt-6 grid grid-cols-1 gap-3">
+          <div className="premium-mobile-currency
             flex items-center justify-between gap-3
             rounded-md bg-white/[0.03] border border-white/10
             px-4 py-3
@@ -150,7 +156,7 @@ export default function MobileMenu({
             <Link
               href="/account"
               onClick={onClose}
-              className="
+              className="premium-mobile-secondary
                 flex items-center justify-center gap-2
                 h-12 rounded-md
                 bg-white/[0.04] border border-white/10
@@ -168,7 +174,7 @@ export default function MobileMenu({
             <Link
               href="/login"
               onClick={onClose}
-              className="
+              className="premium-mobile-secondary
                 flex items-center justify-center gap-2
                 h-12 rounded-md
                 bg-white/[0.04] border border-white/10
@@ -186,7 +192,7 @@ export default function MobileMenu({
           <Link
             href="/shop"
             onClick={onClose}
-            className="
+            className="premium-mobile-primary
               flex items-center justify-center gap-2
               h-12 rounded-md
               bg-brand-500 active:bg-brand-700
@@ -202,7 +208,7 @@ export default function MobileMenu({
           </Link>
         </div>
 
-        <p className="mt-5 text-center text-[13px] text-ink-400">
+        <p className="premium-mobile-help mt-5 text-center text-[13px] text-ink-400">
           Need help?{" "}
           <a href="https://wa.me/15550132026" className="text-brand-500 font-semibold inline-flex items-center gap-1">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -225,7 +231,6 @@ const PRIMARY: Array<{ href: string; label: string; icon: React.ReactNode }> = [
   { href: "/",         label: "Home",     icon: <IconHome /> },
   { href: "/shop",     label: "Shop",     icon: <IconShop /> },
   { href: "/prices",   label: "Pricing",  icon: <IconTag />  },
-  { href: "/freebies", label: "Freebies", icon: <IconGift /> },
   { href: "/blog",     label: "Blog",     icon: <IconBook /> },
   { href: "/contact",  label: "Contact",  icon: <IconChat /> },
   { href: "/faq",      label: "FAQ",      icon: <IconHelp /> },
@@ -245,7 +250,6 @@ const SVG = {
 function IconHome() { return <svg {...SVG}><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1v-9"/></svg>; }
 function IconShop() { return <svg {...SVG}><path d="M4 7h16l-1.2 11.2A2 2 0 0 1 16.8 20H7.2a2 2 0 0 1-2-1.8L4 7Z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg>; }
 function IconTag()  { return <svg {...SVG}><path d="M3 12V4h8l10 10-8 8L3 12Z"/><circle cx="8" cy="8" r="1.5"/></svg>; }
-function IconGift() { return <svg {...SVG}><rect x="3" y="9" width="18" height="11" rx="1.5"/><path d="M12 9v11M3 13h18"/><path d="M8 9c-1.5 0-3-1-3-2.5S6.5 4 8 4s4 5 4 5-2.5 0-4 0Z"/><path d="M16 9c1.5 0 3-1 3-2.5S17.5 4 16 4s-4 5-4 5 2.5 0 4 0Z"/></svg>; }
 function IconBook() { return <svg {...SVG}><path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4V4Z"/><path d="M20 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8V4Z"/></svg>; }
 function IconChat() { return <svg {...SVG}><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l.9-5.4A8 8 0 1 1 21 12Z"/></svg>; }
 function IconHelp() { return <svg {...SVG}><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.9.4-1 1.2-1 1.7v.5"/><circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none"/></svg>; }

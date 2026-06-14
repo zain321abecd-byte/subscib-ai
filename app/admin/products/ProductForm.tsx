@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -13,6 +13,13 @@ import FloatField from "../FloatField";
 import BrandIcon, { SUPPORTED_BRANDS } from "@/components/BrandIcon";
 import { createProduct, updateProduct } from "./actions";
 import type { ProductRow } from "@/lib/supabase/types";
+import {
+  ACCOUNT_TYPES,
+  type AccountType,
+  type ProductVariationConfig,
+  normalizeVariationConfig,
+  optionId,
+} from "@/lib/product-variations";
 
 export type AvailableProduct = { id: string; name: string; category: string; image_url?: string | null };
 
@@ -63,6 +70,9 @@ export default function ProductForm({
   const [displaySource, setDisplaySource] = useState<"image" | "brand" | "auto">(
     product?.display_source === "image" || product?.display_source === "brand" ? product.display_source : "auto"
   );
+  const [variationConfig, setVariationConfig] = useState<ProductVariationConfig>(() =>
+    normalizeVariationConfig(product?.variation_config, Number(product?.price ?? 0))
+  );
 
   // Wizard step state. Furthest reached step is tracked so steps the user has
   // already filled in are clickable in the stepper.
@@ -79,6 +89,19 @@ export default function ProductForm({
   function handleSubmit(formData: FormData) {
     if (imageUrl) formData.set("image_url", imageUrl);
     formData.set("gallery", JSON.stringify(gallery));
+    formData.set("variation_config", JSON.stringify(variationConfig));
+    const firstPlan = variationConfig.plans[0];
+    const firstDuration = variationConfig.durations[0];
+    const privatePrice = firstPlan && firstDuration
+      ? variationConfig.prices.find((p) => p.planId === firstPlan.id && p.durationId === firstDuration.id && p.accountType === "private")?.price
+      : 0;
+    const sharedPrice = firstPlan && firstDuration
+      ? variationConfig.prices.find((p) => p.planId === firstPlan.id && p.durationId === firstDuration.id && p.accountType === "shared")?.price
+      : 0;
+    formData.set("price", String(privatePrice ?? 0));
+    formData.set("private_price", String(sharedPrice ?? ""));
+    formData.set("shared_label", firstPlan?.label || "Standard");
+    formData.set("private_label", "Shared");
     setError(null);
     startTransition(async () => {
       const action = isEdit ? updateProduct : createProduct;
@@ -142,11 +165,11 @@ export default function ProductForm({
         </div>
       )}
 
-      {/* STEP 1 — VISUAL: Brand icon (primary), then cover image override, gallery, card colour */}
+      {/* STEP 1 â€” VISUAL: Brand icon (primary), then cover image override, gallery, card colour */}
       <section className="admin-card" data-step={0} hidden={step !== 0}>
         <header className="admin-section-head">
           <h3>Product visual</h3>
-          <p>Pick a brand icon below — it's what shows on the shop card and product page. Upload a custom cover image only if you want to override it.</p>
+          <p>Pick a brand icon below â€” it's what shows on the shop card and product page. Upload a custom cover image only if you want to override it.</p>
         </header>
 
         {/* Resolve the effective visual the same way the public ProductCard does. */}
@@ -190,14 +213,14 @@ export default function ProductForm({
                       : "Showing custom cover image."
                     : effective === "brand"
                       ? `Showing brand icon: ${SUPPORTED_BRANDS.find((b) => b.slug === brand)?.label || brand}.`
-                      : "No icon selected — will fall back to a placeholder."}
+                      : "No icon selected â€” will fall back to a placeholder."}
                 </small>
               </div>
             </div>
           );
         })()}
 
-        {/* Display source toggle — only meaningful when both an image AND a brand are set. */}
+        {/* Display source toggle â€” only meaningful when both an image AND a brand are set. */}
         {imageUrl && brand && (
           <div style={{ marginTop: 14 }}>
             <label className="admin-label">Show as main visual</label>
@@ -228,7 +251,7 @@ export default function ProductForm({
           <input type="hidden" name="display_source" value="" />
         )}
 
-        {/* Brand icon picker — primary visual choice. */}
+        {/* Brand icon picker â€” primary visual choice. */}
         <div style={{ marginTop: 22 }}>
           <label className="admin-label">Brand icon</label>
           <p className="admin-help" style={{ marginTop: 0, marginBottom: 10 }}>
@@ -262,7 +285,7 @@ export default function ProductForm({
                 <span className="admin-brand-chip-label">{b.label}</span>
               </button>
             ))}
-            {/* "Add your own" chip — scrolls to the cover image picker so admins
+            {/* "Add your own" chip â€” scrolls to the cover image picker so admins
                 can upload any logo not in the static list. */}
             <button
               type="button"
@@ -276,13 +299,13 @@ export default function ProductForm({
               <span className="admin-brand-chip-icon admin-brand-chip-add-icon">
                 <i className="fa-solid fa-plus" style={{ fontSize: 14 }}></i>
               </span>
-              <span className="admin-brand-chip-label">{imageUrl ? "Custom ✓" : "Add custom"}</span>
+              <span className="admin-brand-chip-label">{imageUrl ? "Custom âœ“" : "Add custom"}</span>
             </button>
           </div>
           <input type="hidden" name="brand" value={brand} />
         </div>
 
-        {/* Custom cover image — optional override for brands not in the list. */}
+        {/* Custom cover image â€” optional override for brands not in the list. */}
         <div id="custom-cover-image" style={{ marginTop: 22, scrollMarginTop: 80 }}>
           <label className="admin-label">Custom cover image (your own logo)</label>
           <p className="admin-help" style={{ marginTop: 0, marginBottom: 10 }}>
@@ -351,11 +374,11 @@ export default function ProductForm({
           <input type="hidden" name="icon_bg_color" value={iconBgColor} />
         </div>
 
-        {/* Legacy FontAwesome fallback — preserved invisibly for existing rows. */}
+        {/* Legacy FontAwesome fallback â€” preserved invisibly for existing rows. */}
         <input type="hidden" name="icon_class" value={product?.icon_class ?? "fa-solid fa-cube"} />
       </section>
 
-      {/* STEP 2 — DETAILS: Basics */}
+      {/* STEP 2 â€” DETAILS: Basics */}
       <section className="admin-card" data-step={1} hidden={step !== 1}>
         <header className="admin-section-head">
           <h3>Basics</h3>
@@ -372,7 +395,7 @@ export default function ProductForm({
             defaultValue={product?.name ?? ""}
             hint={
               isEdit && product?.id
-                ? <>URL: <code style={{ color: "var(--text-soft)" }}>/product/{product.id}</code> · auto-generated, stays stable on edits</>
+                ? <>URL: <code style={{ color: "var(--text-soft)" }}>/product/{product.id}</code> Â· auto-generated, stays stable on edits</>
                 : <>URL is auto-generated from the name (e.g. <code>/product/chatgpt-plus</code>).</>
             }
           />
@@ -393,7 +416,7 @@ export default function ProductForm({
               <TagInput
                 name="tag"
                 defaultValue={product?.tag ?? ""}
-                placeholder="Type a tag and press comma…"
+                placeholder="Type a tag and press commaâ€¦"
                 suggestions={TAG_SUGGESTIONS}
                 ariaLabel="Tags"
               />
@@ -403,94 +426,34 @@ export default function ProductForm({
         </div>
       </section>
 
-      {/* STEP 2 — DETAILS: Pricing & packages.
-          Tier 1 = the always-shown Private plan (every product has one).
-          Tier 2 = the optional Shared plan — admin picks per product whether
-          to offer it. Leave the Shared price empty/0 to hide that tier. */}
+      {/* STEP 2 - DETAILS: Pricing & variations. */}
       <section className="admin-card" data-step={1} hidden={step !== 1}>
         <header className="admin-section-head">
-          <h3>Pricing &amp; packages</h3>
-          <p>The Private plan shows on every product. Add a Shared plan only if you want to offer a cheaper shared option for this product.</p>
+          <h3>Pricing &amp; variations</h3>
+          <p>Set up to 3 plans, up to 3 durations, and prices for every Private / Shared combination.</p>
         </header>
 
-        <div className="admin-row cols-2">
-          {/* Private tier — the required, always-shown plan.
-              Storage: uses the existing price + description columns
-              (column names are historical; treat them as the main tier). */}
-          <div className="admin-package-card">
-            <div className="admin-package-card-head">
-              <i className="fa-solid fa-shield-halved"></i>
-              <input
-                type="text"
-                name="shared_label"
-                className="admin-package-label"
-                defaultValue={product?.shared_label ?? "Private"}
-                placeholder="Private"
-                aria-label="Private tier label"
-              />
-            </div>
-            <label className="admin-label" htmlFor="price">Price (PKR)</label>
-            <div className="admin-input-prefix">
-              <span>Rs</span>
-              <input id="price" name="price" type="number" min="0" step="1" required defaultValue={product?.price ?? ""} placeholder="14000" />
-            </div>
-            <div style={{ marginTop: 12 }}>
-              <FloatField
-                as="textarea"
-                id="description"
-                name="description"
-                label="Description / what’s included"
-                icon="fa-align-left"
-                defaultValue={product?.description ?? ""}
-                rows={4}
-              />
-            </div>
-          </div>
+        <VariationEditor value={variationConfig} onChange={setVariationConfig} />
+        <input type="hidden" name="variation_config" value={JSON.stringify(variationConfig)} />
+        <input type="hidden" name="price" value="0" />
+        <input type="hidden" name="private_price" value="" />
+        <input type="hidden" name="shared_label" value={variationConfig.plans[0]?.label || "Standard"} />
+        <input type="hidden" name="private_label" value="Shared" />
 
-          {/* Shared tier — optional, admin opts in per product.
-              Storage: uses the private_* columns (historical names). */}
-          <div className="admin-package-card admin-package-card-alt">
-            <div className="admin-package-card-head">
-              <i className="fa-solid fa-users"></i>
-              <input
-                type="text"
-                name="private_label"
-                className="admin-package-label"
-                defaultValue={product?.private_label ?? "Shared"}
-                placeholder="Shared"
-                aria-label="Shared tier label"
-              />
-            </div>
-            <label className="admin-label" htmlFor="private_price">Price (PKR) — optional</label>
-            <div className="admin-input-prefix">
-              <span>Rs</span>
-              <input
-                id="private_price"
-                name="private_price"
-                type="number"
-                min="0"
-                step="0.01"
-                defaultValue={product?.private_price ?? ""}
-                placeholder="5000"
-              />
-            </div>
-            <div style={{ marginTop: 12 }}>
-              <FloatField
-                as="textarea"
-                id="private_description"
-                name="private_description"
-                label="Description / what’s included"
-                icon="fa-align-left"
-                defaultValue={product?.private_description ?? ""}
-                rows={4}
-                hint="Leave price empty / 0 to hide the Shared tier."
-              />
-            </div>
-          </div>
+        <div style={{ marginTop: 16 }}>
+          <FloatField
+            as="textarea"
+            id="description"
+            name="description"
+            label="Description / what&apos;s included"
+            icon="fa-align-left"
+            defaultValue={product?.description ?? ""}
+            rows={4}
+          />
         </div>
       </section>
 
-      {/* STEP 2 — DETAILS: Features (bullet lines under the price) */}
+      {/* STEP 2 â€” DETAILS: Features (bullet lines under the price) */}
       <section className="admin-card" data-step={1} hidden={step !== 1}>
         <header className="admin-section-head">
           <h3>What&rsquo;s included</h3>
@@ -504,7 +467,7 @@ export default function ProductForm({
         />
       </section>
 
-      {/* STEP 3 — PUBLISH: Visibility */}
+      {/* STEP 3 â€” PUBLISH: Visibility */}
       <section className="admin-card" data-step={2} hidden={step !== 2}>
         <header className="admin-section-head">
           <h3>Visibility</h3>
@@ -551,7 +514,7 @@ export default function ProductForm({
         </div>
       </section>
 
-      {/* STEP 3 — PUBLISH: Related products (admin-curated) */}
+      {/* STEP 3 â€” PUBLISH: Related products (admin-curated) */}
       <section className="admin-card" data-step={2} hidden={step !== 2}>
         <header className="admin-section-head">
           <h3>You may also like</h3>
@@ -566,7 +529,7 @@ export default function ProductForm({
         />
       </section>
 
-      {/* STEP 3 — PUBLISH: Reviews (per-product) */}
+      {/* STEP 3 â€” PUBLISH: Reviews (per-product) */}
       <section className="admin-card" data-step={2} hidden={step !== 2}>
         <header className="admin-section-head">
           <h3>Customer reviews</h3>
@@ -595,7 +558,7 @@ export default function ProductForm({
             {isPending ? (
               <>
                 <span className="admin-spinner" />
-                {isEdit ? "Saving…" : "Creating…"}
+                {isEdit ? "Savingâ€¦" : "Creatingâ€¦"}
               </>
             ) : (
               <>
@@ -608,4 +571,161 @@ export default function ProductForm({
       </div>
     </form>
   );
+}
+
+function VariationEditor({
+  value,
+  onChange,
+}: {
+  value: ProductVariationConfig;
+  onChange: (next: ProductVariationConfig) => void;
+}) {
+  const updateOption = (kind: "plans" | "durations", idx: number, label: string) => {
+    const nextOptions = value[kind].map((opt, i) => (
+      i === idx ? { id: optionId(label, `${kind}-${idx + 1}`), label } : opt
+    )).filter((opt) => opt.label.trim()).slice(0, 3);
+    onChange(ensurePriceMatrix({ ...value, [kind]: nextOptions }));
+  };
+
+  const addOption = (kind: "plans" | "durations") => {
+    if (value[kind].length >= 3) return;
+    const label = kind === "plans" ? `Plan ${value.plans.length + 1}` : `${value.durations.length + 1} Month`;
+    const next = {
+      ...value,
+      [kind]: [...value[kind], { id: optionId(label, `${kind}-${value[kind].length + 1}`), label }],
+    };
+    onChange(ensurePriceMatrix(next));
+  };
+
+  const removeOption = (kind: "plans" | "durations", idx: number) => {
+    if (value[kind].length <= 1) return;
+    const next = { ...value, [kind]: value[kind].filter((_, i) => i !== idx) };
+    onChange(ensurePriceMatrix(next));
+  };
+
+  const setPrice = (planId: string, accountType: AccountType, durationId: string, price: number) => {
+    const prices = value.prices.filter((p) => !(p.planId === planId && p.accountType === accountType && p.durationId === durationId));
+    prices.push({ planId, accountType, durationId, price: Number.isFinite(price) && price >= 0 ? price : 0 });
+    onChange({ ...value, prices });
+  };
+
+  const getPrice = (planId: string, accountType: AccountType, durationId: string) =>
+    value.prices.find((p) => p.planId === planId && p.accountType === accountType && p.durationId === durationId)?.price ?? 0;
+
+  return (
+    <div className="admin-variation-editor">
+      <VariationOptionList
+        title="Plan options"
+        kind="plans"
+        options={value.plans}
+        onAdd={addOption}
+        onRemove={removeOption}
+        onUpdate={updateOption}
+        placeholder="Essential"
+      />
+      <VariationOptionList
+        title="Duration options"
+        kind="durations"
+        options={value.durations}
+        onAdd={addOption}
+        onRemove={removeOption}
+        onUpdate={updateOption}
+        placeholder="1 Month"
+      />
+
+      <div className="admin-variation-matrix">
+        <label className="admin-label">Combination pricing</label>
+        <p className="admin-help">Prices are in PKR. Account Type is fixed as Private and Shared.</p>
+        {value.plans.map((plan) => (
+          <div key={plan.id} className="admin-variation-plan-block">
+            <h4>{plan.label}</h4>
+            <div className="admin-variation-price-grid">
+              {value.durations.map((duration) => (
+                ACCOUNT_TYPES.map((account) => (
+                  <label key={`${plan.id}-${account.id}-${duration.id}`} className="admin-variation-price-cell">
+                    <span>{account.label} + {duration.label}</span>
+                    <div className="admin-input-prefix">
+                      <span>Rs</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={getPrice(plan.id, account.id, duration.id)}
+                        onChange={(e) => setPrice(plan.id, account.id, duration.id, Number(e.target.value))}
+                      />
+                    </div>
+                  </label>
+                ))
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VariationOptionList({
+  title,
+  kind,
+  options,
+  placeholder,
+  onAdd,
+  onRemove,
+  onUpdate,
+}: {
+  title: string;
+  kind: "plans" | "durations";
+  options: ProductVariationConfig["plans"];
+  placeholder: string;
+  onAdd: (kind: "plans" | "durations") => void;
+  onRemove: (kind: "plans" | "durations", idx: number) => void;
+  onUpdate: (kind: "plans" | "durations", idx: number, label: string) => void;
+}) {
+  return (
+    <div className="admin-variation-options">
+      <div className="admin-variation-options-head">
+        <label className="admin-label">{title}</label>
+        <button type="button" className="admin-btn admin-btn-ghost admin-btn-mini" onClick={() => onAdd(kind)} disabled={options.length >= 3}>
+          <i className="fa-solid fa-plus"></i> Add
+        </button>
+      </div>
+      <div className="admin-variation-option-list">
+        {options.map((opt, idx) => (
+          <div key={`${kind}-${idx}`} className="admin-variation-option-row">
+            <input
+              className="input"
+              value={opt.label}
+              placeholder={placeholder}
+              onChange={(e) => onUpdate(kind, idx, e.target.value)}
+            />
+            <button type="button" className="product-icon-action" onClick={() => onRemove(kind, idx)} disabled={options.length <= 1} aria-label="Remove option">
+              <i className="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        ))}
+      </div>
+      <p className="admin-help">Maximum 3.</p>
+    </div>
+  );
+}
+
+function ensurePriceMatrix(config: ProductVariationConfig): ProductVariationConfig {
+  const plans = config.plans.slice(0, 3);
+  const durations = config.durations.slice(0, 3);
+  const prices = [];
+  for (const plan of plans) {
+    for (const duration of durations) {
+      for (const account of ACCOUNT_TYPES) {
+        const existing = config.prices.find((p) => p.planId === plan.id && p.durationId === duration.id && p.accountType === account.id);
+        prices.push({
+          planId: plan.id,
+          durationId: duration.id,
+          accountType: account.id,
+          price: existing?.price ?? 0,
+        });
+      }
+    }
+  }
+  return { plans, durations, prices };
 }
