@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
+import { apiBaseUrlSafe, authHeaders } from "@/lib/api-client";
 
 // Capture UTM parameters + referrer + landing page on first visit and persist
 // for 30 days. Used by the checkout flow to attribute the order.
@@ -82,14 +83,16 @@ export default function TrafficCapture() {
         };
 
         const body = JSON.stringify(payload);
+        const trafficUrl = `${apiBaseUrlSafe()}/traffic`;
         if (navigator.sendBeacon && eventType === "heartbeat") {
-          navigator.sendBeacon("/api/traffic", new Blob([body], { type: "application/json" }));
+          // Beacon can't carry an Authorization header — heartbeats stay anonymous.
+          navigator.sendBeacon(trafficUrl, new Blob([body], { type: "application/json" }));
           return;
         }
 
-        await fetch("/api/traffic", {
+        await fetch(trafficUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(await authHeaders()) },
           body,
           keepalive: true,
         });

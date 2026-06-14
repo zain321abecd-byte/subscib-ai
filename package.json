@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
+    "dev:web": "next dev -p 3001",
+    "dev:api": "npm --prefix api run start:dev",
+    "dev:all": "concurrently -n web,api -c blue,green \"npm:dev:web\" \"npm:dev:api\"",
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint",
@@ -23,6 +26,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^22.10.7",
+    "concurrently": "^9.1.0",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",

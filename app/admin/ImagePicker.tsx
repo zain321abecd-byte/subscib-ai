@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import FloatField from "./FloatField";
+import { apiUpload } from "@/lib/api-client";
 
 type Props = {
   value: string;
@@ -41,16 +42,7 @@ export default function ImagePicker({ value, onChange, folder = "uploads", tintB
     }, 220);
 
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("folder", folder);
-
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j?.error || `Upload failed (HTTP ${res.status})`);
-      }
-      const data = await res.json();
+      const data = await apiUpload<{ url: string }>("/uploads", file, folder);
       setProgress(100);
       onChange(data.url);
     } catch (e: any) {

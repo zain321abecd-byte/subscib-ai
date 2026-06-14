@@ -8,6 +8,7 @@ import { formatPriceFromPKR, useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
 import PaymentLogo from "@/components/PaymentLogo";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
+import { apiUrl, authHeaders } from "@/lib/api-client";
 
 type Provider = "jazzcash" | "easypaisa" | "card";
 type StatusPill = "idle" | "submitting" | "pending" | "paid" | "failed";
@@ -192,9 +193,9 @@ export default function CheckoutPage() {
     }
     const package_tier = tiers.size === 1 ? [...tiers][0] : tiers.size > 1 ? "mixed" : null;
 
-    fetch("/api/orders", {
+    authHeaders().then((auth) => fetch(apiUrl("/orders"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auth },
       body: JSON.stringify({
         items: orderItemsSnapshot.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: i.price, variation: i.variation })),
         customer_email: email,
@@ -211,10 +212,10 @@ export default function CheckoutPage() {
         landing_page: attribution.landing_page ?? null,
         package_tier,
       }),
-    }).catch(() => {});
+    }).catch(() => {}));
 
     try {
-      const res = await fetch("/api/create-payment", {
+      const res = await fetch(apiUrl("/payments"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -302,7 +303,7 @@ export default function CheckoutPage() {
     pollRef.current = window.setInterval(async () => {
       attempts += 1;
       try {
-        const r = await fetch(`/api/payment-status?orderId=${encodeURIComponent(id)}&transactionId=${encodeURIComponent(id)}&provider=${prov}`);
+        const r = await fetch(apiUrl(`/payments/status?orderId=${encodeURIComponent(id)}&transactionId=${encodeURIComponent(id)}&provider=${prov}`));
         const data = await r.json();
         if (data.paymentStatus === "paid") {
           window.clearInterval(pollRef.current!); pollRef.current = null;
@@ -331,7 +332,7 @@ export default function CheckoutPage() {
     if (!orderId) return;
     setMessage("Checking payment statusâ€¦");
     try {
-      const r = await fetch(`/api/payment-status?orderId=${encodeURIComponent(orderId)}&transactionId=${encodeURIComponent(transactionId || orderId)}&provider=${provider}`);
+      const r = await fetch(apiUrl(`/payments/status?orderId=${encodeURIComponent(orderId)}&transactionId=${encodeURIComponent(transactionId || orderId)}&provider=${provider}`));
       const data = await r.json();
       const providerLabel = provider === "easypaisa" ? "Easypaisa" : provider === "jazzcash" ? "JazzCash" : "card";
       if (data.paymentStatus === "paid") {

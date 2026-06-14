@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { apiBaseUrlSafe } from "@/lib/api-client";
 
 export type Currency = "PKR" | "USD" | "INR";
 export type CurrencyMode = "auto" | "always_pkr" | "always_usd" | "dual";
@@ -62,7 +63,7 @@ export function FxProvider({
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/fx-rate")
+    fetch(`${apiBaseUrlSafe()}/fx-rate`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;

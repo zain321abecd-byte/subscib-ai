@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { apiUpload } from "@/lib/api-client";
 
 type Props = {
   value: string[];
@@ -28,16 +29,8 @@ export default function MultiImagePicker({ value, onChange, folder = "uploads", 
   }
 
   async function uploadOne(file: File) {
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("folder", folder);
-    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      throw new Error(j?.error || `Upload failed (HTTP ${res.status})`);
-    }
-    const data = await res.json();
-    return data.url as string;
+    const data = await apiUpload<{ url: string }>("/uploads", file, folder);
+    return data.url;
   }
 
   async function handleFiles(files: FileList | File[]) {
