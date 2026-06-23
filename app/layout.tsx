@@ -4,8 +4,25 @@ import { getSiteSettings } from "@/lib/site-settings";
 import "./globals.css";
 import "./tailwind.css";
 
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--next-font-body", display: "swap" });
-const poppins = Poppins({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--next-font-heading", display: "swap" });
+// `fallback` + `adjustFontFallback: false` keep the page rendering cleanly on
+// networks where Google Fonts can't be reached at build time (ETIMEDOUT). Next
+// will use the local fallback list instead of failing the build/page.
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--next-font-body",
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+  adjustFontFallback: false,
+});
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--next-font-heading",
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+  adjustFontFallback: false,
+});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 const SITE_NAME = "SubscribAI";

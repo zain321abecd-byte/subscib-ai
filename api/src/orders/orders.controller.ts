@@ -19,7 +19,7 @@ export class OrdersController {
 
   /**
    * PATCH /orders/:id — advance status / set transaction_id / notes. Public,
-   * because the SahulatPay callback is unauthenticated; gated by the limited
+   * because the PayFast IPN is unauthenticated; gated by the limited
    * field whitelist + transaction_id correlation. Admin UI uses the same route.
    */
   @Patch(":id")

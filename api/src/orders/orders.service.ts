@@ -75,7 +75,7 @@ export class OrdersService {
 
   /**
    * Advance an order. Matches by uuid id or order_number. Limited to the fields
-   * the SahulatPay callback / admin may mutate.
+   * the PayFast IPN / admin may mutate.
    */
   async update(idOrNumber: string, body: any) {
     const update: Record<string, unknown> = {};

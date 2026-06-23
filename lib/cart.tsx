@@ -24,7 +24,7 @@ export type Order = {
   items: CartItem[];
   subtotalUsd: number;
   pkrTotal: number;
-  paymentProvider: "jazzcash" | "easypaisa" | "card";
+  paymentProvider: "payfast" | "jazzcash" | "easypaisa" | "card";
   status: "pending" | "paid" | "failed";
 };
 

@@ -36,8 +36,12 @@ export async function getRegion(): Promise<Region> {
 }
 
 /**
- * Resolve the active currency given the admin's currency_mode + region +
- * the user's manual cookie override.
+ * Resolve the active currency.
+ *
+ * Rule: Pakistani visitors → PKR, everyone else → USD.
+ * The user's explicit cookie override (set via the currency switcher) wins
+ * over the auto-default. INR is still accepted as a manual override, but it
+ * is no longer auto-selected — Indian visitors land on USD by default.
  */
 export async function resolveCurrency(_mode: CurrencyMode): Promise<Currency> {
   // Currency cookie takes precedence over location defaults.
@@ -46,7 +50,5 @@ export async function resolveCurrency(_mode: CurrencyMode): Promise<Currency> {
   if (pref === "PKR" || pref === "USD" || pref === "INR") return pref;
 
   const region = await getRegion();
-  if (region === "PK") return "PKR";
-  if (region === "IN") return "INR";
-  return "USD";
+  return region === "PK" ? "PKR" : "USD";
 }

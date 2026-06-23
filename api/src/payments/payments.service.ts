@@ -1,122 +1,77 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service";
 import {
-  PROVIDERS,
-  buildEncryptedRequestBody,
-  friendlyGatewayMessage,
-  gatewayFetch,
+  TRANSACTION_INSTRUMENT,
+  buildPostTransactionFields,
+  describeErrCode,
+  getAccessToken,
   getConfig,
-  getProviderMode,
-  isPublicHttpUrl,
-  makeUrl,
+  isPayFastSuccess,
+  isValidBasketId,
   normalizeAmount,
-  normalizeAmountNumber,
-  normalizePaymentStatus,
-  normalizeProvider,
-  type SahulatPayConfig,
-  validateWalletPhone,
-} from "./sahulatpay";
+  paymentStatusFromErrCode,
+  postTransactionEndpoint,
+  verifyValidationHash,
+  type PayFastConfig,
+  type PayFastTransactionInstrument,
+} from "./payfast";
 
-export type CreatePaymentInput = {
-  provider?: string;
-  amount?: unknown;
-  phone?: string;
-  email?: string;
-  orderId?: string;
-  order_id?: string;
-  redirectUrl?: string;
-  redirect_url?: string;
-  storeName?: string;
-  store_name?: string;
-};
+export type RestrictTo = "bank" | "unionpay" | "card" | "wallet";
 
-export type PaymentStatusQuery = {
-  provider?: string;
-  orderId?: string;
-  transactionId?: string;
-};
-
-/** Result wrapper so the controller can set the right HTTP status. */
 export type ServiceResult = { status: number; body: any };
 
-function maskPhone(phone: string): string {
-  return String(phone || "").replace(/^(\d{4})\d+(\d{2})$/, "$1*****$2");
-}
+export type InitPaymentInput = {
+  basketId?: string;
+  basket_id?: string;
+  orderId?: string;
+  order_id?: string;
+  amount?: unknown;
+  customerEmail?: string;
+  customer_email?: string;
+  customerMobile?: string;
+  customer_mobile?: string;
+  customerName?: string;
+  customer_name?: string;
+  customerIp?: string;
+  description?: string;
+  items?: Array<{ sku?: string; name?: string; price?: number | string; qty?: number | string }>;
+  /** Lock the PayFast hosted page to one method. Useful for non-PK visitors
+   * who can only realistically pay by card. Maps to Transaction_Instrument. */
+  restrictTo?: RestrictTo;
+  transactionInstrument?: PayFastTransactionInstrument;
+  /** Currency code sent to PayFast (defaults to env PAYFAST_CURRENCY = PKR).
+   * For non-PK visitors the frontend sends "USD" plus the converted amount. */
+  currency?: string;
+};
 
-function gatewayCode(payload: any, status: number): number {
-  return Number(payload?.statusCode || payload?.data?.statusCode || status);
-}
+/** Payload PayFast sends on browser return + IPN. Per Table 1.2 of the PDF. */
+export type PayFastReturnPayload = {
+  transaction_id?: string;
+  err_code?: string;
+  err_msg?: string;
+  basket_id?: string;
+  order_date?: string;
+  validation_hash?: string;
+  PaymentName?: string;
+  discounted_amount?: string;
+  transaction_amount?: string;
+  merchant_amount?: string;
+  transaction_currency?: string;
+  Instrument_token?: string;
+  Recurring_txn?: string;
+  [k: string]: unknown;
+};
 
-function gatewayHostedUrl(payload: any): string {
-  const raw = payload?.data?.completeLink || payload?.data?.complete_link || payload?.completeLink || "";
-  if (!raw) return "";
-  const overrideHost = (process.env.SAHULATPAY_HOSTED_HOST || "merchant.assanpay.com").trim();
-  try {
-    const url = new URL(raw);
-    if (url.hostname === "merchant.sahulatpay.com") url.hostname = overrideHost;
-    return url.toString();
-  } catch {
-    return raw;
-  }
-}
-
-function gatewayTransactionId(payload: any, fallback: string): string {
-  return (
-    payload?.data?.txnNo ||
-    payload?.data?.orderId ||
-    payload?.data?.order_id ||
-    payload?.data?.merchant_transaction_id ||
-    payload?.data?.transactionId ||
-    fallback
-  );
-}
-
-function createGatewayOrderId(prev = ""): string {
-  let next = "";
-  do {
-    const stamp = Date.now().toString(36);
-    const random = Math.random().toString(36).slice(2, 7);
-    next = `O${stamp}${random}`.toUpperCase().slice(0, 19);
-  } while (next === prev);
-  return next;
-}
-
-function isDuplicateOrderError(payload: any): boolean {
-  return /order\s*id\s*already\s*exists|duplicate|unique constraint/i.test(JSON.stringify(payload || {}));
-}
-
-async function postGateway(endpoint: string, payload: any, apiKey: string, includeApiKey: boolean) {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (includeApiKey) headers["x-api-key"] = apiKey;
-  return gatewayFetch(endpoint, { method: "POST", headers, body: JSON.stringify(payload) });
-}
-
-async function createHostedPaymentRequest(
-  config: SahulatPayConfig,
-  amount: string,
-  orderId: string,
-  storeName: string,
-  retryOnDuplicate = true,
-) {
-  const hostedEndpoint = makeUrl(config.baseUrl, PROVIDERS.card.initiatePath, config.merchantId);
-  let hostedPayload = { amount, order_id: orderId, store_name: storeName };
-  let result = await postGateway(hostedEndpoint, hostedPayload, config.apiKey, false);
-  let retried = false;
-  if (retryOnDuplicate && isDuplicateOrderError(result.payload)) {
-    hostedPayload = { ...hostedPayload, order_id: createGatewayOrderId(orderId) };
-    result = await postGateway(hostedEndpoint, hostedPayload, config.apiKey, false);
-    retried = true;
-  }
-  return { ...result, requestPayload: hostedPayload, retriedDuplicateOrderId: retried };
-}
-
-function initiationPaymentStatus(payload: any, raw: string): "paid" | "pending" | "failed" {
-  const transactionStatus = String(payload?.data?.transactionStatus || "").trim();
-  const responseDesc = String(payload?.data?.responseDesc || payload?.message?.message || payload?.message || "").trim();
-  const joined = `${transactionStatus} ${responseDesc} ${raw || ""}`.toLowerCase();
-  if (/(completed|complete|paid|confirmed)/.test(transactionStatus.toLowerCase())) return "paid";
-  if (/(failed|fail|declined|cancel|rejected|expired|not found|invalid|required field missing|unauthorized)/.test(joined)) return "failed";
-  return "pending";
+/** Build the public-facing URLs PayFast will use (success/failure/IPN). */
+function buildCallbackUrls(config: PayFastConfig) {
+  const apiBase = (process.env.PAYFAST_PUBLIC_API_URL || process.env.PUBLIC_API_URL || "").replace(/\/+$/, "");
+  // Fallback: use SITE_URL host with /api prefix; in practice deployers set PAYFAST_PUBLIC_API_URL.
+  const base = apiBase || config.siteUrl;
+  return {
+    successUrl: `${base}/payments/return?outcome=success`,
+    failureUrl: `${base}/payments/return?outcome=failure`,
+    checkoutUrl: `${base}/payments/ipn`,
+  };
 }
 
 @Injectable()
@@ -125,271 +80,236 @@ export class PaymentsService {
 
   constructor(private readonly supabase: SupabaseService) {}
 
-  // ── create-payment ────────────────────────────────────────────────────────
-  async createPayment(body: CreatePaymentInput): Promise<ServiceResult> {
+  // ── STEP 1+2 — initiate the PayFast handshake ─────────────────────────────
+  async initPayment(input: InitPaymentInput): Promise<ServiceResult> {
     const config = getConfig();
     if (config.missing.length) {
       return {
         status: 500,
-        body: { success: false, message: "SahulatPay is not configured on the server.", missing: config.missing },
+        body: { success: false, message: "PayFast is not configured on the server.", missing: config.missing },
       };
     }
 
-    const provider = normalizeProvider(body.provider);
-    const amount = normalizeAmount(body.amount);
-    const phone = String(body.phone || "").trim();
-    const email = String(body.email || "").trim();
-    const orderId = String(body.orderId || body.order_id || "").trim();
-    const redirectUrl = String(body.redirectUrl || body.redirect_url || "").trim();
-    const storeName = String(body.storeName || body.store_name || "SubscribAI").trim() || "SubscribAI";
-    const isCard = provider === "card";
+    const basketId = String(input.basketId || input.basket_id || input.orderId || input.order_id || "").trim();
+    const amount = normalizeAmount(input.amount);
+    const customerEmail = String(input.customerEmail || input.customer_email || "").trim();
+    const customerMobile = String(input.customerMobile || input.customer_mobile || "").trim();
+    const customerName = String(input.customerName || input.customer_name || "").trim();
+    const customerIp = String(input.customerIp || "").trim();
+    const description = String(input.description || "SubscribAI order").slice(0, 80);
 
-    if (!provider) return { status: 400, body: { success: false, message: "Choose JazzCash, Easypaisa, or Card." } };
+    if (!basketId) return { status: 400, body: { success: false, message: "Order/basket ID is required." } };
+    if (!isValidBasketId(basketId)) return { status: 400, body: { success: false, message: "Basket ID must be alphanumeric (with - or _) and under 20 characters." } };
     if (!amount) return { status: 400, body: { success: false, message: "Payment amount is invalid." } };
-    if (!isCard && !validateWalletPhone(phone)) return { status: 400, body: { success: false, message: "Wallet phone must be in 03XXXXXXXXX format." } };
-    if (!orderId) return { status: 400, body: { success: false, message: "Order ID is required." } };
-    if (orderId.length >= 20) return { status: 400, body: { success: false, message: "Order ID must be less than 20 characters." } };
-    if (provider === "easypaisa" && !email) return { status: 400, body: { success: false, message: "Email is required for Easypaisa." } };
+    if (!customerEmail) return { status: 400, body: { success: false, message: "Customer email is required." } };
+    if (!customerMobile) return { status: 400, body: { success: false, message: "Customer mobile number is required." } };
 
-    const providerConfig = PROVIDERS[provider as Exclude<ReturnType<typeof normalizeProvider>, "">];
-    const walletMode = getProviderMode(provider as string);
-    const useEncrypted = !isCard && walletMode === "encrypted" && !!providerConfig.encryptedInitiatePath && Boolean(config.masterSecret);
-    const useDirectWallet = !isCard && !useEncrypted && walletMode !== "async" && Boolean(providerConfig.directInitiatePath);
-    const endpointPath = useEncrypted
-      ? providerConfig.encryptedInitiatePath!
-      : useDirectWallet
-        ? providerConfig.directInitiatePath!
-        : providerConfig.initiatePath;
-    const endpoint = makeUrl(config.baseUrl, endpointPath, config.merchantId);
-    const directWalletAmount = normalizeAmountNumber(amount);
-    const siteCallbackUrl = config.siteUrl ? `${config.siteUrl}/api/sahulatpay-callback` : "";
-    const callbackUrl = isPublicHttpUrl(redirectUrl)
-      ? redirectUrl
-      : isPublicHttpUrl(siteCallbackUrl)
-        ? siteCallbackUrl
-        : "https://example.com/payment-return";
+    // PayFast settles in a single currency configured per-merchant (per their
+    // support team: merchant 619747 settles in USD only). We allow the
+    // frontend to send `currency` per request so foreign visitors pay in USD,
+    // but default to the env value when not supplied.
+    const currency = (input.currency || config.currency || "PKR").toUpperCase();
 
-    const useNumberAmount = useDirectWallet && provider === "jazzcash";
-    const payload: Record<string, unknown> = isCard
-      ? { amount, order_id: orderId, store_name: storeName }
-      : { amount: useNumberAmount ? directWalletAmount : amount, phone, order_id: orderId, type: "wallet" };
-    if (provider === "jazzcash") payload.redirect_url = callbackUrl || "https://example.com/payment-return";
-    if (isCard && isPublicHttpUrl(callbackUrl)) payload.link = callbackUrl;
-    if (provider === "easypaisa") payload.email = email;
-
-    let gatewayPayload: any;
-    let gatewayStatus = 500;
-    let gatewayMode = isCard
-      ? "hosted"
-      : useEncrypted
-        ? "encrypted-wallet"
-        : useDirectWallet
-          ? "direct-wallet"
-          : "async-wallet";
-    let statusProvider: string = isCard ? "card" : (provider as string);
-    let directFailure: any = null;
-    let requestPayload: any = payload;
-    let retriedDuplicateOrderId = false;
-
+    // STEP 1 — fetch the access token.
+    let token = "";
+    let tokenHttp = 0;
+    let tokenRaw: any = null;
     try {
-      const wireBody = useEncrypted
-        ? buildEncryptedRequestBody(payload, config.masterSecret, config.merchantId)
-        : payload;
-      const includeApiKey = !useDirectWallet && !useEncrypted && !isCard;
-      const initial = await postGateway(endpoint, wireBody, config.apiKey, includeApiKey);
-      gatewayStatus = initial.status;
-      gatewayPayload = initial.payload;
-      if (useEncrypted) requestPayload = payload;
-
-      if (isCard && isDuplicateOrderError(gatewayPayload)) {
-        const hostedRetry = await createHostedPaymentRequest(config, amount, createGatewayOrderId(orderId), storeName);
-        gatewayStatus = hostedRetry.status;
-        gatewayPayload = hostedRetry.payload;
-        requestPayload = hostedRetry.requestPayload;
-        retriedDuplicateOrderId = true;
-        gatewayMode = "hosted-retry";
-      }
-
-      const initialCode = gatewayCode(gatewayPayload, gatewayStatus);
-      const initialInitiated = gatewayStatus >= 200 && gatewayStatus < 300 && gatewayPayload?.success === true && initialCode === 200;
-
-      if (!isCard && useDirectWallet && !initialInitiated) {
-        directFailure = {
-          gatewayHttpStatus: gatewayStatus,
-          gatewayStatus: gatewayPayload?.data?.statusCode || gatewayPayload?.message?.statusCode || gatewayPayload?.statusCode || initialCode,
-          transactionId: gatewayTransactionId(gatewayPayload, orderId),
-          gatewayResponse: gatewayPayload,
-        };
-        const fallbackOrderId = createGatewayOrderId(orderId);
-        const hostedGateway = await createHostedPaymentRequest(config, amount, fallbackOrderId, storeName);
-        gatewayStatus = hostedGateway.status;
-        gatewayPayload = hostedGateway.payload;
-        gatewayMode = hostedGateway.retriedDuplicateOrderId ? "hosted-fallback-retry" : "hosted-fallback";
-        statusProvider = "card";
-        requestPayload = hostedGateway.requestPayload;
-        retriedDuplicateOrderId = true;
-      }
-    } catch (error: any) {
+      const r = await getAccessToken({ basketId, amount, config, currency });
+      token = r.token;
+      tokenHttp = r.httpStatus;
+      tokenRaw = r.raw;
+    } catch (err: any) {
+      return { status: 502, body: { success: false, message: "Could not reach PayFast.", details: err?.message } };
+    }
+    if (!token) {
+      const reason =
+        (tokenRaw && typeof tokenRaw === "object" && (tokenRaw.ExceptionMessage || tokenRaw.Message)) ||
+        "PayFast did not return an access token.";
+      this.logger.warn(`payfast token rejected http=${tokenHttp} reason=${String(reason).slice(0, 200)}`);
       return {
-        status: 502,
-        body: { success: false, message: "Could not connect to SahulatPay.", details: error.message },
+        status: tokenHttp >= 400 ? tokenHttp : 502,
+        body: {
+          success: false,
+          message: `PayFast rejected the token request: ${String(reason).slice(0, 300)}`,
+          gatewayHttpStatus: tokenHttp,
+          gatewayResponse: tokenRaw,
+        },
       };
     }
 
-    const gatewayCodeValue = gatewayCode(gatewayPayload, gatewayStatus);
-    const hostedPaymentUrl = gatewayHostedUrl(gatewayPayload);
-    const usesHostedPayment = isCard || gatewayMode.startsWith("hosted-fallback");
-    const initiated =
-      gatewayStatus >= 200 &&
-      gatewayStatus < 300 &&
-      gatewayPayload?.success === true &&
-      gatewayCodeValue === 200 &&
-      (!usesHostedPayment || isPublicHttpUrl(hostedPaymentUrl));
-    const gatewayOrderId = requestPayload.order_id || orderId;
-    const transactionId = gatewayTransactionId(gatewayPayload, gatewayOrderId);
-    const rawGatewayStatus =
-      gatewayPayload?.data?.statusCode ||
-      gatewayPayload?.data?.transactionStatus ||
-      gatewayPayload?.data?.status ||
-      gatewayPayload?.message?.statusCode ||
-      gatewayPayload?.statusCode;
-    const paymentStatus = initiated ? initiationPaymentStatus(gatewayPayload, String(rawGatewayStatus || "")) : "failed";
-    const gatewayMessage = friendlyGatewayMessage(gatewayPayload, `SahulatPay rejected the request with HTTP ${gatewayStatus}.`);
-    const responseMessage = initiated
-      ? gatewayMode.startsWith("hosted-fallback")
-        ? "Wallet push could not start, so open the SahulatPay secure payment page."
-        : isCard
-          ? "Open the SahulatPay card payment page."
-          : "Payment is processing."
-      : gatewayMessage;
+    // Map restrictTo → Transaction_Instrument (single-method lock).
+    const instrument: PayFastTransactionInstrument | undefined =
+      input.transactionInstrument && [1, 2, 3, 4].includes(input.transactionInstrument)
+        ? input.transactionInstrument
+        : input.restrictTo
+          ? TRANSACTION_INSTRUMENT[input.restrictTo]
+          : undefined;
+
+    // STEP 2 — build the form fields the browser will POST to PayFast.
+    const urls = buildCallbackUrls(config);
+    const fields = buildPostTransactionFields({
+      config,
+      token,
+      basketId,
+      amount,
+      customerEmail,
+      customerMobile,
+      customerName,
+      customerIp,
+      description,
+      successUrl: urls.successUrl,
+      failureUrl: urls.failureUrl,
+      checkoutUrl: urls.checkoutUrl,
+      items: input.items,
+      transactionInstrument: instrument,
+      currency,
+    });
+
+    this.logger.log(`payfast init basket=${basketId} amount=${amount} token=${token.slice(0, 8)}…`);
+
+    return {
+      status: 200,
+      body: {
+        success: true,
+        action: postTransactionEndpoint(config),
+        method: "POST",
+        fields,
+        basketId,
+        amount,
+      },
+    };
+  }
+
+  // ── STEP 3 — browser return (PayFast hits SUCCESS_URL / FAILURE_URL) ───────
+  /**
+   * Validates the payload, syncs the order, returns where to redirect the
+   * customer. The controller takes the redirect target and sends a 303.
+   */
+  async handleReturn(payload: PayFastReturnPayload): Promise<{
+    basketId: string;
+    paymentStatus: "paid" | "failed" | "pending";
+    errCode: string;
+    errMsg: string;
+    hashOk: boolean;
+  }> {
+    const config = getConfig();
+    const basketId = String(payload.basket_id || "").trim();
+    const errCode = String(payload.err_code || "").trim();
+    const errMsg = String(payload.err_msg || "").trim();
+    const receivedHash = String(payload.validation_hash || "").trim();
+
+    const hashOk = basketId && errCode && receivedHash && !config.missing.length
+      ? verifyValidationHash({
+          basketId,
+          errCode,
+          merchantId: config.merchantId,
+          securedKey: config.securedKey,
+          receivedHash,
+        })
+      : false;
+
+    const paymentStatus = paymentStatusFromErrCode(errCode);
 
     this.logger.log(
-      `create-payment provider=${provider} mode=${gatewayMode} order=${orderId} amount=${amount} ` +
-        `phone=${phone ? maskPhone(phone) : ""} http=${gatewayStatus} txn=${transactionId} status=${paymentStatus}`,
+      `payfast return basket=${basketId} err_code=${errCode} status=${paymentStatus} hash=${hashOk ? "ok" : "bad"} txn=${payload.transaction_id || ""}`,
     );
 
+    if (hashOk && basketId) {
+      await this.syncOrder({
+        basketId,
+        paymentStatus,
+        transactionId: String(payload.transaction_id || ""),
+      });
+    } else if (basketId) {
+      this.logger.warn(
+        `payfast return hash mismatch (basket=${basketId}) — payload kept but order NOT marked paid.`,
+      );
+    }
+
+    return { basketId, paymentStatus, errCode, errMsg, hashOk };
+  }
+
+  // ── STEP 4 — server-to-server IPN ─────────────────────────────────────────
+  async handleIpn(payload: PayFastReturnPayload): Promise<ServiceResult> {
+    const result = await this.handleReturn(payload);
     return {
-      status: initiated ? 200 : Math.max(400, Math.min(gatewayStatus || 502, 599)),
+      status: 200,
       body: {
-        success: initiated,
-        provider, providerLabel: providerConfig.label, statusProvider,
-        orderId, gatewayOrderId, transactionId, paymentStatus,
-        gatewayStatus: rawGatewayStatus || gatewayCodeValue,
-        gatewayHttpStatus: gatewayStatus,
-        gatewayMessage, gatewayMode, retriedDuplicateOrderId,
-        hostedAuthMode: usesHostedPayment ? "merchant-url" : "",
-        redirectUrl: gatewayPayload?.data?.redirect_url || hostedPaymentUrl || null,
-        message: responseMessage,
-        hint: !initiated && provider === "jazzcash" && !isPublicHttpUrl(siteCallbackUrl)
-          ? "For live JazzCash callback/redirect, deploy and set SITE_URL to your public domain."
-          : "",
-        request: { amount: requestPayload.amount, order_id: orderId, ...(requestPayload.store_name ? { store_name: requestPayload.store_name } : {}) },
-        gatewayResponse: gatewayPayload,
-        directFailure,
+        received: true,
+        message: result.hashOk
+          ? "PayFast IPN accepted."
+          : "PayFast IPN received but validation_hash did not match — ignored.",
+        basketId: result.basketId,
+        paymentStatus: result.paymentStatus,
+        errCode: result.errCode,
+        errMsg: result.errMsg,
+        hashOk: result.hashOk,
       },
     };
   }
 
-  // ── payment-status ────────────────────────────────────────────────────────
-  async getStatus(query: PaymentStatusQuery): Promise<ServiceResult> {
-    const config = getConfig();
-    if (config.missing.length) {
-      return { status: 500, body: { success: false, message: "SahulatPay is not configured on the server.", missing: config.missing } };
-    }
-
-    const provider = normalizeProvider(query.provider);
-    const orderId = String(query.orderId || "").trim();
-    const transactionId = String(query.transactionId || orderId).trim();
-
-    if (!provider) return { status: 400, body: { success: false, message: "Provider is required." } };
-    if (!orderId && !transactionId) return { status: 400, body: { success: false, message: "Order ID or transaction ID is required." } };
-
-    const providerConfig = PROVIDERS[provider as Exclude<ReturnType<typeof normalizeProvider>, "">];
-    const endpoint = makeUrl(config.baseUrl, providerConfig.statusPath, config.merchantId);
-    const apiKeyHeader = { "x-api-key": config.apiKey };
-    let result: { status: number; payload: any };
+  // ── Poll a known order's status (used by /thank-you to show progress). ────
+  async getStatus(query: { basketId?: string; basket_id?: string; orderId?: string }): Promise<ServiceResult> {
+    const basketId = String(query.basketId || query.basket_id || query.orderId || "").trim();
+    if (!basketId) return { status: 400, body: { success: false, message: "basketId is required." } };
 
     try {
-      if (provider === "jazzcash") {
-        result = await gatewayFetch(endpoint, {
-          method: "POST",
-          headers: { ...apiKeyHeader, "Content-Type": "application/json" },
-          body: JSON.stringify({ transactionId }),
-        });
-      } else {
-        const statusUrl = new URL(endpoint);
-        const queryKey = provider === "easypaisa" ? "orderId" : "transactionId";
-        statusUrl.searchParams.set(queryKey, queryKey === "orderId" ? orderId || transactionId : transactionId || orderId);
-        result = await gatewayFetch(statusUrl.toString(), { method: "GET", headers: apiKeyHeader });
+      const { data, error } = await this.supabase
+        .admin()
+        .from("orders")
+        .select("id, order_number, status, transaction_id, subtotal_pkr, payment_method")
+        .or(`order_number.eq.${basketId},id.eq.${basketId}`)
+        .maybeSingle();
+
+      if (error) {
+        return { status: 500, body: { success: false, message: error.message } };
       }
-    } catch (error: any) {
-      return { status: 502, body: { success: false, message: "Could not connect to SahulatPay.", details: error.message } };
+      if (!data) {
+        return { status: 200, body: { success: true, basketId, status: "pending", message: "Order not yet recorded." } };
+      }
+      return {
+        status: 200,
+        body: {
+          success: true,
+          basketId,
+          orderId: data.id,
+          orderNumber: data.order_number,
+          status: data.status,
+          transactionId: data.transaction_id,
+          paymentMethod: data.payment_method,
+          amount: data.subtotal_pkr,
+          message: describeErrCode("", "Status retrieved from order record."),
+        },
+      };
+    } catch (err: any) {
+      return { status: 500, body: { success: false, message: err?.message || "Lookup failed." } };
     }
-
-    const { status: gatewayHttpStatus, payload: gatewayPayload } = result;
-    const httpOk = gatewayHttpStatus >= 200 && gatewayHttpStatus < 300;
-    const gatewaySaidOk = gatewayPayload?.success !== false;
-    const statusText =
-      gatewayPayload?.data?.transactionStatus ||
-      gatewayPayload?.data?.responseDesc ||
-      gatewayPayload?.message ||
-      gatewayPayload?.statusText;
-    const paymentStatus = normalizePaymentStatus(statusText);
-    const callSucceeded = httpOk && gatewaySaidOk;
-
-    return {
-      status: callSucceeded ? 200 : Math.max(400, Math.min(gatewayHttpStatus || 502, 599)),
-      body: {
-        success: callSucceeded,
-        provider,
-        providerLabel: providerConfig.label,
-        orderId: gatewayPayload?.data?.orderId || orderId || transactionId,
-        transactionId,
-        paymentStatus,
-        gatewayHttpStatus,
-        message: callSucceeded ? "Payment status retrieved." : friendlyGatewayMessage(gatewayPayload, "Could not retrieve payment status."),
-        gatewayResponse: gatewayPayload,
-      },
-    };
   }
 
-  // ── callback (server-to-server + browser redirect) ─────────────────────────
-  async handleCallback(payload: Record<string, any>, method: string) {
-    const orderId = String(payload.order_id || payload.orderId || payload.transactionId || "").trim();
-    const rawStatus = payload.status || payload.transactionStatus || payload.responseDesc || "";
-    const paymentStatus = normalizePaymentStatus(rawStatus);
-
-    this.logger.log(`SahulatPay callback ${method} order=${orderId} status=${paymentStatus} raw=${String(rawStatus).slice(0, 80)}`);
-    await this.syncOrderStatus(orderId, paymentStatus);
-
-    return {
-      received: true,
-      message: "SahulatPay callback received.",
-      orderId,
-      paymentStatus,
-      callback: {
-        amount: payload.amount,
-        msisdn: payload.msisdn,
-        time: payload.time,
-        order_id: payload.order_id,
-        status: payload.status,
-        type: payload.type,
-      },
-    };
-  }
-
-  /** Map gateway payment_status onto our orders table by transaction_id. */
-  private async syncOrderStatus(transactionId: string, paymentStatus: string) {
-    if (!transactionId) return;
+  // ── persistence ───────────────────────────────────────────────────────────
+  private async syncOrder(params: { basketId: string; paymentStatus: "paid" | "failed" | "pending"; transactionId: string }) {
+    const { basketId, paymentStatus, transactionId } = params;
     const status =
       paymentStatus === "paid" ? "paid" :
       paymentStatus === "failed" ? "failed" :
-      paymentStatus === "pending" ? "pending" : null;
-    if (!status) return;
+      "pending";
+
     try {
-      await this.supabase.admin().from("orders").update({ status }).eq("transaction_id", transactionId);
+      const isUuid = /^[0-9a-f-]{36}$/i.test(basketId);
+      const filterCol = isUuid ? "id" : "order_number";
+      const update: Record<string, unknown> = { status, payment_method: "payfast" };
+      if (transactionId) update.transaction_id = transactionId;
+
+      await this.supabase
+        .admin()
+        .from("orders")
+        .update(update as never)
+        .eq(filterCol, basketId);
     } catch (e) {
       this.logger.error(`order status sync failed: ${(e as Error).message}`);
     }
   }
 }
+
+export { isPayFastSuccess };

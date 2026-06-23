@@ -7,7 +7,7 @@ import { Logger } from "@nestjs/common";
  * fallbacks, "supabase_not_configured" no-ops) when Supabase isn't set.
  *
  * Endpoints that genuinely need a given secret fail per-request with a clear
- * message (e.g. payments → "SahulatPay is not configured").
+ * message (e.g. payments → "PayFast is not configured").
  */
 export function validateEnv(config: Record<string, unknown>) {
   const logger = new Logger("EnvValidation");
