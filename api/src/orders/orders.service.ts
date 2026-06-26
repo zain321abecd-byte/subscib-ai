@@ -118,20 +118,59 @@ export class OrdersService {
       this.logger.warn(`Welcome email failed for order ${order.order_number}: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
 
+    // Only send the order-confirmation email when the order is actually paid.
+    // For freshly-created PayFast orders the status is "pending" at this point
+    // — the email is fired later from PaymentsService.syncOrder once PayFast
+    // confirms the payment. Admin-created orders that start as paid get the
+    // email here.
+    if (order.status !== "paid" && order.status !== "delivered") {
+      this.logger.log(`Order ${order.order_number} created with status=${order.status} — confirmation email deferred until payment is confirmed.`);
+      return;
+    }
+
     try {
-      console.log("Sending order confirmation email to:", order.customer_email);
       this.logger.log(`Sending order confirmation email to: ${order.customer_email}`);
       const result = await this.email.sendOrderConfirmationEmail({ order });
       if ((result as { skipped?: boolean } | undefined)?.skipped) {
         this.logger.log(`Order confirmation email already sent for order: ${order.order_number}`);
       } else {
-        console.log("Order confirmation email sent for order:", order.order_number);
         this.logger.log(`Order confirmation email sent for order: ${order.order_number}`);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      console.log("Order confirmation email failed for order:", order.order_number, message);
-      this.logger.error(`Order confirmation email failed for order: ${order.order_number} ${message}`);
+      this.logger.error(`Order confirmation email failed for order: ${order.order_number} ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
+  }
+
+  /** Public hook so other services (e.g. PaymentsService once PayFast confirms
+   * payment) can trigger the "your order is paid" email. Idempotent. */
+  async sendConfirmationForOrder(orderId: string) {
+    const { data: order } = await this.supabase
+      .admin()
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
+      .maybeSingle();
+    if (!order) {
+      this.logger.warn(`sendConfirmationForOrder: order ${orderId} not found`);
+      return;
+    }
+    if (!isValidEmail(order.customer_email)) {
+      this.logger.warn(`sendConfirmationForOrder: order ${orderId} has no valid customer_email`);
+      return;
+    }
+    if (order.status !== "paid" && order.status !== "delivered") {
+      this.logger.warn(`sendConfirmationForOrder: order ${orderId} status=${order.status} — only paid/delivered orders email`);
+      return;
+    }
+    try {
+      const result = await this.email.sendOrderConfirmationEmail({ order });
+      if ((result as { skipped?: boolean } | undefined)?.skipped) {
+        this.logger.log(`Order confirmation already sent for ${order.order_number} — skip`);
+      } else {
+        this.logger.log(`Order confirmation email sent (post-payment) for ${order.order_number}`);
+      }
+    } catch (err) {
+      this.logger.error(`Post-payment confirmation email failed for ${order.order_number}: ${err instanceof Error ? err.message : "Unknown"}`);
     }
   }
 

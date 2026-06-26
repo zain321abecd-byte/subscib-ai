@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service";
+import { OrdersService } from "../orders/orders.service";
 import {
   TRANSACTION_INSTRUMENT,
   buildPostTransactionFields,
@@ -78,7 +79,10 @@ function buildCallbackUrls(config: PayFastConfig) {
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly orders: OrdersService,
+  ) {}
 
   // ── STEP 1+2 — initiate the PayFast handshake ─────────────────────────────
   async initPayment(input: InitPaymentInput): Promise<ServiceResult> {
@@ -296,19 +300,40 @@ export class PaymentsService {
       paymentStatus === "failed" ? "failed" :
       "pending";
 
+    let orderId: string | null = null;
     try {
       const isUuid = /^[0-9a-f-]{36}$/i.test(basketId);
       const filterCol = isUuid ? "id" : "order_number";
       const update: Record<string, unknown> = { status, payment_method: "payfast" };
       if (transactionId) update.transaction_id = transactionId;
 
-      await this.supabase
+      const { data, error } = await this.supabase
         .admin()
         .from("orders")
         .update(update as never)
-        .eq(filterCol, basketId);
+        .eq(filterCol, basketId)
+        .select("id")
+        .maybeSingle();
+
+      if (error) {
+        this.logger.error(`order status sync failed: ${error.message}`);
+        return;
+      }
+      orderId = (data as { id?: string } | null)?.id ?? null;
+      this.logger.log(`order ${basketId} → status=${status} txn=${transactionId || "-"} orderId=${orderId || "?"}`);
     } catch (e) {
       this.logger.error(`order status sync failed: ${(e as Error).message}`);
+      return;
+    }
+
+    // Fire the confirmation email ONLY when the payment is confirmed paid.
+    // On failed/pending we don't email — customer will see the failure page.
+    if (status === "paid" && orderId) {
+      try {
+        await this.orders.sendConfirmationForOrder(orderId);
+      } catch (e) {
+        this.logger.error(`post-payment confirmation email failed: ${(e as Error).message}`);
+      }
     }
   }
 }
