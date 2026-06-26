@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Logger, Post, Query, UseGuards } from "@nestjs/common";
 import { AdminGuard } from "../auth/admin.guard";
 import { SupabaseService } from "../supabase/supabase.service";
 import { EmailService } from "./email.service";
@@ -15,6 +15,8 @@ function parseEmails(value: unknown): string[] {
 
 @Controller("emails")
 export class EmailController {
+  private readonly logger = new Logger(EmailController.name);
+
   constructor(
     private readonly email: EmailService,
     private readonly supabase: SupabaseService,
@@ -34,15 +36,21 @@ export class EmailController {
    */
   @Post("signup-welcome")
   async signupWelcome(@Body() body: any) {
-    if (!isEmail(body?.email)) return { ok: false, error: "Valid email is required." };
+    this.logger.log(`POST /emails/signup-welcome hit body.email=${body?.email || "?"} body.name=${body?.name || "?"}`);
+    if (!isEmail(body?.email)) {
+      this.logger.warn(`signup-welcome rejected — invalid email: ${JSON.stringify(body?.email)}`);
+      return { ok: false, error: "Valid email is required." };
+    }
     const email = body.email.trim().toLowerCase();
     const name = typeof body.name === "string" ? body.name.trim().slice(0, 160) : null;
     try {
       await this.email.sendWelcomeEmail({ to: email, name });
+      this.logger.log(`signup-welcome sent to ${email}`);
       return { ok: true };
     } catch (err) {
       // Soft-fail — the user is still signed up; we just couldn't send the
       // welcome. Render logs will have the full SMTP error from EmailService.
+      this.logger.error(`signup-welcome send failed for ${email}: ${err instanceof Error ? err.message : String(err)}`);
       return { ok: false, error: err instanceof Error ? err.message : "Send failed" };
     }
   }

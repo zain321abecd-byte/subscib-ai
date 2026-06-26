@@ -58,11 +58,19 @@ export default function LoginForm() {
         // Fire-and-forget welcome email through OUR backend (Spacemail SMTP).
         // Independent from Supabase's verification email — if SMTP on Render
         // is set up correctly, this lands regardless of Supabase's settings.
-        fetch(apiUrl("/emails/signup-welcome"), {
+        const welcomeUrl = apiUrl("/emails/signup-welcome");
+        console.log("[signup] firing welcome email to backend:", welcomeUrl);
+        fetch(welcomeUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email.trim(), name: name.trim() }),
-        }).catch(() => {});
+        })
+          .then(async (r) => {
+            console.log("[signup] welcome email response", r.status, await r.text().catch(() => ""));
+          })
+          .catch((err) => {
+            console.warn("[signup] welcome email request failed", err);
+          });
 
         // If email confirmation is enabled in Supabase, no session yet.
         if (!data.session) {
