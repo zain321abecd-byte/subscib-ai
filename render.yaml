@@ -1,0 +1,66 @@
+services:
+  - type: web
+    name: subscribai-api
+    runtime: node
+    repo: https://github.com/zain321abecd-byte/subscib-ai
+    branch: main
+    rootDir: api
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_ORIGIN
+        value: https://subscribai.com
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://subscribai.com
+      - key: SITE_URL
+        value: https://subscribai.com
+      - key: PAYFAST_PUBLIC_API_URL
+        value: https://api.subscribai.com
+      - key: API_URL
+        value: https://api.subscribai.com
+      - key: PAYFAST_BASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_UPLOAD_PRESET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_REPLY_TO
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: PAYFAST_MERCHANT_ID
+        sync: false
+      - key: PAYFAST_MERCHANT_NAME
+        sync: false
+      - key: PAYFAST_SECURED_KEY
+        sync: false
+      - key: PAYFAST_CURRENCY
+        sync: false

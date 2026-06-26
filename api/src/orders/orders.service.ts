@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from "@nestjs/common";
+import { EmailService } from "../notifications/email.service";
 import { SupabaseService } from "../supabase/supabase.service";
 
 type ItemInput = {
@@ -25,7 +26,12 @@ function isValidEmail(s: unknown): s is string {
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly supabase: SupabaseService) {}
+  private readonly logger = new Logger(OrdersService.name);
+
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly email: EmailService,
+  ) {}
 
   /** Record a new order. `accessToken` (optional) ties it to a logged-in user. */
   async create(body: any, accessToken?: string) {
@@ -66,11 +72,67 @@ export class OrdersService {
         landing_page: cleanStr(body.landing_page),
         package_tier: cleanStr(body.package_tier),
       })
-      .select("id, order_number")
+      .select("*")
       .single();
 
     if (error) throw new InternalServerErrorException(error.message);
+    console.log("Order created:", data.order_number);
+    this.logger.log(`Order created: ${data.order_number}`);
+    try {
+      await this.afterOrderCreated(data);
+    } catch (err) {
+      this.logger.error(`Post-order email workflow failed for order ${data.order_number}: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
     return { ok: true, id: data.id, order_number: data.order_number, stored: true };
+  }
+
+  private async afterOrderCreated(order: any) {
+    if (!isValidEmail(order?.customer_email)) {
+      this.logger.warn(`Skipping order confirmation email because customer_email is missing for order: ${order?.order_number ?? order?.id ?? "unknown"}`);
+      return;
+    }
+
+    try {
+      await this.supabase.admin().from("email_subscribers").upsert({
+        email: order.customer_email,
+        name: order.customer_name,
+        phone: order.customer_phone,
+        source: "order",
+        subscribed: true,
+        unsubscribed_at: null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "email" });
+    } catch (err) {
+      this.logger.warn(`Could not update email subscriber for order ${order.order_number}: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
+
+    try {
+      const priorOrders = await this.supabase.admin()
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_email", order.customer_email);
+      if ((priorOrders.count ?? 0) <= 1) {
+        await this.email.sendWelcomeEmail({ to: order.customer_email, name: order.customer_name });
+      }
+    } catch (err) {
+      this.logger.warn(`Welcome email failed for order ${order.order_number}: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
+
+    try {
+      console.log("Sending order confirmation email to:", order.customer_email);
+      this.logger.log(`Sending order confirmation email to: ${order.customer_email}`);
+      const result = await this.email.sendOrderConfirmationEmail({ order });
+      if ((result as { skipped?: boolean } | undefined)?.skipped) {
+        this.logger.log(`Order confirmation email already sent for order: ${order.order_number}`);
+      } else {
+        console.log("Order confirmation email sent for order:", order.order_number);
+        this.logger.log(`Order confirmation email sent for order: ${order.order_number}`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.log("Order confirmation email failed for order:", order.order_number, message);
+      this.logger.error(`Order confirmation email failed for order: ${order.order_number} ${message}`);
+    }
   }
 
   /**
@@ -95,11 +157,28 @@ export class OrdersService {
       .from("orders")
       .update(update as never)
       .eq(filterCol, idOrNumber)
-      .select("id, order_number, status")
+      .select("*")
       .maybeSingle();
 
     if (error) throw new InternalServerErrorException(error.message);
     if (!data) throw new NotFoundException("Order not found");
+    if (data.status === "paid") {
+      try {
+        if (!isValidEmail(data.customer_email)) {
+          this.logger.warn(`Skipping order confirmation email because customer_email is missing for order: ${data.order_number ?? data.id}`);
+        } else {
+          this.logger.log(`Sending order confirmation email to: ${data.customer_email}`);
+          const result = await this.email.sendOrderConfirmationEmail({ order: data as any });
+          if ((result as { skipped?: boolean } | undefined)?.skipped) {
+            this.logger.log(`Order confirmation email already sent for order: ${data.order_number}`);
+          } else {
+            this.logger.log(`Order confirmation email sent for order: ${data.order_number}`);
+          }
+        }
+      } catch (err) {
+        this.logger.error(`Order confirmation email failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+      }
+    }
     return { ok: true, order: data };
   }
 }

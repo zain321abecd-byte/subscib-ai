@@ -7,6 +7,7 @@ import { formatPriceFromPKR, useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { apiUrl, authHeaders } from "@/lib/api-client";
+import { paymentFeatureDescription } from "@/lib/payment-messaging";
 
 type StatusPill = "idle" | "submitting" | "redirecting" | "failed";
 
@@ -121,34 +122,46 @@ export default function CheckoutPage() {
     }
     const package_tier = tiers.size === 1 ? [...tiers][0] : tiers.size > 1 ? "mixed" : null;
 
-    authHeaders().then((auth) => fetch(apiUrl("/orders"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...auth },
-      body: JSON.stringify({
-        items: orderItemsSnapshot.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: i.price, variation: i.variation })),
-        customer_email: email,
-        customer_phone: phone,
-        customer_name: name,
-        subtotal_pkr: pkrTotal,
-        subtotal_usd: fxReady && usdToPkr > 0 ? Number((pkrTotal / usdToPkr).toFixed(2)) : undefined,
-        payment_method: "payfast",
-        transaction_id: basketId,
-        utm_source: attribution.utm_source ?? null,
-        utm_medium: attribution.utm_medium ?? null,
-        utm_campaign: attribution.utm_campaign ?? null,
-        referrer: attribution.referrer ?? null,
-        landing_page: attribution.landing_page ?? null,
-        package_tier,
-      }),
-    }).then((r) => {
-      // Backend assigns an order_number — adopt it as the canonical basket id
-      // so the SUCCESS_URL/IPN updates hit the correct row.
-      if (!r.ok) return null;
-      return r.json().catch(() => null);
-    }).then((data) => {
+    const orderPayload = {
+      items: orderItemsSnapshot.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: i.price, variation: i.variation })),
+      customer_email: email,
+      customer_phone: phone,
+      customer_name: name,
+      subtotal_pkr: pkrTotal,
+      subtotal_usd: fxReady && usdToPkr > 0 ? Number((pkrTotal / usdToPkr).toFixed(2)) : undefined,
+      payment_method: "payfast",
+      transaction_id: basketId,
+      utm_source: attribution.utm_source ?? null,
+      utm_medium: attribution.utm_medium ?? null,
+      utm_campaign: attribution.utm_campaign ?? null,
+      referrer: attribution.referrer ?? null,
+      landing_page: attribution.landing_page ?? null,
+      package_tier,
+    };
+    const orderApiUrl = apiUrl("/orders");
+    console.log("Creating order via API:", orderApiUrl);
+    console.log("Order payload:", orderPayload);
+
+    try {
+      const auth = await authHeaders();
+      const orderRes = await fetch(orderApiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...auth },
+        body: JSON.stringify(orderPayload),
+      });
+      if (!orderRes.ok) {
+        const errorText = await orderRes.text().catch(() => "");
+        throw new Error(errorText || `Order creation failed (${orderRes.status})`);
+      }
+      const data = await orderRes.json().catch(() => null);
       const orderNumber = (data && typeof data.order_number === "string") ? data.order_number : "";
       if (orderNumber) setOrderId(orderNumber);
-    }).catch(() => {}));
+    } catch (err) {
+      console.warn("Order creation request failed before payment init.", err);
+      setStatus("failed");
+      setMessage(err instanceof Error ? err.message : "Could not create the order. Please try again.");
+      return;
+    }
 
     // Record local snapshot as pending before handing off to PayFast.
     cart.recordOrder({
@@ -248,9 +261,7 @@ export default function CheckoutPage() {
               <div>
                 <strong style={{ color: "var(--text)", display: "block" }}>You&apos;ll choose your payment method on PayFast</strong>
                 <span style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
-                  {isPK
-                    ? "Card, JazzCash, Easypaisa, bank account or Raast — all on PayFast's secure hosted checkout."
-                    : "Pay by international debit or credit card on PayFast's secure hosted checkout."}
+                  {paymentFeatureDescription}
                 </span>
               </div>
             </div>

@@ -13,6 +13,7 @@ export class OrdersController {
    */
   @Post()
   async create(@Body() body: any, @Req() req: Request) {
+    console.log("POST /orders hit", body?.customer_email);
     const token = extractBearerToken(req) ?? undefined;
     return this.orders.create(body, token);
   }
