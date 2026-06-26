@@ -84,6 +84,7 @@ export class PaymentsService {
   async initPayment(input: InitPaymentInput): Promise<ServiceResult> {
     const config = getConfig();
     if (config.missing.length) {
+      this.logger.warn(`PayFast configuration missing: ${config.missing.join(", ")}`);
       return {
         status: 500,
         body: { success: false, message: "PayFast is not configured on the server.", missing: config.missing },
