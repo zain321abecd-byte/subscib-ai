@@ -5,7 +5,7 @@ services:
     repo: https://github.com/zain321abecd-byte/subscib-ai
     branch: main
     rootDir: api
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm run start:prod
     healthCheckPath: /health
     autoDeployTrigger: commit
@@ -14,6 +14,8 @@ services:
         value: 22
       - key: NODE_ENV
         value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
       - key: FRONTEND_ORIGIN
         value: https://subscribai.com
       - key: NEXT_PUBLIC_SITE_URL

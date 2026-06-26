@@ -55,7 +55,7 @@ $service = $serviceItem.service
 $serviceDetails = @{
   runtime = "node"
   envSpecificDetails = @{
-    buildCommand = "npm install && npm run build"
+    buildCommand = "npm install --include=dev && npm run build"
     startCommand = "npm run start:prod"
   }
   healthCheckPath = "/health"
@@ -94,6 +94,7 @@ if ($service) {
     envVars = @(
       @{ key = "NODE_VERSION"; value = "22" },
       @{ key = "NODE_ENV"; value = "production" },
+      @{ key = "NPM_CONFIG_PRODUCTION"; value = "false" },
       @{ key = "FRONTEND_ORIGIN"; value = "https://subscribai.com" },
       @{ key = "SITE_URL"; value = "https://subscribai.com" },
       @{ key = "NEXT_PUBLIC_SITE_URL"; value = "https://subscribai.com" },
@@ -112,6 +113,7 @@ if ($service) {
 $publicEnv = @{
   "NODE_VERSION" = "22"
   "NODE_ENV" = "production"
+  "NPM_CONFIG_PRODUCTION" = "false"
   "FRONTEND_ORIGIN" = "https://subscribai.com"
   "SITE_URL" = "https://subscribai.com"
   "NEXT_PUBLIC_SITE_URL" = "https://subscribai.com"
