@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
+import { apiUrl } from "@/lib/api-client";
 
 type Mode = "signin" | "signup";
 
@@ -53,6 +54,16 @@ export default function LoginForm() {
           },
         });
         if (err) throw err;
+
+        // Fire-and-forget welcome email through OUR backend (Spacemail SMTP).
+        // Independent from Supabase's verification email — if SMTP on Render
+        // is set up correctly, this lands regardless of Supabase's settings.
+        fetch(apiUrl("/emails/signup-welcome"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), name: name.trim() }),
+        }).catch(() => {});
+
         // If email confirmation is enabled in Supabase, no session yet.
         if (!data.session) {
           setInfo("Check your inbox to confirm your email — we sent a verification link.");

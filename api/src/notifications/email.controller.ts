@@ -26,6 +26,27 @@ export class EmailController {
     return this.email.status();
   }
 
+  /**
+   * POST /emails/signup-welcome — sent right after a successful Supabase signup.
+   * Public (no auth header) because the user hasn't confirmed their email yet.
+   * Safe to call multiple times: never returns 5xx so the signup UX isn't
+   * blocked by a transient SMTP issue.
+   */
+  @Post("signup-welcome")
+  async signupWelcome(@Body() body: any) {
+    if (!isEmail(body?.email)) return { ok: false, error: "Valid email is required." };
+    const email = body.email.trim().toLowerCase();
+    const name = typeof body.name === "string" ? body.name.trim().slice(0, 160) : null;
+    try {
+      await this.email.sendWelcomeEmail({ to: email, name });
+      return { ok: true };
+    } catch (err) {
+      // Soft-fail — the user is still signed up; we just couldn't send the
+      // welcome. Render logs will have the full SMTP error from EmailService.
+      return { ok: false, error: err instanceof Error ? err.message : "Send failed" };
+    }
+  }
+
   @Post("subscribe")
   async subscribe(@Body() body: any) {
     if (!isEmail(body?.email)) return { ok: false, error: "Valid email is required." };
