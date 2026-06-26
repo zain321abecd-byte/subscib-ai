@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import * as nodemailer from "nodemailer";
 import { SupabaseService } from "../supabase/supabase.service";
 
@@ -73,6 +73,7 @@ function layout(title: string, body: string, contactEmail: string) {
 
 @Injectable()
 export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter | null = null;
 
   constructor(private readonly supabase: SupabaseService) {}
@@ -84,17 +85,44 @@ export class EmailService {
     const port = Number(process.env.SMTP_PORT || 587);
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
+    const secure = String(process.env.SMTP_SECURE || "").toLowerCase() === "true" || port === 465;
 
     if (!host || !user || !pass) {
-      throw new Error("SMTP email is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and EMAIL_FROM.");
+      const missing = [
+        !host && "SMTP_HOST",
+        !user && "SMTP_USER",
+        !pass && "SMTP_PASS",
+      ].filter(Boolean).join(", ");
+      this.logger.error(`SMTP not configured — missing: ${missing}`);
+      throw new Error(`SMTP email is not configured. Missing: ${missing}.`);
     }
+
+    this.logger.log(
+      `Creating SMTP transporter host=${host} port=${port} secure=${secure} user=${user} passLen=${pass.length}`,
+    );
 
     this.transporter = nodemailer.createTransport({
       host,
       port,
-      secure: String(process.env.SMTP_SECURE || "").toLowerCase() === "true" || port === 465,
+      secure,
       auth: { user, pass },
+      connectionTimeout: 30_000,
+      greetingTimeout: 30_000,
+      socketTimeout: 30_000,
     });
+
+    // Verify in the background so we surface config errors on boot instead
+    // of on the first real send. Failure is logged but non-fatal.
+    this.transporter.verify().then(
+      () => this.logger.log(`SMTP transporter verified — ready to send.`),
+      (err: unknown) => {
+        const e = err as { code?: string; command?: string; response?: string; message?: string };
+        this.logger.error(
+          `SMTP transporter verify FAILED  code=${e?.code || "?"}  command=${e?.command || "?"}  response="${(e?.response || "").slice(0, 200)}"  message="${(e?.message || "").slice(0, 200)}"`,
+        );
+      },
+    );
+
     return this.transporter;
   }
 
@@ -121,7 +149,10 @@ export class EmailService {
 
   async sendEmail({ to, subject, text, html, replyTo, emailType = "transactional", relatedOrderId = null }: SendEmailInput) {
     const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER;
-    if (!from) throw new Error("EMAIL_FROM, SMTP_FROM, or SMTP_USER must be configured before sending email.");
+    if (!from) {
+      this.logger.error("EMAIL_FROM / SMTP_FROM / SMTP_USER all empty — cannot determine 'from' address.");
+      throw new Error("EMAIL_FROM, SMTP_FROM, or SMTP_USER must be configured before sending email.");
+    }
 
     let logId: string | null = null;
     try {
@@ -134,7 +165,13 @@ export class EmailService {
         related_order_id: relatedOrderId,
       }).select("id").maybeSingle();
       logId = data?.id ?? null;
-    } catch {}
+    } catch (logErr) {
+      this.logger.warn(`email_logs insert failed (non-fatal): ${(logErr as Error).message}`);
+    }
+
+    this.logger.log(
+      `sendEmail → to=${to} from="${from}" subject="${subject}" type=${emailType} logId=${logId || "-"}`,
+    );
 
     try {
       const result = await this.getTransporter().sendMail({
@@ -145,6 +182,9 @@ export class EmailService {
         html,
         replyTo: replyTo || process.env.EMAIL_REPLY_TO || undefined,
       });
+      this.logger.log(
+        `sendEmail OK → to=${to} messageId=${result.messageId || "?"} accepted=${(result.accepted || []).join(",")} rejected=${(result.rejected || []).join(",")} response="${(result.response || "").slice(0, 160)}"`,
+      );
       if (logId) {
         await this.supabase.admin().from("email_logs").update({
           status: "sent",
@@ -154,6 +194,10 @@ export class EmailService {
       }
       return result;
     } catch (err) {
+      const e = err as { code?: string; command?: string; response?: string; responseCode?: number; message?: string };
+      this.logger.error(
+        `sendEmail FAILED → to=${to}  code=${e?.code || "?"}  responseCode=${e?.responseCode ?? "?"}  command=${e?.command || "?"}  response="${(e?.response || "").slice(0, 200)}"  message="${(e?.message || "").slice(0, 200)}"`,
+      );
       if (logId) {
         await this.supabase.admin().from("email_logs").update({
           status: "failed",
