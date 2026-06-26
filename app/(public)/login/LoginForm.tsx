@@ -43,7 +43,7 @@ export default function LoginForm() {
         // never get bounced to localhost. The query param lets the post-confirm
         // page show a friendly "you're verified" message.
         const origin = typeof window !== "undefined" ? window.location.origin : "";
-        const emailRedirectTo = `${origin}/auth/confirm?next=${encodeURIComponent(next)}`;
+        const emailRedirectTo = `${origin}/auth/confirm?next=${encodeURIComponent(next)}&email=${encodeURIComponent(email.trim())}`;
 
         const { data, error: err } = await supabase.auth.signUp({
           email: email.trim(),
@@ -56,21 +56,26 @@ export default function LoginForm() {
         if (err) throw err;
 
         // Fire-and-forget welcome email through OUR backend (Spacemail SMTP).
-        // Independent from Supabase's verification email — if SMTP on Render
-        // is set up correctly, this lands regardless of Supabase's settings.
-        const welcomeUrl = apiUrl("/emails/signup-welcome");
-        console.log("[signup] firing welcome email to backend:", welcomeUrl);
-        fetch(welcomeUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), name: name.trim() }),
-        })
-          .then(async (r) => {
-            console.log("[signup] welcome email response", r.status, await r.text().catch(() => ""));
+        // Wrapped so a missing NEXT_PUBLIC_API_URL or a network blip CANNOT
+        // break the signup UX — the user is already created in Supabase by
+        // the time we get here; this is a best-effort side-effect only.
+        try {
+          const welcomeUrl = apiUrl("/emails/signup-welcome");
+          console.log("[signup] firing welcome email to backend:", welcomeUrl);
+          fetch(welcomeUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email.trim(), name: name.trim() }),
           })
-          .catch((err) => {
-            console.warn("[signup] welcome email request failed", err);
-          });
+            .then(async (r) => {
+              console.log("[signup] welcome email response", r.status, await r.text().catch(() => ""));
+            })
+            .catch((welcomeErr) => {
+              console.warn("[signup] welcome email request failed", welcomeErr);
+            });
+        } catch (welcomeErr) {
+          console.warn("[signup] welcome email skipped — apiUrl threw:", welcomeErr);
+        }
 
         // If email confirmation is enabled in Supabase, no session yet.
         if (!data.session) {
