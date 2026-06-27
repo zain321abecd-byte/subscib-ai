@@ -1,14 +1,14 @@
 "use client";
 
-import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
-
 /**
  * Client-side helper for calling the standalone NestJS backend (Render in prod,
  * http://localhost:4000 in dev). Base URL comes from NEXT_PUBLIC_API_URL.
  *
- * For admin/authenticated calls it attaches the current Supabase access token as
- * `Authorization: Bearer <token>`, which the API's AuthGuard / AdminGuard verify.
+ * For authenticated calls it attaches the JWT issued by our backend
+ * (POST /auth/login) as `Authorization: Bearer <token>`. The token lives in
+ * localStorage under "subscribai-auth" — written by lib/auth.tsx on login.
  */
+const AUTH_STORAGE_KEY = "subscribai-auth";
 
 /** Backend base URL (no trailing slash). Throws if not configured. */
 export function apiBaseUrl(): string {
@@ -26,13 +26,14 @@ export function apiUrl(path: string): string {
   return `${apiBaseUrl()}${path}`;
 }
 
-/** Authorization header with the current Supabase access token, or {}. */
+/** Authorization header with the current backend JWT, or {} if not signed in. */
 export async function authHeaders(): Promise<Record<string, string>> {
-  if (!isSupabaseConfigured()) return {};
+  if (typeof window === "undefined") return {};
   try {
-    const { data } = await getSupabaseBrowser().auth.getSession();
-    const token = data.session?.access_token;
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as { token?: string };
+    return parsed?.token ? { Authorization: `Bearer ${parsed.token}` } : {};
   } catch {
     return {};
   }

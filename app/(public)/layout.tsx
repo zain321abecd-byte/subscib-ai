@@ -1,3 +1,4 @@
+import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import { FxProvider, type CurrencyMode } from "@/lib/fx";
 import { ToastProvider } from "@/lib/toast";
@@ -58,6 +59,7 @@ export default async function PublicLayout({ children }: { children: React.React
   return (
     <FxProvider initialCurrency={initialCurrency} mode={mode} fxOverride={fxOverride} region={region}>
       <ToastProvider>
+       <AuthProvider>
         <CartProvider>
           {/* JSON-LD lives in the body — Google indexes it either place. */}
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
@@ -71,6 +73,7 @@ export default async function PublicLayout({ children }: { children: React.React
           <Footer />
           <WhatsAppFab phone={wa} />
         </CartProvider>
+       </AuthProvider>
       </ToastProvider>
     </FxProvider>
   );

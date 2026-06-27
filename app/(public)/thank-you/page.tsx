@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ClearCartOnSuccess from "@/components/ClearCartOnSuccess";
+import OrderStatusPoller from "@/components/OrderStatusPoller";
 
 export const metadata: Metadata = {
   title: "Thank You — Order Received",
@@ -49,8 +50,8 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
   const hashOk = sp.hashOk !== "0"; // /payments/return sets this to "0" only on mismatch
 
   const isPaid = status === "paid" && hashOk;
-  const isFailed = status === "failed" || !hashOk;
-  // anything else (pending / no status / mismatched hash with no status) → treat as pending
+  const isFailed = status === "failed" && hashOk;
+  const isPending = !isPaid && !isFailed; // hash mismatch OR no status → treat as pending and let the poller resolve it
 
   const heroBadge = isPaid ? (
     <span className="badge badge-success" style={{ marginBottom: "var(--space-4)" }}>
@@ -82,6 +83,10 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
     <section className="v2-section">
       {/* Empty the cart + mark the local order paid on a successful return. */}
       <ClearCartOnSuccess status={isPaid ? "paid" : ""} orderId={orderId} />
+      {/* When the redirect arrives in a pending state (wallet flows often do
+          this), background-poll /payments/status until the IPN flips it to
+          paid/failed, then refresh the page. */}
+      {isPending && orderId && <OrderStatusPoller orderId={orderId} />}
       <div className="v2-container" style={{ maxWidth: 720, textAlign: "center" }}>
         {heroBadge}
 

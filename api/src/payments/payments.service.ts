@@ -302,25 +302,42 @@ export class PaymentsService {
 
     let orderId: string | null = null;
     try {
-      const isUuid = /^[0-9a-f-]{36}$/i.test(basketId);
-      const filterCol = isUuid ? "id" : "order_number";
       const update: Record<string, unknown> = { status, payment_method: "payfast" };
       if (transactionId) update.transaction_id = transactionId;
 
-      const { data, error } = await this.supabase
-        .admin()
-        .from("orders")
-        .update(update as never)
-        .eq(filterCol, basketId)
-        .select("id")
-        .maybeSingle();
+      // basketId from PayFast can match the order on different columns
+      // depending on how the frontend created it:
+      //   - uuid-shaped → orders.id
+      //   - alnum w/ dashes (SAI-…) → orders.order_number  (current path)
+      //   - legacy locally-generated OABC… → orders.transaction_id
+      // Try each in order until one matches.
+      const isUuid = /^[0-9a-f-]{36}$/i.test(basketId);
+      const tries: { col: "id" | "order_number" | "transaction_id" }[] = isUuid
+        ? [{ col: "id" }, { col: "order_number" }, { col: "transaction_id" }]
+        : [{ col: "order_number" }, { col: "transaction_id" }];
 
-      if (error) {
-        this.logger.error(`order status sync failed: ${error.message}`);
-        return;
+      for (const t of tries) {
+        const { data, error } = await this.supabase
+          .admin()
+          .from("orders")
+          .update(update as never)
+          .eq(t.col, basketId)
+          .select("id")
+          .maybeSingle();
+        if (error) {
+          this.logger.error(`order status sync (${t.col}=${basketId}) failed: ${error.message}`);
+          continue;
+        }
+        const id = (data as { id?: string } | null)?.id ?? null;
+        if (id) {
+          orderId = id;
+          this.logger.log(`order matched on ${t.col}=${basketId} → status=${status} txn=${transactionId || "-"} orderId=${orderId}`);
+          break;
+        }
       }
-      orderId = (data as { id?: string } | null)?.id ?? null;
-      this.logger.log(`order ${basketId} → status=${status} txn=${transactionId || "-"} orderId=${orderId || "?"}`);
+      if (!orderId) {
+        this.logger.warn(`syncOrder: no order matched basketId=${basketId} on any of (id, order_number, transaction_id)`);
+      }
     } catch (e) {
       this.logger.error(`order status sync failed: ${(e as Error).message}`);
       return;

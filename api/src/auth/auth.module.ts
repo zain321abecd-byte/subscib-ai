@@ -1,16 +1,20 @@
 import { Module } from "@nestjs/common";
+import { NotificationsModule } from "../notifications/notifications.module";
+import { AdminGuard } from "./admin.guard";
 import { AuthController } from "./auth.controller";
 import { AuthGuard } from "./auth.guard";
-import { AdminGuard } from "./admin.guard";
+import { AuthService } from "./auth.service";
+import { UsersRepo } from "./users.repo";
 
 /**
- * Provides the auth guards for the whole app. SupabaseService is available
- * globally (SupabaseModule is @Global), so guards can inject it anywhere they
- * are used via @UseGuards(AuthGuard) / @UseGuards(AdminGuard).
+ * Custom authentication built on public.users + bcrypt + JWT. Replaces the
+ * earlier Supabase-Auth-backed AuthGuard. SupabaseService is still used by
+ * UsersRepo for DB access via the service-role client.
  */
 @Module({
+  imports: [NotificationsModule],
   controllers: [AuthController],
-  providers: [AuthGuard, AdminGuard],
-  exports: [AuthGuard, AdminGuard],
+  providers: [AuthService, UsersRepo, AuthGuard, AdminGuard],
+  exports: [AuthService, UsersRepo, AuthGuard, AdminGuard],
 })
 export class AuthModule {}

@@ -1,20 +1,25 @@
 import { createParamDecorator, type ExecutionContext } from "@nestjs/common";
-import type { AuthedRequest } from "./auth.types";
+import type { AuthedRequest, AuthUser } from "./auth.types";
 
 /**
- * Injects the authenticated Supabase user into a handler param.
- * Only meaningful on routes protected by AuthGuard or AdminGuard.
+ * Injects the authenticated user (our public.users row, projected to AuthUser)
+ * into a handler param. Only meaningful on routes protected by AuthGuard or
+ * AdminGuard.
  *
  *   @Get("me")
- *   me(@CurrentUser() user: User) { ... }
+ *   me(@CurrentUser() user: AuthUser) { ... }
  */
-export const CurrentUser = createParamDecorator((_data: unknown, ctx: ExecutionContext) => {
-  const req = ctx.switchToHttp().getRequest<AuthedRequest>();
-  return req.user;
-});
+export const CurrentUser = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): AuthUser | undefined => {
+    const req = ctx.switchToHttp().getRequest<AuthedRequest>();
+    return req.user;
+  },
+);
 
-/** Injects the caller's raw Supabase access token (for forUser() RLS calls). */
-export const AccessToken = createParamDecorator((_data: unknown, ctx: ExecutionContext) => {
-  const req = ctx.switchToHttp().getRequest<AuthedRequest>();
-  return req.accessToken;
-});
+/** Injects the raw JWT (e.g. to forward to a downstream service). */
+export const AccessToken = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): string | undefined => {
+    const req = ctx.switchToHttp().getRequest<AuthedRequest>();
+    return req.accessToken;
+  },
+);

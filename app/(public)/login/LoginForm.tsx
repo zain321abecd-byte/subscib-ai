@@ -1,100 +1,57 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
-import { apiUrl } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth";
 
 type Mode = "signin" | "signup";
 
 export default function LoginForm() {
-  const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/account";
+  const prefillEmail = params.get("email") || "";
   const initialMode: Mode = (params.get("mode") as Mode) === "signup" ? "signup" : "signin";
 
+  const { signup, login } = useAuth();
+
   const [mode, setMode] = useState<Mode>(initialMode);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  const configured = isSupabaseConfigured();
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!configured) {
-      setError("Sign-in is not configured yet.");
-      return;
-    }
     setBusy(true);
     setError(null);
     setInfo(null);
 
     try {
-      const supabase = getSupabaseBrowser();
-
       if (mode === "signup") {
-        // Build the redirect URL from the current origin so production users
-        // never get bounced to localhost. The query param lets the post-confirm
-        // page show a friendly "you're verified" message.
-        const origin = typeof window !== "undefined" ? window.location.origin : "";
-        const emailRedirectTo = `${origin}/auth/confirm?next=${encodeURIComponent(next)}&email=${encodeURIComponent(email.trim())}`;
-
-        const { data, error: err } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            data: { full_name: name.trim() },
-            emailRedirectTo,
-          },
-        });
-        if (err) throw err;
-
-        // Fire-and-forget welcome email through OUR backend (Spacemail SMTP).
-        // Wrapped so a missing NEXT_PUBLIC_API_URL or a network blip CANNOT
-        // break the signup UX — the user is already created in Supabase by
-        // the time we get here; this is a best-effort side-effect only.
-        try {
-          const welcomeUrl = apiUrl("/emails/signup-welcome");
-          console.log("[signup] firing welcome email to backend:", welcomeUrl);
-          fetch(welcomeUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: email.trim(), name: name.trim() }),
-          })
-            .then(async (r) => {
-              console.log("[signup] welcome email response", r.status, await r.text().catch(() => ""));
-            })
-            .catch((welcomeErr) => {
-              console.warn("[signup] welcome email request failed", welcomeErr);
-            });
-        } catch (welcomeErr) {
-          console.warn("[signup] welcome email skipped — apiUrl threw:", welcomeErr);
-        }
-
-        // If email confirmation is enabled in Supabase, no session yet.
-        if (!data.session) {
-          setInfo("Check your inbox to confirm your email — we sent a verification link.");
-          setMode("signin");
+        const res = await signup({ email: email.trim(), password, name: name.trim() });
+        if (!res.ok) {
+          setError(res.error);
           return;
         }
-      } else {
-        const { error: err } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (err) throw err;
+        setInfo(res.message || "Account created — check your inbox to verify your email before signing in.");
+        setMode("signin");
+        setPassword("");
+        return;
       }
 
-      // Hard redirect so the new auth cookie is on the next request.
+      const res = await login({ email: email.trim(), password });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      // Successful login — hard redirect so server components re-render fresh.
       window.location.assign(next);
-    } catch (e: any) {
-      setError(e?.message || "Something went wrong.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setBusy(false);
     }
@@ -139,17 +96,13 @@ export default function LoginForm() {
         <p className="auth-tagline">
           {mode === "signin"
             ? "Sign in to place an order, track deliveries, and manage your subscriptions."
-            : "It takes 30 seconds. We'll use your email to deliver subscription credentials."}
+            : "It takes 30 seconds. We'll send a verification link to your email."}
         </p>
 
         {error && <div className="auth-alert auth-alert-error">{error}</div>}
         {info && <div className="auth-alert auth-alert-info">{info}</div>}
 
         <form className="auth-form" onSubmit={onSubmit}>
-          {/* Floating-label fields: input first, <span> after — the label
-              floats up via the CSS sibling selector when the input is focused,
-              filled, or autofilled. The single-space placeholder is required:
-              it activates :placeholder-shown so the empty state is detectable. */}
           {mode === "signup" && (
             <label className="auth-field">
               <input
@@ -183,14 +136,14 @@ export default function LoginForm() {
               type="password"
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
               required
-              minLength={6}
+              minLength={mode === "signup" ? 8 : 1}
               disabled={busy}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder=" "
             />
             <span>Password</span>
-            {mode === "signup" && <small>At least 6 characters.</small>}
+            {mode === "signup" && <small>At least 8 characters.</small>}
           </label>
 
           <button type="submit" className="btn btn-primary btn-large auth-submit" disabled={busy}>

@@ -208,6 +208,51 @@ export class EmailService {
     }
   }
 
+  /**
+   * Email-verification email sent right after signup. Contains a one-time link
+   * that hits the frontend /auth/confirm page, which in turn calls
+   * GET /auth/verify?token=... on the backend.
+   */
+  async sendVerificationEmail({ to, name, token }: { to: string; name?: string | null; token: string }) {
+    const s = await this.settings();
+    const displayName = name?.trim() || "there";
+    const siteUrl = s.siteUrl || "https://subscribai.com";
+    const verifyUrl = `${siteUrl}/auth/confirm?token=${encodeURIComponent(token)}&email=${encodeURIComponent(to)}`;
+    const subject = "Verify your SubscribAI email";
+
+    const html = layout(subject, `
+      <h1 style="margin:0 0 12px;font-size:24px;color:#111827;">One quick step, ${escapeHtml(displayName)}</h1>
+      <p style="margin:0 0 18px;line-height:1.7;color:#374151;">
+        Welcome to ${BRAND}! Please confirm your email so we can keep your account secure and send you order updates.
+      </p>
+      <p style="margin:0 0 26px;">
+        <a href="${escapeHtml(verifyUrl)}" style="display:inline-block;background:#FF7A1A;color:#fff;text-decoration:none;padding:14px 22px;border-radius:8px;font-weight:700;letter-spacing:.2px;">
+          Verify my email →
+        </a>
+      </p>
+      <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">Or paste this link into your browser:</p>
+      <p style="margin:0 0 18px;font-size:12px;color:#6b7280;word-break:break-all;">
+        <a href="${escapeHtml(verifyUrl)}" style="color:#2563eb;">${escapeHtml(verifyUrl)}</a>
+      </p>
+      <p style="margin:0;line-height:1.7;color:#374151;font-size:13px;">
+        If you didn't sign up for SubscribAI you can safely ignore this email — the link will expire on its own.
+      </p>
+    `, s.contactEmail);
+
+    const text = [
+      `Welcome to SubscribAI, ${displayName}.`,
+      "",
+      "Please verify your email by opening this link:",
+      verifyUrl,
+      "",
+      "If you didn't sign up you can ignore this email.",
+      "",
+      `Need help? ${s.contactEmail}`,
+    ].join("\n");
+
+    return this.sendEmail({ to, subject, html, text, emailType: "verification" });
+  }
+
   async sendWelcomeEmail({ to, name }: { to: string; name?: string | null }) {
     const s = await this.settings();
     const displayName = name?.trim() || "there";

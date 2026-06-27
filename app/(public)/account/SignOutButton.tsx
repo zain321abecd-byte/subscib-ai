@@ -1,15 +1,16 @@
 "use client";
 
 import { useTransition } from "react";
-import { getSupabaseBrowser } from "@/lib/supabase/browser";
+import { useAuth } from "@/lib/auth";
 
 export default function SignOutButton() {
   const [pending, start] = useTransition();
+  const { logout } = useAuth();
 
   function signOut() {
     start(async () => {
       try {
-        await getSupabaseBrowser().auth.signOut();
+        logout();
       } finally {
         window.location.assign("/");
       }

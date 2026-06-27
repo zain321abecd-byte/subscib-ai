@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { formatPriceFromPKR, useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
-import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { apiUrl, authHeaders } from "@/lib/api-client";
 import { paymentFeatureDescription } from "@/lib/payment-messaging";
 
@@ -21,6 +22,8 @@ function newBasketId(): string {
 type InitFields = Record<string, string>;
 
 export default function CheckoutPage() {
+  const router = useRouter();
+  const { user, ready: authReady } = useAuth();
   const cart = useCart();
   const { currency, usdToPkr, usdToInr, ready: fxReady, region } = useFx();
   const isPK = region === "PK";
@@ -36,23 +39,20 @@ export default function CheckoutPage() {
   const autoSubmitRef = useRef<HTMLFormElement | null>(null);
   const [pendingPost, setPendingPost] = useState<{ action: string; fields: InitFields } | null>(null);
 
-  // Optional auth prefill — guests can check out; signed-in users get prefill.
+  // Gate: payment requires a signed-in account. Redirect anonymous visitors
+  // to /login?next=/checkout so they come back here after authenticating.
   useEffect(() => {
-    const supabase = getSupabaseBrowser();
-    let cancelled = false;
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (cancelled) return;
-      if (user) {
-        if (user.email) setEmail(user.email);
-        const fullName = (user.user_metadata as Record<string, unknown> | undefined)?.full_name;
-        if (typeof fullName === "string") setName(fullName);
-      }
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
-      if (session?.user?.email) setEmail(session.user.email);
-    });
-    return () => { cancelled = true; sub.subscription.unsubscribe(); };
-  }, []);
+    if (!authReady) return;
+    if (!user) router.replace(`/login?next=${encodeURIComponent("/checkout")}`);
+  }, [authReady, user, router]);
+
+  // Prefill name + email from the authenticated user so the checkout form is
+  // pre-populated with the account's verified address.
+  useEffect(() => {
+    if (!user) return;
+    if (user.email) setEmail(user.email);
+    if (user.name) setName(user.name);
+  }, [user]);
 
   // Submit the hidden form to PayFast as soon as it's mounted with fields.
   useEffect(() => {
@@ -66,6 +66,30 @@ export default function CheckoutPage() {
   const usdTotal = fxReady && usdToPkr > 0 ? cart.subtotal / usdToPkr : 0;
   const usdFormatted = usdTotal.toFixed(2);
   const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
+
+  // Auth gate placeholder — while the gate effect is preparing the redirect.
+  if (!authReady || !user) {
+    return (
+      <section className="v2-section">
+        <div className="v2-container">
+          <div className="surface-card">
+            <div className="empty-state">
+              <div className="empty-state-icon"><i className="fa-solid fa-lock"></i></div>
+              <h3>Sign in to complete checkout</h3>
+              <p>You need an account to pay securely. We&rsquo;ll bring you straight back to your cart.</p>
+              <Link
+                href={`/login?next=${encodeURIComponent("/checkout")}`}
+                className="btn btn-primary"
+                style={{ marginTop: "var(--space-3)" }}
+              >
+                Sign in or create an account <i className="fa-solid fa-arrow-right"></i>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (cart.ready && cart.items.length === 0 && status === "idle") {
     return (
@@ -105,7 +129,11 @@ export default function CheckoutPage() {
 
     setStatus("submitting");
     setMessage("Creating order…");
-    const basketId = newBasketId();
+    // Temporary local id — replaced with the server-issued order_number once
+    // POST /orders returns. PayFast's BASKET_ID must be the SAME id we use to
+    // look the order up in the IPN/return path, so we always prefer the
+    // server-issued value.
+    let basketId = newBasketId();
     setOrderId(basketId);
 
     // Snapshot — keep history visible after the cart is cleared on return.
@@ -155,7 +183,14 @@ export default function CheckoutPage() {
       }
       const data = await orderRes.json().catch(() => null);
       const orderNumber = (data && typeof data.order_number === "string") ? data.order_number : "";
-      if (orderNumber) setOrderId(orderNumber);
+      if (orderNumber) {
+        // From here on, use the server-issued order_number as the PayFast
+        // BASKET_ID. PayFast echoes it back in the return / IPN payload, and
+        // the backend's syncOrder() looks up orders by order_number — so this
+        // keeps the round-trip identifiers aligned.
+        basketId = orderNumber;
+        setOrderId(orderNumber);
+      }
     } catch (err) {
       console.warn("Order creation request failed before payment init.", err);
       setStatus("failed");

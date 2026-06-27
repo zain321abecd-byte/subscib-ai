@@ -197,11 +197,52 @@ export function isPayFastSuccess(errCode: unknown): boolean {
   return code === "000" || code === "00";
 }
 
+/**
+ * Known terminal-failure codes. Anything outside this set (and not a success)
+ * is treated as PENDING — wallet flows (JazzCash/Easypaisa) sometimes return
+ * an undocumented "in-progress" code on the browser redirect BEFORE the wallet
+ * has actually settled. The IPN is the authoritative event that arrives later.
+ */
+const KNOWN_FAILURE_CODES = new Set([
+  "002", // time out
+  "97",  // insufficient balance
+  "106", // tx limit exceeded
+  "03",  // inactive account
+  "04",  // closed account
+  "104", // entered details incorrect
+  "55",  // invalid OTP/PIN
+  "54",  // card expired
+  "13",  // invalid amount
+  "126", // invalid account details
+  "75",  // max PIN retries
+  "14",  // inactive card
+  "15",  // inactive card
+  "42",  // invalid CNIC
+  "423", // unable to process
+  "41",  // details mismatch
+  "600", // OTP expired
+  "309", // invalid OTP length
+  "853", // invalid account details
+  "537", // dormant account
+  "359", // blocked account
+  "806", // OTP could not be verified
+  "807", // too many attempts
+  "9000", // FRMS rejected
+  "9010", // FRMS error
+  "308", // invalid account details
+  "880", // local ecommerce not activated
+  "881", // insufficient funds (bank)
+  "882", // daily limit consumed
+  "883", // local e-payment not activated
+]);
+
 export function paymentStatusFromErrCode(errCode: unknown): "paid" | "failed" | "pending" {
   const code = String(errCode || "").trim();
   if (!code) return "pending";
   if (isPayFastSuccess(code)) return "paid";
-  return "failed";
+  if (KNOWN_FAILURE_CODES.has(code)) return "failed";
+  // Unknown codes (e.g. 1301 from wallet flows) → trust the IPN, not the redirect.
+  return "pending";
 }
 
 /** Human-readable mapping for the common PayFast error codes from the PDF. */

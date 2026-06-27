@@ -1,12 +1,24 @@
 import type { Request } from "express";
-import type { User } from "@supabase/supabase-js";
 
 /**
- * Request augmented by the auth guards. After AuthGuard/AdminGuard runs,
- * `user` and `accessToken` are populated.
+ * The authenticated user our backend attaches to requests after the
+ * JwtAuthGuard runs. This is OUR public.users row, not a Supabase auth user.
+ */
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: "customer" | "admin";
+  email_verified_at: string | null;
+}
+
+/**
+ * Request augmented by the auth guards. After AuthGuard / AdminGuard runs,
+ * `user` is populated with the authenticated user. `accessToken` is the
+ * raw JWT (kept for downstream services that need to forward it).
  */
 export interface AuthedRequest extends Request {
-  user?: User;
+  user?: AuthUser;
   accessToken?: string;
 }
 

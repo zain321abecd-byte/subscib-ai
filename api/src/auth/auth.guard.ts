@@ -1,25 +1,37 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
-import { SupabaseService } from "../supabase/supabase.service";
+import { AuthService } from "./auth.service";
+import { UsersRepo } from "./users.repo";
 import { type AuthedRequest, extractBearerToken } from "./auth.types";
 
 /**
- * Requires a valid Supabase session. The frontend must send the user's access
- * token as `Authorization: Bearer <token>`. On success, attaches `user` and
- * `accessToken` to the request.
+ * Requires a valid JWT issued by our backend (POST /auth/login). The frontend
+ * sends `Authorization: Bearer <jwt>`. On success, attaches the matching
+ * public.users row to `req.user`.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly users: UsersRepo,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<AuthedRequest>();
     const token = extractBearerToken(req);
     if (!token) throw new UnauthorizedException("Missing Bearer token");
 
-    const user = await this.supabase.getUser(token);
-    if (!user) throw new UnauthorizedException("Invalid or expired session");
+    const payload = this.auth.verifyJwt(token);
+    const user = await this.users.findById(payload.sub);
+    if (!user) throw new UnauthorizedException("User no longer exists");
+    if (!user.email_verified_at) throw new UnauthorizedException("Email not verified");
 
-    req.user = user;
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      email_verified_at: user.email_verified_at,
+    };
     req.accessToken = token;
     return true;
   }
