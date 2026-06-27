@@ -4,9 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
-import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import MobileMenu from "@/components/MobileMenu";
 
 const NAV = [
@@ -20,7 +20,8 @@ const NAV = [
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [authed, setAuthed] = useState<boolean | null>(null);
+  const { user, ready: authReady } = useAuth();
+  const authed = authReady ? !!user : null;
   const pathname = usePathname();
   const { count, ready } = useCart();
 
@@ -29,22 +30,6 @@ export default function Header() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    try {
-      const supabase = getSupabaseBrowser();
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (!cancelled) setAuthed(!!user);
-      });
-      const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
-        setAuthed(!!session?.user);
-      });
-      return () => { cancelled = true; sub.subscription.unsubscribe(); };
-    } catch {
-      setAuthed(false);
-    }
   }, []);
 
   return (

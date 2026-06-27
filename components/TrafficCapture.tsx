@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
 import { apiBaseUrlSafe, authHeaders } from "@/lib/api-client";
 
 // Capture UTM parameters + referrer + landing page on first visit and persist
@@ -65,9 +64,6 @@ export default function TrafficCapture() {
       try {
         const sessionId = getOrCreateTrafficSessionId();
         const attribution = readAttribution();
-        if (isSupabaseConfigured()) {
-          await getSupabaseBrowser().auth.getUser().catch(() => null);
-        }
         if (cancelled) return;
 
         const payload = {

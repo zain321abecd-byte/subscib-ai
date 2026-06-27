@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { getSupabaseBrowser } from "@/lib/supabase/browser";
+import { useAuth } from "@/lib/auth";
 import AdminNavProgress from "./AdminNavProgress";
 
 type NavItem = { href: string; label: string; icon: string };
@@ -45,6 +45,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const pathname = usePathname() || "/admin";
   const router = useRouter();
   const [navOpen, setNavOpen] = useState(false);
+  const { logout } = useAuth();
 
   // Tag <body> for admin-specific CSS overrides (kills the public radial
   // gradients and resets scroll padding). Cleaned up on unmount so the public
@@ -61,9 +62,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   // Don't render the chrome on standalone pages (login + diagnostics).
   if (pathname === "/admin/login" || pathname === "/admin/diagnostics") return <>{children}</>;
 
-  async function signOut() {
+  function signOut() {
     try {
-      await getSupabaseBrowser().auth.signOut();
+      logout();
     } finally {
       router.push("/admin/login");
       router.refresh();

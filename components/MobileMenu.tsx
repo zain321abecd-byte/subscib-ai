@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
 
 /**
