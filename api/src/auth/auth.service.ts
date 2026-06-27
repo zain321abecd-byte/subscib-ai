@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   Logger,
   UnauthorizedException,
+  forwardRef,
 } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import * as crypto from "node:crypto";
@@ -26,7 +28,7 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   constructor(
     private readonly users: UsersRepo,
-    private readonly email: EmailService,
+    @Inject(forwardRef(() => EmailService)) private readonly email: EmailService,
   ) {}
 
   private secret(): string {

@@ -1,12 +1,15 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { EmailController } from "./email.controller";
 import { EmailService } from "./email.service";
 import { StockRemindersService } from "./stock-reminders.service";
 import { CronController } from "./cron.controller";
 
+// AuthModule ↔ NotificationsModule is a circular dependency
+// (AuthService needs EmailService for verification emails; the email/admin
+// endpoints need AdminGuard from AuthModule). forwardRef() on both sides.
 @Module({
-  imports: [AuthModule],
+  imports: [forwardRef(() => AuthModule)],
   controllers: [CronController, EmailController],
   providers: [EmailService, StockRemindersService],
   exports: [EmailService],

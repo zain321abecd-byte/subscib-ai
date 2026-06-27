@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { AdminGuard } from "./admin.guard";
 import { AuthController } from "./auth.controller";
@@ -7,12 +7,14 @@ import { AuthService } from "./auth.service";
 import { UsersRepo } from "./users.repo";
 
 /**
- * Custom authentication built on public.users + bcrypt + JWT. Replaces the
- * earlier Supabase-Auth-backed AuthGuard. SupabaseService is still used by
- * UsersRepo for DB access via the service-role client.
+ * Custom authentication built on public.users + bcrypt + JWT.
+ *
+ * AuthService injects EmailService (sendVerificationEmail) and
+ * NotificationsModule uses AdminGuard on its admin routes — that's a
+ * circular dependency, resolved with forwardRef() on both ends.
  */
 @Module({
-  imports: [NotificationsModule],
+  imports: [forwardRef(() => NotificationsModule)],
   controllers: [AuthController],
   providers: [AuthService, UsersRepo, AuthGuard, AdminGuard],
   exports: [AuthService, UsersRepo, AuthGuard, AdminGuard],

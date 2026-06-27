@@ -20,7 +20,9 @@
     "@nestjs/schedule": "^5.0.0",
     "@nestjs/schematics": "^11.1.0",
     "@supabase/supabase-js": "^2.105.1",
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.20.0",
     "@types/nodemailer": "^8.0.1",
     "bcryptjs": "^3.0.3",
@@ -36,9 +38,5 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
-  },
-  "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.10"
   }
 }
