@@ -50,6 +50,19 @@ export type PermissionKey = (typeof PERMISSION_KEYS)[number];
 export type Role = "superadmin" | "admin" | "manager" | "editor" | "customer";
 export const ROLES: Role[] = ["superadmin", "admin", "manager", "editor", "customer"];
 
+/** Permission catalog grouped for the user-management UI. Mirrors the backend. */
+export const PERMISSION_GROUPS: Array<{ label: string; keys: PermissionKey[] }> = [
+  { label: "Products", keys: ["products:read", "products:write", "products:delete"] },
+  { label: "Orders & revenue", keys: ["orders:read", "orders:write", "orders:refund", "orders:revenue"] },
+  { label: "Blog", keys: ["blog:read", "blog:write", "blog:delete"] },
+  { label: "Reviews", keys: ["reviews:read", "reviews:moderate", "reviews:delete"] },
+  { label: "Freebies", keys: ["freebies:read", "freebies:write", "freebies:delete"] },
+  { label: "Stock", keys: ["stock:read", "stock:write"] },
+  { label: "Settings", keys: ["settings:read", "settings:write"] },
+  { label: "Users", keys: ["users:read", "users:write", "users:assign-roles", "users:delete"] },
+  { label: "Analytics", keys: ["analytics:view"] },
+];
+
 /** Roles that may enter the admin portal at all. Customers are excluded. */
 export const BACK_OFFICE_ROLES: ReadonlySet<Role> = new Set<Role>([
   "superadmin",

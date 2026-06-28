@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/lib/auth";
-import { apiBaseUrl } from "@/lib/api-client";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { updateUserRole, deleteUserAction } from "./actions";
 
-type Role = "superadmin" | "admin" | "manager" | "editor" | "customer";
+export type Role = "superadmin" | "admin" | "manager" | "editor" | "customer";
 
-type AdminUser = {
+export type AdminUser = {
   id: string;
   email: string;
   name: string | null;
@@ -19,90 +19,64 @@ type AdminUser = {
   created_at: string;
 };
 
-type Catalog = {
+export type Catalog = {
   roles: Role[];
   permissions: string[];
   groups: Array<{ label: string; keys: string[] }>;
   roleDefaults: Record<Role, string[]>;
 };
 
-export default function UsersClient() {
-  const { user: me, accessToken, ready } = useAuth();
-  const [catalog, setCatalog] = useState<Catalog | null>(null);
-  const [users, setUsers] = useState<AdminUser[]>([]);
+export default function UsersClient({
+  initialUsers,
+  catalog,
+  meEmail,
+  canAssignRoles,
+  canDelete,
+  loadError,
+}: {
+  initialUsers: AdminUser[];
+  catalog: Catalog;
+  meEmail: string | null;
+  canAssignRoles: boolean;
+  canDelete: boolean;
+  loadError: string | null;
+}) {
+  const router = useRouter();
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(loadError);
   const [toast, setToast] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
 
-  const authHeaders = useMemo<Record<string, string>>(() => {
-    const h: Record<string, string> = { "Content-Type": "application/json" };
-    if (accessToken) h.Authorization = `Bearer ${accessToken}`;
-    return h;
-  }, [accessToken]);
+  const isSelf = (u: { email: string }) =>
+    !!meEmail && u.email.toLowerCase() === meEmail.toLowerCase();
 
-  const load = useCallback(async () => {
-    if (!accessToken) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const base = apiBaseUrl();
-      const [catRes, usersRes] = await Promise.all([
-        fetch(`${base}/admin/users/catalog`, { headers: authHeaders }),
-        fetch(`${base}/admin/users${search ? `?search=${encodeURIComponent(search)}` : ""}`, { headers: authHeaders }),
-      ]);
-      if (!catRes.ok) throw new Error((await catRes.json()).message || "Could not load permission catalog");
-      if (!usersRes.ok) throw new Error((await usersRes.json()).message || "Could not load users");
-      const catData = await catRes.json();
-      const usersData = await usersRes.json();
-      setCatalog(catData);
-      setUsers(usersData.users || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }, [accessToken, authHeaders, search]);
-
-  useEffect(() => { if (ready) load(); }, [ready, load]);
-
-  // Gate: only users with users:read may reach this page.
-  if (ready && me && !(me.effectivePermissions || []).includes("users:read") && me.role !== "superadmin") {
-    return (
-      <section style={{ padding: 32 }}>
-        <h1>Access denied</h1>
-        <p style={{ color: "var(--text-muted)" }}>You don&apos;t have permission to manage users.</p>
-      </section>
+  const users = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return initialUsers;
+    return initialUsers.filter(
+      (u) =>
+        u.email.toLowerCase().includes(term) ||
+        (u.name || "").toLowerCase().includes(term),
     );
-  }
-  if (!ready || !accessToken) {
-    return <section style={{ padding: 32 }}>Loading…</section>;
-  }
-
-  const canAssignRoles = me?.role === "superadmin" || (me?.effectivePermissions || []).includes("users:assign-roles");
-  const canDelete = me?.role === "superadmin" || (me?.effectivePermissions || []).includes("users:delete");
+  }, [initialUsers, search]);
 
   async function saveEdit() {
-    if (!editing || !catalog) return;
+    if (!editing) return;
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`${apiBaseUrl()}/admin/users/${editing.id}`, {
-        method: "PATCH",
-        headers: authHeaders,
-        body: JSON.stringify({
-          role: editing.role,
-          grant: editing.override.grant || [],
-          revoke: editing.override.revoke || [],
-        }),
+      const res = await updateUserRole({
+        userId: editing.id,
+        role: editing.role,
+        grant: editing.override.grant || [],
+        revoke: editing.override.revoke || [],
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Update failed");
+      if (!res.ok) throw new Error(res.error);
       setToast(`Saved ${editing.email}`);
       setEditing(null);
-      await load();
+      startTransition(() => router.refresh());
       setTimeout(() => setToast(null), 2500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -114,25 +88,21 @@ export default function UsersClient() {
   async function deleteUser(u: AdminUser) {
     if (!canDelete) return;
     if (!confirm(`Delete user ${u.email}? This cannot be undone.`)) return;
+    setError(null);
     try {
-      const res = await fetch(`${apiBaseUrl()}/admin/users/${u.id}`, {
-        method: "DELETE",
-        headers: authHeaders,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Delete failed");
+      const res = await deleteUserAction(u.id);
+      if (!res.ok) throw new Error(res.error);
       setToast(`Deleted ${u.email}`);
-      await load();
+      startTransition(() => router.refresh());
       setTimeout(() => setToast(null), 2500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     }
   }
 
-  // Compute the effective permission set for the currently-edited user, given
-  // their role + grant/revoke override. Mirrors backend resolveEffectivePermissions().
+  // Effective permission set for the edited user (role defaults ⊕ grant − revoke).
   function effectiveForEdit(): Set<string> {
-    if (!editing || !catalog) return new Set();
+    if (!editing) return new Set();
     const defaults = new Set(catalog.roleDefaults[editing.role] || []);
     (editing.override.grant || []).forEach((k) => defaults.add(k));
     (editing.override.revoke || []).forEach((k) => defaults.delete(k));
@@ -140,28 +110,23 @@ export default function UsersClient() {
   }
 
   function togglePermission(key: string) {
-    if (!editing || !catalog) return;
+    if (!editing) return;
     const isRoleDefault = (catalog.roleDefaults[editing.role] || []).includes(key);
     const grant = new Set(editing.override.grant || []);
     const revoke = new Set(editing.override.revoke || []);
     const effective = effectiveForEdit();
 
     if (effective.has(key)) {
-      // Currently allowed → remove it
       if (isRoleDefault) revoke.add(key);
       grant.delete(key);
     } else {
-      // Currently denied → allow it
       if (!isRoleDefault) grant.add(key);
       revoke.delete(key);
     }
 
     setEditing({
       ...editing,
-      override: {
-        grant: Array.from(grant),
-        revoke: Array.from(revoke),
-      },
+      override: { grant: Array.from(grant), revoke: Array.from(revoke) },
     });
   }
 
@@ -186,44 +151,43 @@ export default function UsersClient() {
       {toast && <div style={toastStyle}>{toast}</div>}
       {error && <div style={errorStyle}>{error}</div>}
 
-      {loading ? (
-        <div style={{ padding: 24, color: "var(--text-muted)" }}>Loading users…</div>
-      ) : (
-        <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 12 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-            <thead>
-              <tr style={{ background: "var(--surface)", color: "var(--text-muted)", textAlign: "left" }}>
-                <th style={th}>Email</th>
-                <th style={th}>Name</th>
-                <th style={th}>Role</th>
-                <th style={th}>Verified</th>
-                <th style={th}>Last login</th>
-                <th style={th}>Actions</th>
+      <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 12, opacity: isPending ? 0.6 : 1 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr style={{ background: "var(--surface)", color: "var(--text-muted)", textAlign: "left" }}>
+              <th style={th}>Email</th>
+              <th style={th}>Name</th>
+              <th style={th}>Role</th>
+              <th style={th}>Verified</th>
+              <th style={th}>Last login</th>
+              <th style={th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
+                <td style={td}>{u.email}{isSelf(u) ? <span style={{ color: "var(--brand-300)", marginLeft: 6, fontSize: 11 }}>(you)</span> : null}</td>
+                <td style={td}>{u.name || "—"}</td>
+                <td style={td}><RoleBadge role={u.role} /></td>
+                <td style={td}>{u.email_verified_at ? "✓" : <span style={{ color: "var(--warning-500, #b87800)" }}>pending</span>}</td>
+                <td style={td}>{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : "—"}</td>
+                <td style={td}>
+                  <button onClick={() => setEditing(u)} style={btn} disabled={!canAssignRoles}>Edit</button>
+                  {canDelete && !isSelf(u) && (
+                    <button onClick={() => deleteUser(u)} style={{ ...btn, marginLeft: 6, color: "var(--danger-500, #c1121f)" }}>Delete</button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
-                  <td style={td}>{u.email}{u.id === me?.id ? <span style={{ color: "var(--brand-300)", marginLeft: 6, fontSize: 11 }}>(you)</span> : null}</td>
-                  <td style={td}>{u.name || "—"}</td>
-                  <td style={td}><RoleBadge role={u.role} /></td>
-                  <td style={td}>{u.email_verified_at ? "✓" : <span style={{ color: "var(--warning-500, #b87800)" }}>pending</span>}</td>
-                  <td style={td}>{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : "—"}</td>
-                  <td style={td}>
-                    <button onClick={() => setEditing(u)} style={btn} disabled={!canAssignRoles}>Edit</button>
-                    {canDelete && u.id !== me?.id && (
-                      <button onClick={() => deleteUser(u)} style={{ ...btn, marginLeft: 6, color: "var(--danger-500, #c1121f)" }}>Delete</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+            {users.length === 0 && (
+              <tr><td style={{ ...td, color: "var(--text-muted)" }} colSpan={6}>No users found.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Edit drawer */}
-      {editing && catalog && (
+      {editing && (
         <div style={overlayStyle} onClick={() => setEditing(null)}>
           <div style={drawerStyle} onClick={(e) => e.stopPropagation()}>
             <header style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -237,7 +201,7 @@ export default function UsersClient() {
                 className="input"
                 value={editing.role}
                 onChange={(e) => setEditing({ ...editing, role: e.target.value as Role, override: { grant: [], revoke: [] } })}
-                disabled={!canAssignRoles || (editing.id === me?.id)}
+                disabled={!canAssignRoles || isSelf(editing)}
                 style={{ width: "100%" }}
               >
                 {catalog.roles.map((r) => (
@@ -245,7 +209,7 @@ export default function UsersClient() {
                 ))}
               </select>
               <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-                {editing.id === me?.id ? "You can't change your own role." : "Changing the role resets per-user overrides."}
+                {isSelf(editing) ? "You can't change your own role." : "Changing the role resets per-user overrides."}
               </p>
             </div>
 

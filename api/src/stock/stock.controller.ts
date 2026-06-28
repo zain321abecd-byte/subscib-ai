@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { AdminGuard } from "../auth/admin.guard";
+import { RequirePermission } from "../auth/permission.guard";
 import { StockService } from "./stock.service";
 
 @Controller("stock")
@@ -8,36 +9,43 @@ export class StockController {
   constructor(private readonly stock: StockService) {}
 
   @Get()
+  @RequirePermission("stock:read")
   async list() {
     return { ok: true, items: await this.stock.list() };
   }
 
   @Get("expiring-soon")
+  @RequirePermission("stock:read")
   async expiringSoon() {
     return { ok: true, items: await this.stock.expiringSoon() };
   }
 
   @Get(":id")
+  @RequirePermission("stock:read")
   async getOne(@Param("id") id: string) {
     return { ok: true, item: await this.stock.getOne(id) };
   }
 
   @Post()
+  @RequirePermission("stock:write")
   async create(@Body() body: any) {
     return { ok: true, item: await this.stock.create(body) };
   }
 
   @Patch(":id")
+  @RequirePermission("stock:write")
   async update(@Param("id") id: string, @Body() body: any) {
     return { ok: true, item: await this.stock.update(id, body) };
   }
 
   @Delete(":id")
+  @RequirePermission("stock:write")
   async remove(@Param("id") id: string) {
     return this.stock.remove(id);
   }
 
   @Post(":id/renew")
+  @RequirePermission("stock:write")
   async renew(@Param("id") id: string, @Body() body: any) {
     return { ok: true, item: await this.stock.renew(id, body) };
   }
