@@ -2,7 +2,9 @@ import type { MetadataRoute } from "next";
 import { getAllProducts } from "@/lib/products";
 import { getAllPosts } from "@/lib/blog";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
+// Defensive: any trailing slash in the env would compound with the leading
+// slash on each path → "//", which Google reports as a 404 / canonical issue.
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com").replace(/\/+$/, "");
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [PRODUCTS, POSTS] = await Promise.all([getAllProducts(), getAllPosts()]);

@@ -7,7 +7,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import AdminNavProgress from "./AdminNavProgress";
 
-type NavItem = { href: string; label: string; icon: string };
+type NavItem = { href: string; label: string; icon: string; permission?: string };
 
 const NAV: { section: string; items: NavItem[] }[] = [
   {
@@ -32,7 +32,10 @@ const NAV: { section: string; items: NavItem[] }[] = [
   },
   {
     section: "Configuration",
-    items: [{ href: "/admin/settings", label: "Site settings", icon: "fa-sliders" }],
+    items: [
+      { href: "/admin/users",    label: "Team & permissions", icon: "fa-users-gear", permission: "users:read" },
+      { href: "/admin/settings", label: "Site settings",      icon: "fa-sliders" },
+    ],
   },
 ];
 
@@ -45,7 +48,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const pathname = usePathname() || "/admin";
   const router = useRouter();
   const [navOpen, setNavOpen] = useState(false);
-  const { logout } = useAuth();
+  const { logout, hasPermission } = useAuth();
 
   // Tag <body> for admin-specific CSS overrides (kills the public radial
   // gradients and resets scroll padding). Cleaned up on unmount so the public
@@ -116,7 +119,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           {NAV.map((group) => (
             <div key={group.section}>
               <div className="admin-nav-section">{group.section}</div>
-              {group.items.map((item) => {
+              {group.items
+                .filter((item) => !item.permission || hasPermission(item.permission))
+                .map((item) => {
                 const active = isActive(pathname, item.href);
                 return (
                   <Link

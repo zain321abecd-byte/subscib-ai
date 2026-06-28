@@ -3,12 +3,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { apiBaseUrl } from "./api-client";
 
+export type Role = "superadmin" | "admin" | "manager" | "editor" | "customer";
+
 export type AuthUser = {
   id: string;
   email: string;
   name: string | null;
-  role: "customer" | "admin";
+  role: Role;
   email_verified_at: string | null;
+  /** Effective permission keys for this user (role defaults + per-user override).
+   *  Populated by /auth/me; falls back to client-side resolution if older API. */
+  effectivePermissions?: string[];
 };
 
 type AuthCtx = {
@@ -19,6 +24,8 @@ type AuthCtx = {
   login: (input: { email: string; password: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
   logout: () => void;
   refresh: () => Promise<void>;
+  /** Returns true if the signed-in user has the named permission. False when no user. */
+  hasPermission: (key: string) => boolean;
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -142,9 +149,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [accessToken, logout]);
 
+  const hasPermission = useCallback((key: string) => {
+    if (!user) return false;
+    // Superadmin is always allowed; saves the frontend a round trip when the
+    // backend would have answered the same.
+    if (user.role === "superadmin") return true;
+    if (Array.isArray(user.effectivePermissions)) {
+      return user.effectivePermissions.includes(key);
+    }
+    return false;
+  }, [user]);
+
   const value = useMemo<AuthCtx>(
-    () => ({ user, accessToken, ready, signup, login, logout, refresh }),
-    [user, accessToken, ready, signup, login, logout, refresh],
+    () => ({ user, accessToken, ready, signup, login, logout, refresh, hasPermission }),
+    [user, accessToken, ready, signup, login, logout, refresh, hasPermission],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

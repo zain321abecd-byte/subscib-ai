@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
+// Defensive: trailing slashes in the env would produce "host//sitemap.xml".
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com").replace(/\/+$/, "");
 
 export default function robots(): MetadataRoute.Robots {
   return {
