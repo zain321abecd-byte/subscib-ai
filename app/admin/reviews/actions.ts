@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/admin-auth";
 
 type ReviewInput = {
   name: string;
@@ -46,6 +47,7 @@ function fail(msg: string): never {
 }
 
 export async function createReview(formData: FormData): Promise<void> {
+  await requireAdmin("reviews:moderate");
   const r = parse(formData);
   if (!r.name) fail("Name is required.");
   if (!r.text) fail("Review text is required.");
@@ -58,6 +60,7 @@ export async function createReview(formData: FormData): Promise<void> {
 }
 
 export async function updateReview(formData: FormData): Promise<void> {
+  await requireAdmin("reviews:moderate");
   const id = String(formData.get("id") || "");
   if (!id) fail("Missing review id.");
   const r = parse(formData);
@@ -70,6 +73,7 @@ export async function updateReview(formData: FormData): Promise<void> {
 }
 
 export async function deleteReview(formData: FormData): Promise<void> {
+  await requireAdmin("reviews:delete");
   const id = String(formData.get("id") || "");
   if (!id) fail("Missing review id.");
   const supabase = await getSupabaseServer();

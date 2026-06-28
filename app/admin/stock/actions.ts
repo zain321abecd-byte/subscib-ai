@@ -9,6 +9,7 @@ import {
   toStockInsert,
   validateStockInput,
 } from "@/lib/stock";
+import { requireAdmin } from "@/lib/admin-auth";
 
 function revalidateStock() {
   revalidatePath("/admin");
@@ -16,6 +17,7 @@ function revalidateStock() {
 }
 
 export async function createStockItem(formData: FormData): Promise<{ ok: false; error: string } | never> {
+  await requireAdmin("stock:write");
   const input = parseStockFormData(formData);
   const error = validateStockInput(input);
   if (error) return { ok: false, error };
@@ -34,6 +36,7 @@ export async function createStockItem(formData: FormData): Promise<{ ok: false; 
 }
 
 export async function updateStockItem(formData: FormData): Promise<{ ok: false; error: string } | never> {
+  await requireAdmin("stock:write");
   const id = String(formData.get("__id") || "").trim();
   if (!id) return { ok: false, error: "Missing stock item id." };
 
@@ -54,6 +57,7 @@ export async function updateStockItem(formData: FormData): Promise<{ ok: false; 
 }
 
 export async function deleteStockItem(formData: FormData) {
+  await requireAdmin("stock:write");
   const id = String(formData.get("id") || "").trim();
   if (!id) redirect(`/admin/stock?error=${encodeURIComponent("Missing stock item id.")}`);
 
@@ -66,6 +70,7 @@ export async function deleteStockItem(formData: FormData) {
 }
 
 export async function renewStockItem(formData: FormData): Promise<{ ok: false; error: string } | never> {
+  await requireAdmin("stock:write");
   const id = String(formData.get("id") || "").trim();
   const expiryDate = String(formData.get("expiry_date") || "").trim();
   const quantityRaw = String(formData.get("quantity") || "").trim();

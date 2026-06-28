@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
+import { requiredPermissionForPath, type PermissionKey, type Role } from "@/lib/permissions";
 import AdminNavProgress from "./AdminNavProgress";
 
-type NavItem = { href: string; label: string; icon: string; permission?: string };
+type NavItem = { href: string; label: string; icon: string; permission?: PermissionKey };
 
 const NAV: { section: string; items: NavItem[] }[] = [
   {
@@ -17,24 +19,24 @@ const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "Catalog",
     items: [
-      { href: "/admin/products", label: "Products",  icon: "fa-box" },
-      { href: "/admin/blog",     label: "Blog posts", icon: "fa-newspaper" },
-      { href: "/admin/reviews",  label: "Reviews",    icon: "fa-star" },
+      { href: "/admin/products", label: "Products",  icon: "fa-box",       permission: "products:read" },
+      { href: "/admin/blog",     label: "Blog posts", icon: "fa-newspaper", permission: "blog:read" },
+      { href: "/admin/reviews",  label: "Reviews",    icon: "fa-star",      permission: "reviews:read" },
     ],
   },
   {
     section: "Operations",
     items: [
-      { href: "/admin/orders",  label: "Orders",  icon: "fa-receipt" },
-      { href: "/admin/stock",   label: "Stock",   icon: "fa-boxes-stacked" },
-      { href: "/admin/traffic", label: "Traffic", icon: "fa-chart-line" },
+      { href: "/admin/orders",  label: "Orders",  icon: "fa-receipt",        permission: "orders:read" },
+      { href: "/admin/stock",   label: "Stock",   icon: "fa-boxes-stacked",  permission: "stock:read" },
+      { href: "/admin/traffic", label: "Traffic", icon: "fa-chart-line",     permission: "analytics:view" },
     ],
   },
   {
     section: "Configuration",
     items: [
       { href: "/admin/users",    label: "Team & permissions", icon: "fa-users-gear", permission: "users:read" },
-      { href: "/admin/settings", label: "Site settings",      icon: "fa-sliders" },
+      { href: "/admin/settings", label: "Site settings",      icon: "fa-sliders",    permission: "settings:read" },
     ],
   },
 ];
@@ -44,11 +46,29 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-export default function AdminShell({ children }: { children: React.ReactNode }) {
+export default function AdminShell({
+  children,
+  role,
+  permissions,
+}: {
+  children: React.ReactNode;
+  /** Server-resolved back-office role. Undefined on login/diagnostics. */
+  role?: Role;
+  /** Server-resolved effective permission keys. Authoritative for UI gating. */
+  permissions?: string[];
+}) {
   const pathname = usePathname() || "/admin";
-  const router = useRouter();
   const [navOpen, setNavOpen] = useState(false);
-  const { logout, hasPermission } = useAuth();
+  const { logout } = useAuth();
+
+  // Authoritative permission check driven by the server-provided set (NOT the
+  // localStorage JWT, which the admin portal doesn't use). Superadmin passes
+  // everything; this only ever HIDES UI — the API + RLS are the real guards.
+  const hasPermission = (key: PermissionKey) =>
+    role === "superadmin" || (permissions?.includes(key) ?? false);
+
+  // Permission required to view the current section (null ⇒ any back-office role).
+  const sectionPermission = requiredPermissionForPath(pathname);
 
   // Tag <body> for admin-specific CSS overrides (kills the public radial
   // gradients and resets scroll padding). Cleaned up on unmount so the public
@@ -65,12 +85,17 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   // Don't render the chrome on standalone pages (login + diagnostics).
   if (pathname === "/admin/login" || pathname === "/admin/diagnostics") return <>{children}</>;
 
-  function signOut() {
+  async function signOut() {
     try {
+      // The admin portal authenticates over the Supabase cookie session, so the
+      // session MUST be cleared here — otherwise "sign out" leaves the user
+      // still authorised. Also clear the customer-side JWT for good measure.
+      if (isSupabaseConfigured()) {
+        await getSupabaseBrowser().auth.signOut();
+      }
       logout();
     } finally {
-      router.push("/admin/login");
-      router.refresh();
+      window.location.assign("/admin/login");
     }
   }
 
@@ -150,7 +175,33 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           </div>
         </nav>
       </aside>
-      <main className="admin-main">{children}</main>
+      <main className="admin-main">
+        {sectionPermission && !hasPermission(sectionPermission) ? (
+          <NoAccess permission={sectionPermission} />
+        ) : (
+          children
+        )}
+      </main>
+    </div>
+  );
+}
+
+function NoAccess({ permission }: { permission: PermissionKey }) {
+  return (
+    <div style={{ display: "grid", placeItems: "center", minHeight: "60vh", textAlign: "center", padding: 24 }}>
+      <div style={{ maxWidth: 420 }}>
+        <i className="fa-solid fa-lock" style={{ fontSize: 40, color: "var(--text-muted)", marginBottom: 16 }} aria-hidden="true"></i>
+        <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "1.4rem", margin: "0 0 8px" }}>No access</h1>
+        <p style={{ color: "var(--text-muted)", margin: "0 0 4px" }}>
+          You don&apos;t have permission to view this section.
+        </p>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+          Requires <code>{permission}</code>. Ask a superadmin to grant it.
+        </p>
+        <Link href="/admin" className="admin-btn admin-btn-ghost" style={{ marginTop: 18, display: "inline-flex" }}>
+          ← Back to dashboard
+        </Link>
+      </div>
     </div>
   );
 }

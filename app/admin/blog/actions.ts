@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { BLOGS } from "@/data/blogs";
 import { cleanList, estimateReadingTime, parseFaqItems, slugifyBlogTitle } from "@/lib/blog-seo";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/admin-auth";
 
 type Status = "Draft" | "Published" | "Scheduled";
 
@@ -190,6 +191,7 @@ function demoPostToRow(post: (typeof BLOGS)[number], sortIndex: number) {
 }
 
 export async function importDemoPosts(): Promise<void> {
+  await requireAdmin("blog:write");
   const supabase = await getSupabaseServer();
   const slugs = BLOGS.map((post) => post.slug);
   const { data, error: readError } = await supabase
@@ -229,6 +231,7 @@ async function uniqueSlug(baseSlug: string, originalSlug?: string) {
 }
 
 export async function createPost(formData: FormData): Promise<{ ok: false; error: string } | never> {
+  await requireAdmin("blog:write");
   const post = parse(formData);
   const error = validate(post);
   if (error) return { ok: false, error };
@@ -243,6 +246,7 @@ export async function createPost(formData: FormData): Promise<{ ok: false; error
 }
 
 export async function updatePost(formData: FormData): Promise<{ ok: false; error: string } | never> {
+  await requireAdmin("blog:write");
   const post = parse(formData);
   const originalSlug = str(formData, "__original_slug");
   if (!originalSlug) return { ok: false, error: "Missing original slug." };
@@ -267,6 +271,7 @@ export async function updatePost(formData: FormData): Promise<{ ok: false; error
 }
 
 export async function deletePost(formData: FormData): Promise<void> {
+  await requireAdmin("blog:delete");
   const slug = str(formData, "slug");
   if (!slug) redirect(`/admin/blog?error=${encodeURIComponent("Missing slug.")}`);
   const supabase = await getSupabaseServer();

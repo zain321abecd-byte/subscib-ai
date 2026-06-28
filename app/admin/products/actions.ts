@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/admin-auth";
 import { ensureUniqueSlug, slugify } from "@/lib/slug";
 
 export type ProductFormData = {
@@ -201,6 +202,7 @@ async function syncProductReviews(
 }
 
 export async function createProduct(formData: FormData): Promise<{ ok: false; error: string } | never> {
+  await requireAdmin("products:write");
   const p = parseForm(formData);
   const err = validate(p);
   if (err) return { ok: false, error: err };
@@ -229,6 +231,7 @@ export async function createProduct(formData: FormData): Promise<{ ok: false; er
 }
 
 export async function updateProduct(formData: FormData): Promise<{ ok: false; error: string } | never> {
+  await requireAdmin("products:write");
   const p = parseForm(formData);
   const originalId = String(formData.get("__original_id") || "").trim();
   if (!originalId) return { ok: false, error: "Missing original id." };
@@ -255,6 +258,7 @@ export async function updateProduct(formData: FormData): Promise<{ ok: false; er
 }
 
 export async function deleteProduct(formData: FormData): Promise<void> {
+  await requireAdmin("products:delete");
   const id = String(formData.get("id") || "").trim();
   if (!id) redirect(`/admin/products?error=${encodeURIComponent("Missing id.")}`);
   const supabase = await getSupabaseServer();

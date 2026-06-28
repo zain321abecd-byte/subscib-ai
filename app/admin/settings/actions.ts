@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/admin-auth";
 import { invalidateSettingsCache } from "@/lib/site-settings";
 
 function fail(msg: string, returnTo: string): never {
@@ -20,6 +21,7 @@ function fail(msg: string, returnTo: string): never {
  * because we dedupe-by-last in this action.
  */
 export async function saveSettings(formData: FormData): Promise<void> {
+  await requireAdmin("settings:write");
   const returnTo = String(formData.get("__return_to") || "/admin/settings");
 
   const supabase = await getSupabaseServer();

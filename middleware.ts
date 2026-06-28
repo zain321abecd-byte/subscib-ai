@@ -1,8 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { resolveAdminAccess } from "@/lib/admin-access";
+import { requiredPermissionForPath, hasPermission } from "@/lib/permissions";
 
-// Gate /admin/** behind a Supabase session + admins-table membership.
-// /admin/login is allowed through unauthenticated.
+// Gate /admin/** behind a Supabase session + a back-office role (resolved from
+// the new public.users role model). Customers are rejected even with a valid
+// session. /admin/login is allowed through unauthenticated.
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -62,18 +65,24 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Confirm user is in admins table. RLS would block their queries anyway,
-  // but a redirect produces a friendlier UX.
-  const { data: adminRow } = await supabase
-    .from("admins")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!adminRow) {
+  // Resolve the caller's back-office role from the new public.users model
+  // (falls back to the legacy admins table). Customers / unknown users get
+  // null and are bounced. The admin layout re-checks this server-side, so this
+  // is the first of two gates, not the only one.
+  const access = await resolveAdminAccess(user.email ?? null, user.id);
+  if (!access) {
     const url = req.nextUrl.clone();
     url.pathname = "/admin/login";
     url.searchParams.set("error", "not_admin");
+    return NextResponse.redirect(url);
+  }
+
+  // Section-level permission check (e.g. an editor cannot open /admin/orders).
+  const needed = requiredPermissionForPath(pathname);
+  if (needed && !hasPermission(access.effectivePermissions, needed)) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/admin";
+    url.searchParams.set("denied", needed);
     return NextResponse.redirect(url);
   }
 
