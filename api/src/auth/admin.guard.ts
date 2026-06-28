@@ -26,7 +26,11 @@ export class AdminGuard implements CanActivate {
     const user = await this.users.findById(payload.sub);
     if (!user) throw new UnauthorizedException("User no longer exists");
     if (!user.email_verified_at) throw new UnauthorizedException("Email not verified");
-    if (user.role !== "admin") throw new ForbiddenException("Admin access required");
+    // Any back-office role can hit endpoints gated by AdminGuard — customers
+    // can't. Finer-grained access (e.g. only managers can refund) is enforced
+    // by @RequirePermission(...) on the specific routes that need it.
+    const backOfficeRoles = new Set(["superadmin", "admin", "manager", "editor"]);
+    if (!backOfficeRoles.has(user.role)) throw new ForbiddenException("Admin access required");
 
     req.user = {
       id: user.id,

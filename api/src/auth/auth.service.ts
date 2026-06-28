@@ -20,7 +20,7 @@ const BCRYPT_ROUNDS = 12;
 export interface JwtPayload {
   sub: string;       // user id
   email: string;
-  role: "customer" | "admin";
+  role: "superadmin" | "admin" | "manager" | "editor" | "customer";
 }
 
 @Injectable()
@@ -58,13 +58,19 @@ export class AuthService {
   }
 
   /** Public shape returned to the frontend — never includes the password hash. */
-  private publicUser(row: UserRow): AuthUser {
+  private publicUser(row: UserRow): AuthUser & { effectivePermissions: string[] } {
+    // Lazy-loaded to avoid a circular import path in the constructor graph.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { parseOverride, resolveEffectivePermissions } = require("./permissions") as typeof import("./permissions");
+    const override = parseOverride(row.permissions);
+    const effective = Array.from(resolveEffectivePermissions(row.role, override));
     return {
       id: row.id,
       email: row.email,
       name: row.name,
       role: row.role,
       email_verified_at: row.email_verified_at,
+      effectivePermissions: effective,
     };
   }
 

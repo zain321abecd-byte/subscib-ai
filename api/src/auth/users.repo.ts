@@ -7,7 +7,9 @@ export interface UserRow {
   password_hash: string;
   name: string | null;
   phone: string | null;
-  role: "customer" | "admin";
+  role: "superadmin" | "admin" | "manager" | "editor" | "customer";
+  /** Per-user override of role defaults — { grant?: string[], revoke?: string[] }. */
+  permissions: Record<string, unknown> | null;
   email_verified_at: string | null;
   verification_token: string | null;
   verification_sent_at: string | null;
@@ -109,5 +111,50 @@ export class UsersRepo {
 
   async touchLastLogin(userId: string): Promise<void> {
     await this.table().update({ last_login_at: new Date().toISOString() }).eq("id", userId);
+  }
+
+  /** Paginated list of all users (admin UI). Returns the public-safe shape. */
+  async list(params?: { search?: string; limit?: number; offset?: number }): Promise<UserRow[]> {
+    const limit = Math.min(params?.limit ?? 100, 200);
+    const offset = Math.max(params?.offset ?? 0, 0);
+    let q = this.table().select("*").order("created_at", { ascending: false }).range(offset, offset + limit - 1);
+    if (params?.search) {
+      const term = params.search.trim().toLowerCase();
+      // citext lookup by partial email OR name
+      q = q.or(`email.ilike.%${term}%,name.ilike.%${term}%`);
+    }
+    const { data, error } = await q;
+    if (error) {
+      this.logger.error(`list users failed: ${error.message}`);
+      return [];
+    }
+    return (data as UserRow[]) || [];
+  }
+
+  /** Update a user's role and permission override. Used by the superadmin UI. */
+  async updateRoleAndPermissions(
+    userId: string,
+    role: UserRow["role"],
+    permissions: Record<string, unknown> | null,
+  ): Promise<UserRow | null> {
+    const { data, error } = await this.table()
+      .update({ role, permissions: permissions ?? {} })
+      .eq("id", userId)
+      .select("*")
+      .single();
+    if (error) {
+      this.logger.error(`updateRoleAndPermissions(${userId}) failed: ${error.message}`);
+      return null;
+    }
+    return data as UserRow;
+  }
+
+  async deleteUser(userId: string): Promise<boolean> {
+    const { error } = await this.table().delete().eq("id", userId);
+    if (error) {
+      this.logger.error(`deleteUser(${userId}) failed: ${error.message}`);
+      return false;
+    }
+    return true;
   }
 }

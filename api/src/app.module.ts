@@ -12,6 +12,7 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PublicModule } from "./public/public.module";
 import { ContentModule } from "./content/content.module";
+import { UsersAdminModule } from "./users-admin/users-admin.module";
 
 @Module({
   imports: [
@@ -34,6 +35,8 @@ import { ContentModule } from "./content/content.module";
     PublicModule,
     // Phase 5 — admin content writes
     ContentModule,
+    // Phase 6 — admin user / role / permission management
+    UsersAdminModule,
   ],
 })
 export class AppModule {}

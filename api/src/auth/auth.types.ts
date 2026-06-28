@@ -8,7 +8,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
-  role: "customer" | "admin";
+  role: "superadmin" | "admin" | "manager" | "editor" | "customer";
   email_verified_at: string | null;
 }
 
