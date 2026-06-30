@@ -34,11 +34,15 @@ export async function updateUserRole(input: {
     return { ok: false, error: "You can't change your own role." };
   }
 
-  const grant = (input.grant || []).filter(isPermissionKey);
-  const revoke = (input.revoke || []).filter(isPermissionKey);
+  // Superadmin is always full access — never persist a grant/revoke override on
+  // one, so a mistaken toggle can't lock a superadmin out.
   const permissions: { grant?: PermissionKey[]; revoke?: PermissionKey[] } = {};
-  if (grant.length) permissions.grant = grant;
-  if (revoke.length) permissions.revoke = revoke;
+  if (input.role !== "superadmin") {
+    const grant = (input.grant || []).filter(isPermissionKey);
+    const revoke = (input.revoke || []).filter(isPermissionKey);
+    if (grant.length) permissions.grant = grant;
+    if (revoke.length) permissions.revoke = revoke;
+  }
 
   const { error } = await supabase
     .from("users")

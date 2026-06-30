@@ -34,6 +34,9 @@ export const PERMISSION_KEYS = [
   // Settings
   "settings:read",
   "settings:write",
+  // Emails
+  "emails:read",
+  "emails:send",
   // Users (only superadmin should have users:assign-roles / users:delete)
   "users:read",
   "users:write",
@@ -53,6 +56,7 @@ export const PERMISSION_GROUPS: Array<{ label: string; keys: PermissionKey[] }> 
   { label: "Freebies", keys: ["freebies:read", "freebies:write", "freebies:delete"] },
   { label: "Stock", keys: ["stock:read", "stock:write"] },
   { label: "Settings", keys: ["settings:read", "settings:write"] },
+  { label: "Emails", keys: ["emails:read", "emails:send"] },
   { label: "Users", keys: ["users:read", "users:write", "users:assign-roles", "users:delete"] },
   { label: "Analytics", keys: ["analytics:view"] },
 ];
@@ -76,6 +80,7 @@ export const ROLE_DEFAULTS: Record<Role, ReadonlyArray<PermissionKey>> = {
     "freebies:read", "freebies:write",
     "stock:read", "stock:write",
     "settings:read",
+    "emails:read", "emails:send",
     "analytics:view",
   ],
   editor: [
@@ -102,6 +107,9 @@ export function resolveEffectivePermissions(
   role: Role,
   override?: PermissionOverride | null,
 ): Set<PermissionKey> {
+  // Superadmin is ALWAYS full access — overrides are ignored so a stray revoke
+  // can never lock a superadmin out of anything.
+  if (role === "superadmin") return new Set<PermissionKey>(PERMISSION_KEYS);
   const set = new Set<PermissionKey>(ROLE_DEFAULTS[role] || []);
   if (override?.grant) {
     for (const k of override.grant) {

@@ -28,6 +28,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: "Operations",
     items: [
       { href: "/admin/orders",  label: "Orders",  icon: "fa-receipt",        permission: "orders:read" },
+      { href: "/admin/email",   label: "Emails",  icon: "fa-envelope",       permission: "emails:read" },
       { href: "/admin/stock",   label: "Stock",   icon: "fa-boxes-stacked",  permission: "stock:read" },
       { href: "/admin/traffic", label: "Traffic", icon: "fa-chart-line",     permission: "analytics:view" },
     ],

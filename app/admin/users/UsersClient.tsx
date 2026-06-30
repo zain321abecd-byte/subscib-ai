@@ -52,6 +52,15 @@ export default function UsersClient({
   const isSelf = (u: { email: string }) =>
     !!meEmail && u.email.toLowerCase() === meEmail.toLowerCase();
 
+  const [activeCategory, setActiveCategory] = useState<string>(catalog.groups[0]?.label || "");
+  const activeGroup = catalog.groups.find((g) => g.label === activeCategory) || catalog.groups[0];
+  const isSuperadmin = editing?.role === "superadmin";
+
+  function openEditor(u: AdminUser) {
+    setActiveCategory(catalog.groups[0]?.label || "");
+    setEditing(u);
+  }
+
   const users = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return initialUsers;
@@ -172,9 +181,13 @@ export default function UsersClient({
                 <td style={td}>{u.email_verified_at ? "✓" : <span style={{ color: "var(--warning-500, #b87800)" }}>pending</span>}</td>
                 <td style={td}>{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : "—"}</td>
                 <td style={td}>
-                  <button onClick={() => setEditing(u)} style={btn} disabled={!canAssignRoles}>Edit</button>
+                  <button onClick={() => openEditor(u)} style={iconBtn} disabled={!canAssignRoles} title="Edit role & permissions" aria-label="Edit role & permissions">
+                    <i className="fa-solid fa-gear" />
+                  </button>
                   {canDelete && !isSelf(u) && (
-                    <button onClick={() => deleteUser(u)} style={{ ...btn, marginLeft: 6, color: "var(--danger-500, #c1121f)" }}>Delete</button>
+                    <button onClick={() => deleteUser(u)} style={{ ...iconBtn, marginLeft: 6, color: "var(--danger-500, #c1121f)" }} title="Delete user" aria-label="Delete user">
+                      <i className="fa-solid fa-trash" />
+                    </button>
                   )}
                 </td>
               </tr>
@@ -186,78 +199,167 @@ export default function UsersClient({
         </table>
       </div>
 
-      {/* Edit drawer */}
-      {editing && (
+      {/* Permissions modal */}
+      {editing && activeGroup && (
         <div style={overlayStyle} onClick={() => setEditing(null)}>
-          <div style={drawerStyle} onClick={(e) => e.stopPropagation()}>
-            <header style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ margin: 0, fontSize: 18 }}>Edit {editing.email}</h2>
-              <button onClick={() => setEditing(null)} style={{ ...btn, padding: "4px 10px" }}>✕</button>
-            </header>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={label}>Role</label>
-              <select
-                className="input"
-                value={editing.role}
-                onChange={(e) => setEditing({ ...editing, role: e.target.value as Role, override: { grant: [], revoke: [] } })}
-                disabled={!canAssignRoles || isSelf(editing)}
-                style={{ width: "100%" }}
-              >
-                {catalog.roles.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-                {isSelf(editing) ? "You can't change your own role." : "Changing the role resets per-user overrides."}
-              </p>
+          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div style={modalHeader}>
+              <div style={{ minWidth: 0 }}>
+                <div style={modalKicker}>Manage permissions</div>
+                <div style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {editing.email}
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <select
+                  value={editing.role}
+                  onChange={(e) => setEditing({ ...editing, role: e.target.value as Role, override: { grant: [], revoke: [] } })}
+                  disabled={!canAssignRoles || isSelf(editing)}
+                  style={lightSelect}
+                  title={isSelf(editing) ? "You can't change your own role." : "Changing the role resets per-user overrides."}
+                >
+                  {catalog.roles.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+                <button onClick={() => setEditing(null)} style={closeBtn} aria-label="Close">
+                  <i className="fa-solid fa-xmark" />
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label style={label}>Permissions</label>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 0, marginBottom: 12 }}>
-                Default permissions for <strong>{editing.role}</strong> are pre-selected. Toggle to add or revoke per-user.
-              </p>
+            {/* Body: categories + cards */}
+            <div style={modalBody}>
+              <aside style={sidebar}>
+                {catalog.groups.map((g) => {
+                  const active = g.label === activeGroup.label;
+                  return (
+                    <button key={g.label} type="button" onClick={() => setActiveCategory(g.label)} style={categoryBtn(active)}>
+                      <i className={`fa-solid ${groupIcon(g.label)}`} style={{ color: CORAL, width: 18, textAlign: "center" }} />
+                      <span>{g.label}</span>
+                    </button>
+                  );
+                })}
+              </aside>
 
-              {catalog.groups.map((group) => {
-                const eff = effectiveForEdit();
-                return (
-                  <fieldset key={group.label} style={{ marginBottom: 14, border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px" }}>
-                    <legend style={{ padding: "0 6px", fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>{group.label}</legend>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 }}>
-                      {group.keys.map((key) => {
-                        const isOn = eff.has(key);
-                        const isRoleDefault = (catalog.roleDefaults[editing.role] || []).includes(key);
-                        return (
-                          <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: 6, borderRadius: 6, background: isOn ? "var(--brand-soft)" : "transparent" }}>
-                            <input
-                              type="checkbox"
-                              checked={isOn}
-                              onChange={() => togglePermission(key)}
-                              disabled={!canAssignRoles}
-                            />
-                            <code style={{ fontSize: 12, color: isOn ? "var(--brand-300)" : "var(--text-muted)" }}>{key}</code>
-                            {isRoleDefault && <small style={{ marginLeft: "auto", color: "var(--text-muted)", fontSize: 11 }}>default</small>}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </fieldset>
-                );
-              })}
+              <main style={panel}>
+                {isSuperadmin ? (
+                  <div style={superadminNotice}>
+                    <i className="fa-solid fa-shield-halved" style={{ color: CORAL }} />
+                    <span>Superadmins always have full access. Permissions are locked to prevent accidentally locking out an owner.</span>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 14 }}>
+                    Defaults for <strong style={{ color: "var(--text-soft)" }}>{editing.role}</strong> are pre-selected. Toggle to grant or revoke per user.
+                  </div>
+                )}
+                <div style={{ display: "grid", gap: 12 }}>
+                  {activeGroup.keys.map((key) => {
+                    const eff = effectiveForEdit();
+                    const isOn = isSuperadmin ? true : eff.has(key);
+                    const isRoleDefault = (catalog.roleDefaults[editing.role] || []).includes(key);
+                    const meta = permMeta(key);
+                    return (
+                      <div key={key} style={{ ...cardStyle, opacity: isSuperadmin ? 0.7 : 1 }}>
+                        <div style={cardIcon}><i className={`fa-solid ${meta.icon}`} /></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{meta.title}</span>
+                            {isRoleDefault && !isSuperadmin && <span style={defaultPill}>default</span>}
+                          </div>
+                          <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>{meta.desc}</div>
+                        </div>
+                        <Toggle on={isOn} disabled={!canAssignRoles || isSuperadmin} onChange={() => togglePermission(key)} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </main>
             </div>
 
-            <footer style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-              <button onClick={() => setEditing(null)} style={btn} disabled={saving}>Cancel</button>
-              <button onClick={saveEdit} style={{ ...btn, background: "var(--brand-500)", color: "#fff", borderColor: "var(--brand-500)" }} disabled={saving || !canAssignRoles}>
+            {/* Footer */}
+            <div style={modalFooter}>
+              <button onClick={() => setEditing(null)} style={cancelBtn} disabled={saving}>Cancel</button>
+              <button onClick={saveEdit} disabled={saving || !canAssignRoles} style={saveBtn(saving || !canAssignRoles)}>
                 {saving ? "Saving…" : "Save changes"}
               </button>
-            </footer>
+            </div>
           </div>
         </div>
       )}
     </section>
   );
+}
+
+const CORAL = "var(--brand-500)";
+
+function Toggle({ on, disabled, onChange }: { on: boolean; disabled?: boolean; onChange: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={onChange}
+      style={{
+        flexShrink: 0,
+        width: 48,
+        height: 28,
+        borderRadius: 999,
+        border: "none",
+        padding: 3,
+        cursor: disabled ? "not-allowed" : "pointer",
+        background: on ? CORAL : "rgba(255,255,255,0.16)",
+        opacity: disabled ? 0.55 : 1,
+        transition: "background .18s ease",
+        display: "inline-flex",
+        alignItems: "center",
+      }}
+    >
+      <span
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          background: "#fff",
+          boxShadow: "0 1px 3px rgba(0,0,0,.3)",
+          transform: on ? "translateX(20px)" : "translateX(0)",
+          transition: "transform .18s ease",
+        }}
+      />
+    </button>
+  );
+}
+
+const GROUP_ICONS: Record<string, string> = {
+  "Products": "fa-box",
+  "Orders & revenue": "fa-receipt",
+  "Blog": "fa-newspaper",
+  "Reviews": "fa-star",
+  "Freebies": "fa-gift",
+  "Stock": "fa-boxes-stacked",
+  "Settings": "fa-gear",
+  "Users": "fa-users-gear",
+  "Analytics": "fa-chart-line",
+};
+const groupIcon = (label: string) => GROUP_ICONS[label] || "fa-folder";
+
+const ACTION_META: Record<string, { label: string; desc: string; icon: string }> = {
+  read: { label: "Read", desc: "View and list records", icon: "fa-eye" },
+  write: { label: "Write", desc: "Create and edit records", icon: "fa-pen-to-square" },
+  delete: { label: "Delete", desc: "Permanently remove records", icon: "fa-trash" },
+  refund: { label: "Refund", desc: "Issue refunds on orders", icon: "fa-rotate-left" },
+  revenue: { label: "Revenue", desc: "See revenue figures", icon: "fa-coins" },
+  moderate: { label: "Moderate", desc: "Approve or hide submissions", icon: "fa-gavel" },
+  "assign-roles": { label: "Assign roles", desc: "Change roles & permissions", icon: "fa-user-shield" },
+  view: { label: "View", desc: "Access analytics & reports", icon: "fa-chart-simple" },
+};
+function permMeta(key: string): { title: string; desc: string; icon: string } {
+  const action = key.split(":")[1] || key;
+  const m = ACTION_META[action];
+  if (m) return { title: m.label, desc: m.desc, icon: m.icon };
+  return { title: action, desc: `Access to ${key}`, icon: "fa-circle-dot" };
 }
 
 function RoleBadge({ role }: { role: Role }) {
@@ -278,35 +380,190 @@ function RoleBadge({ role }: { role: Role }) {
 
 const th: React.CSSProperties = { padding: "10px 12px", fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: 0.4 };
 const td: React.CSSProperties = { padding: "10px 12px" };
-const btn: React.CSSProperties = {
-  padding: "6px 12px",
+const iconBtn: React.CSSProperties = {
+  width: 34,
+  height: 34,
+  display: "inline-grid",
+  placeItems: "center",
+  padding: 0,
   background: "transparent",
   border: "1px solid var(--border)",
-  borderRadius: 6,
+  borderRadius: 8,
   color: "var(--text)",
   cursor: "pointer",
   fontSize: 13,
 };
-const label: React.CSSProperties = { display: "block", marginBottom: 6, fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.4 };
 const overlayStyle: React.CSSProperties = {
   position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,0.55)",
+  background: "rgba(17, 19, 24, 0.55)",
+  backdropFilter: "blur(2px)",
   display: "flex",
-  alignItems: "flex-start",
+  alignItems: "center",
   justifyContent: "center",
   zIndex: 1000,
   overflow: "auto",
-  padding: "60px 16px",
+  padding: "32px 16px",
 };
-const drawerStyle: React.CSSProperties = {
-  background: "var(--bg, #0f1019)",
+
+// ── Permissions modal (admin dark theme) ──────────────────────────────────────
+const modalStyle: React.CSSProperties = {
+  background: "var(--surface)",
+  color: "var(--text)",
+  border: "1px solid var(--border)",
+  borderRadius: 18,
+  width: "100%",
+  maxWidth: 1000,
+  maxHeight: "88vh",
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+  boxShadow: "0 30px 70px rgba(0,0,0,0.4)",
+};
+const modalHeader: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 16,
+  padding: "18px 22px",
+  borderBottom: "1px solid var(--border)",
+  flexShrink: 0,
+};
+const modalKicker: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: 1,
+  textTransform: "uppercase",
+  color: "var(--text-soft)",
+};
+const lightSelect: React.CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: 9,
+  border: "1px solid var(--border)",
+  background: "var(--bg)",
+  color: "var(--text)",
+  fontSize: 13,
+  textTransform: "capitalize",
+  cursor: "pointer",
+};
+const closeBtn: React.CSSProperties = {
+  width: 34,
+  height: 34,
+  borderRadius: 9,
+  border: "1px solid var(--border)",
+  background: "transparent",
+  color: "var(--text-muted)",
+  cursor: "pointer",
+  fontSize: 15,
+};
+const modalBody: React.CSSProperties = {
+  display: "flex",
+  minHeight: 0,
+  flex: 1,
+  overflow: "hidden",
+};
+const sidebar: React.CSSProperties = {
+  width: 232,
+  flexShrink: 0,
+  borderRight: "1px solid var(--border)",
+  padding: 14,
+  overflowY: "auto",
+};
+const categoryBtn = (active: boolean): React.CSSProperties => ({
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  padding: "12px 14px",
+  marginBottom: 8,
+  borderRadius: 12,
+  cursor: "pointer",
+  textAlign: "left",
+  fontSize: 14,
+  fontWeight: 600,
+  border: active ? `1.5px solid ${CORAL}` : "1px solid var(--border)",
+  background: active ? "var(--brand-soft)" : "transparent",
+  color: active ? "var(--brand-300)" : "var(--text-soft)",
+});
+const panel: React.CSSProperties = {
+  flex: 1,
+  minHeight: 0,
+  padding: 20,
+  overflowY: "auto",
+  background: "var(--bg)",
+};
+const cardStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 14,
+  padding: "16px 18px",
   border: "1px solid var(--border)",
   borderRadius: 14,
-  padding: 20,
-  width: "100%",
-  maxWidth: 720,
+  background: "var(--surface)",
 };
+const cardIcon: React.CSSProperties = {
+  width: 38,
+  height: 38,
+  flexShrink: 0,
+  borderRadius: 10,
+  display: "grid",
+  placeItems: "center",
+  background: "var(--brand-soft)",
+  color: CORAL,
+  fontSize: 15,
+};
+const superadminNotice: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  marginBottom: 14,
+  padding: "12px 14px",
+  borderRadius: 10,
+  border: "1px solid var(--border)",
+  background: "var(--brand-soft)",
+  color: "var(--text-soft)",
+  fontSize: 13,
+};
+const defaultPill: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: 0.4,
+  textTransform: "uppercase",
+  color: "var(--text-muted)",
+  background: "rgba(255,255,255,0.08)",
+  borderRadius: 999,
+  padding: "2px 8px",
+};
+const modalFooter: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "14px 22px",
+  borderTop: "1px solid var(--border)",
+  flexShrink: 0,
+};
+const cancelBtn: React.CSSProperties = {
+  background: "none",
+  border: "none",
+  fontWeight: 700,
+  fontSize: 13,
+  letterSpacing: 0.5,
+  textTransform: "uppercase",
+  color: "var(--text-soft)",
+  cursor: "pointer",
+};
+const saveBtn = (disabled: boolean): React.CSSProperties => ({
+  background: disabled ? "rgba(255,255,255,0.12)" : CORAL,
+  color: disabled ? "var(--text-muted)" : "#fff",
+  border: "none",
+  borderRadius: 9,
+  padding: "11px 22px",
+  fontWeight: 700,
+  fontSize: 13,
+  letterSpacing: 0.5,
+  textTransform: "uppercase",
+  cursor: disabled ? "not-allowed" : "pointer",
+});
 const toastStyle: React.CSSProperties = {
   position: "fixed",
   top: 80,
