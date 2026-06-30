@@ -329,16 +329,19 @@ export class EmailService {
 
   async sendBulkPromotionEmail(input: { recipients: string[]; subject: string; messageHtml: string; messageText?: string }) {
     const unique = [...new Set(input.recipients.map((e) => e.trim().toLowerCase()).filter(Boolean))];
+    // Suppress only addresses that have EXPLICITLY unsubscribed. Everyone else
+    // (including addresses with no subscriber record) receives the email — so
+    // admins can email customers and custom lists, while we still honour opt-outs.
     const { data } = await this.supabase.admin()
       .from("email_subscribers")
       .select("email")
       .in("email", unique)
-      .eq("subscribed", true);
-    const allowed = new Set((data ?? []).map((row) => row.email));
+      .eq("subscribed", false);
+    const suppressed = new Set((data ?? []).map((row) => row.email));
     const results = [];
     for (const email of unique) {
-      if (!allowed.has(email)) {
-        results.push({ email, sent: false, skipped: true, error: "Not subscribed" });
+      if (suppressed.has(email)) {
+        results.push({ email, sent: false, skipped: true, error: "Unsubscribed" });
         continue;
       }
       try {
