@@ -59,7 +59,7 @@ export default function EmailClient({
     try {
       const res = await sendPromotion({ audience, manual, subject, html, text: text || undefined });
       if (!res.ok) throw new Error(res.error);
-      flash(`Sent to ${res.sent ?? 0} of ${res.total ?? 0} recipients${res.failed ? ` (${res.failed} failed)` : ""}.`);
+      flash(`Sent to ${res.sent ?? 0} of ${res.total ?? 0} recipients.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send.");
     } finally {

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Logger, Post, Query, UseGuards } from "@nestjs/common";
-import { AdminGuard } from "../auth/admin.guard";
+import { InternalOrAdminGuard } from "./internal-or-admin.guard";
 import { SupabaseService } from "../supabase/supabase.service";
 import { EmailService } from "./email.service";
 
@@ -23,7 +23,7 @@ export class EmailController {
   ) {}
 
   @Get("status")
-  @UseGuards(AdminGuard)
+  @UseGuards(InternalOrAdminGuard)
   status() {
     return this.email.status();
   }
@@ -93,7 +93,7 @@ export class EmailController {
   }
 
   @Post("promotions/test")
-  @UseGuards(AdminGuard)
+  @UseGuards(InternalOrAdminGuard)
   async sendTest(@Body() body: any) {
     if (!isEmail(body?.to)) return { ok: false, error: "Valid test email is required." };
     await this.email.sendPromotionEmail({
@@ -106,7 +106,7 @@ export class EmailController {
   }
 
   @Post("promotions")
-  @UseGuards(AdminGuard)
+  @UseGuards(InternalOrAdminGuard)
   async sendPromotion(@Body() body: any) {
     let recipients = parseEmails(body?.recipients);
     if (body?.source === "subscribers") {
