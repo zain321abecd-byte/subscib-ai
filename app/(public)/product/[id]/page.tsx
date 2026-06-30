@@ -7,18 +7,18 @@ import MobileHeroProductCard from "@/components/MobileHeroProductCard";
 import { REVIEWS, REVIEWS_GLOBAL } from "@/components/Reviews";
 import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTestimonials";
 import PackageBuy from "./PackageBuy";
-import { STATIC_PRODUCTS, getAllProducts, getProduct } from "@/lib/products";
+import { getAllProducts, getProduct } from "@/lib/products";
 import { getRegion } from "@/lib/region";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getAllReviews, isSupabaseConfigured } from "@/lib/reviews";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 
-// Static params come from the static fallback (build-time). New products added
-// via the admin panel are still served — Next.js falls back to dynamic SSR for
-// unknown ids when dynamicParams is true (the default).
+// Product pages render on-demand from the database (dynamicParams defaults to
+// true). We don't pre-generate any ids so no dummy/seed URLs are ever built —
+// the DB is the single source of truth.
 export function generateStaticParams() {
-  return STATIC_PRODUCTS.map((p) => ({ id: p.id }));
+  return [] as { id: string }[];
 }
 
 // Re-render product pages at most every 60s; admin saves call revalidatePath.

@@ -1,7 +1,28 @@
-import { BLOGS, type BlogCategory, type BlogPost } from "@/data/blogs";
 import { cleanList, getPostStatus, parseFaqItems } from "@/lib/blog-seo";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import type { BlogPostRow } from "@/lib/supabase/types";
+
+export type BlogCategory = "AI Guides" | "Premium Tools" | "Automation" | "Subscriptions" | "Growth";
+
+export type BlogPost = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  image: string;
+  author: string;
+  authorInitials: string;
+  authorColor: string;
+  date: string;
+  comments: number;
+  category: BlogCategory;
+  tags: string[];
+  views: string;
+  readingTime: number;
+  featured?: boolean;
+  pkOnly?: boolean;
+};
 
 export type Post = BlogPost & {
   tag: "Guide" | "Compare" | "Automation" | "News";
@@ -31,38 +52,6 @@ export type Post = BlogPost & {
   authorImage: string | null;
   authorSocialLinks: Record<string, string>;
 };
-
-export const STATIC_POSTS: Post[] = BLOGS.map((post) => ({
-  ...post,
-  tag: categoryToLegacyTag(post.category),
-  readMins: post.readingTime,
-  body: post.content,
-  coverUrl: post.image,
-  featuredImageAlt: post.title,
-  updatedAt: post.date,
-  status: "Published",
-  metaTitle: post.title,
-  metaDescription: post.excerpt,
-  focusKeyword: post.tags[0] || "",
-  secondaryKeywords: post.tags.slice(1),
-  canonicalUrl: "",
-  robotsIndex: true,
-  robotsFollow: true,
-  ogTitle: post.title,
-  ogDescription: post.excerpt,
-  ogImage: post.image,
-  twitterTitle: post.title,
-  twitterDescription: post.excerpt,
-  twitterImage: post.image,
-  schemaType: "BlogPosting",
-  faqItems: [],
-  relatedPostIds: [],
-  authorBio: "Sharing practical AI, subscription, and digital growth guides from the SubscribAI editorial team.",
-  authorImage: null,
-  authorSocialLinks: {},
-}));
-
-export const POSTS = STATIC_POSTS;
 
 function categoryToLegacyTag(category: BlogCategory): Post["tag"] {
   if (category === "Automation") return "Automation";
@@ -155,20 +144,10 @@ function rowToPost(row: BlogPostRow): Post {
   };
 }
 
-export function findPost(slug: string): Post | undefined {
-  return STATIC_POSTS.find((p) => p.slug === slug);
-}
-
-function mergeWithDemoPosts(posts: Post[]): Post[] {
-  const seen = new Set(posts.map((post) => post.slug));
-  return [
-    ...posts,
-    ...STATIC_POSTS.filter((post) => !seen.has(post.slug)),
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
-
+// The DATABASE is the single source of truth: blog posts come only from the DB.
+// An empty table shows as an empty blog — there is no seed/demo fallback.
 export async function getAllPosts(): Promise<Post[]> {
-  if (!supabaseConfigured()) return STATIC_POSTS;
+  if (!supabaseConfigured()) return [];
   try {
     const supabase = await getSupabaseServer();
     const { data, error } = await supabase
@@ -177,15 +156,15 @@ export async function getAllPosts(): Promise<Post[]> {
       .eq("published", true)
       .or(`scheduled_at.is.null,scheduled_at.lte.${new Date().toISOString()}`)
       .order("date", { ascending: false });
-    if (error || !data || data.length === 0) return STATIC_POSTS;
-    return mergeWithDemoPosts((data as BlogPostRow[]).map(rowToPost));
+    if (error) return [];
+    return (data as BlogPostRow[] | null ?? []).map(rowToPost);
   } catch {
-    return STATIC_POSTS;
+    return [];
   }
 }
 
 export async function getPost(slug: string): Promise<Post | undefined> {
-  if (!supabaseConfigured()) return STATIC_POSTS.find((p) => p.slug === slug);
+  if (!supabaseConfigured()) return undefined;
   try {
     const supabase = await getSupabaseServer();
     const { data, error } = await supabase
@@ -195,7 +174,7 @@ export async function getPost(slug: string): Promise<Post | undefined> {
       .eq("published", true)
       .or(`scheduled_at.is.null,scheduled_at.lte.${new Date().toISOString()}`)
       .maybeSingle();
-    if (error || !data) return STATIC_POSTS.find((p) => p.slug === slug);
+    if (error || !data) return undefined;
     return rowToPost(data as BlogPostRow);
   } catch {
     return undefined;

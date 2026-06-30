@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { BLOGS } from "@/data/blogs";
 import { cleanList, estimateReadingTime, parseFaqItems, slugifyBlogTitle } from "@/lib/blog-seo";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin-auth";
@@ -138,83 +137,6 @@ function bustCaches(...slugs: string[]) {
   revalidatePath("/robots.txt");
   revalidatePath("/admin/blog");
   slugs.filter(Boolean).forEach((slug) => revalidatePath(`/blog/${slug}`));
-}
-
-function demoPostToRow(post: (typeof BLOGS)[number], sortIndex: number) {
-  const date = new Date(post.date);
-  const isoDate = Number.isNaN(date.getTime()) ? new Date().toISOString().slice(0, 10) : date.toISOString().slice(0, 10);
-  const tag =
-    post.category === "Automation" ? "Automation" :
-    post.category === "Subscriptions" ? "Compare" :
-    post.category === "Growth" ? "News" :
-    "Guide";
-
-  return {
-    slug: post.slug,
-    title: post.title,
-    excerpt: post.excerpt,
-    body: post.content,
-    date: isoDate,
-    read_mins: post.readingTime,
-    tag,
-    tags: post.tags,
-    author: post.author,
-    author_initials: post.authorInitials,
-    author_color: post.authorColor,
-    author_bio: "Sharing practical AI, subscription, and digital growth guides from the SubscribAI editorial team.",
-    author_image: null,
-    author_social_links: {},
-    category_name: post.category,
-    cover_url: post.image,
-    featured_image_alt: post.title,
-    featured: Boolean(post.featured || sortIndex < 3),
-    published: true,
-    status: "Published" as const,
-    scheduled_at: null,
-    meta_title: post.title,
-    meta_description: post.excerpt,
-    focus_keyword: post.tags[0] || null,
-    secondary_keywords: post.tags.slice(1),
-    canonical_url: null,
-    robots_index: true,
-    robots_follow: true,
-    og_title: post.title,
-    og_description: post.excerpt,
-    og_image: post.image,
-    twitter_title: post.title,
-    twitter_description: post.excerpt,
-    twitter_image: post.image,
-    schema_type: "BlogPosting" as const,
-    faq_items: [],
-    related_post_ids: [],
-  };
-}
-
-export async function importDemoPosts(): Promise<void> {
-  await requireAdmin("blog:write");
-  const supabase = await getSupabaseServer();
-  const slugs = BLOGS.map((post) => post.slug);
-  const { data, error: readError } = await supabase
-    .from("blog_posts")
-    .select("slug")
-    .in("slug", slugs);
-
-  if (readError) redirect(`/admin/blog?error=${encodeURIComponent(readError.message)}`);
-
-  const existing = new Set((data ?? []).map((row: { slug: string }) => row.slug));
-  const missing = BLOGS
-    .map((post, index) => demoPostToRow(post, index))
-    .filter((post) => !existing.has(post.slug));
-
-  if (missing.length === 0) {
-    redirect("/admin/blog?imported=0");
-  }
-
-  const { error } = await supabase.from("blog_posts").insert(missing);
-  if (error) redirect(`/admin/blog?error=${encodeURIComponent(error.message)}`);
-
-  bustCaches(...missing.map((post) => post.slug));
-  redirect(`/admin/blog?imported=${missing.length}`);
 }
 
 async function uniqueSlug(baseSlug: string, originalSlug?: string) {

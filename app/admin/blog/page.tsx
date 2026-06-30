@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { BLOGS } from "@/data/blogs";
 import { getPostStatus } from "@/lib/blog-seo";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import DeletePostButton from "./DeletePostButton";
-import { importDemoPosts } from "./actions";
 import type { BlogPostRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -20,8 +18,6 @@ export default async function BlogAdminPage({
     .select("*")
     .order("date", { ascending: false });
   const posts = (data ?? []) as BlogPostRow[];
-  const existingSlugs = new Set(posts.map((post) => post.slug));
-  const missingDemoCount = BLOGS.filter((post) => !existingSlugs.has(post.slug)).length;
 
   return (
     <>
@@ -48,20 +44,6 @@ export default async function BlogAdminPage({
           {params.imported && <>Imported {params.imported} demo post{params.imported === "1" ? "" : "s"}.</>}
           {params.error && <>{params.error}</>}
         </div>
-      )}
-
-      {missingDemoCount > 0 && (
-        <form action={importDemoPosts} className="admin-card" style={{ marginBottom: 14, display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <div>
-            <strong style={{ color: "var(--text)" }}>{missingDemoCount} demo blog post{missingDemoCount === 1 ? "" : "s"} missing from admin</strong>
-            <div style={{ color: "var(--text-muted)", fontSize: "0.86rem", marginTop: 4 }}>
-              Import them into Supabase so they appear here and can be edited like normal posts.
-            </div>
-          </div>
-          <button type="submit" className="admin-btn admin-btn-primary">
-            <i className="fa-solid fa-file-import" /> Import demo posts
-          </button>
-        </form>
       )}
 
       {error && (

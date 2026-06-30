@@ -7,15 +7,17 @@ import BlogMeta from "@/components/blog/BlogMeta";
 import RelatedPosts from "@/components/blog/RelatedPosts";
 import TagCloud from "@/components/blog/TagCloud";
 import { extractHeadings, slugifyBlogTitle } from "@/lib/blog-seo";
-import { STATIC_POSTS, getAllPosts, getPost } from "@/lib/blog";
+import { getAllPosts, getPost } from "@/lib/blog";
 import { getSupabaseServer } from "@/lib/supabase/server";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 
 export const revalidate = 60;
 
+// Blog posts render on-demand from the database (dynamicParams defaults to
+// true). No seed slugs are pre-generated — the DB is the single source of truth.
 export function generateStaticParams() {
-  return STATIC_POSTS.map((post) => ({ slug: post.slug }));
+  return [] as { slug: string }[];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
