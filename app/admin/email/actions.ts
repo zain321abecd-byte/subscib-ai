@@ -18,18 +18,33 @@ function uniqueEmails(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.filter((v): v is string => isEmail(v)).map((v) => v.trim().toLowerCase()))];
 }
 
-/** Email provider status — read from the backend (the working SMTP config). */
-export async function getEmailStatus(): Promise<{
+export type EmailStatus = {
   provider: string;
   configured: boolean;
   from: string;
   replyTo: string;
-}> {
+  /** false when the Next server couldn't reach/authenticate to the API. */
+  reachable: boolean;
+  error?: string;
+};
+
+/** Email provider status — read from the backend (the working SMTP config). */
+export async function getEmailStatus(): Promise<EmailStatus> {
   await requireAdmin("emails:read");
   try {
-    return await emailApi("/emails/status");
-  } catch {
-    return { provider: "smtp", configured: false, from: "", replyTo: "" };
+    const s = await emailApi<{ provider: string; configured: boolean; from: string; replyTo: string }>(
+      "/emails/status",
+    );
+    return { ...s, reachable: true };
+  } catch (err) {
+    return {
+      provider: "smtp",
+      configured: false,
+      from: "",
+      replyTo: "",
+      reachable: false,
+      error: err instanceof Error ? err.message : "Could not reach the email backend.",
+    };
   }
 }
 
