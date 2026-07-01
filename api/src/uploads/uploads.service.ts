@@ -1,21 +1,35 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { v2 as cloudinary } from "cloudinary";
 import * as crypto from "node:crypto";
 
 @Injectable()
 export class UploadsService {
+  private readonly logger = new Logger(UploadsService.name);
   private configured = false;
 
   private ensureConfigured() {
-    const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
-    const api_key = process.env.CLOUDINARY_API_KEY;
-    const api_secret = process.env.CLOUDINARY_API_SECRET;
-    if (!cloud_name || !api_key || !api_secret) {
-      throw new ServiceUnavailableException("Cloudinary is not configured.");
+    // Trim aggressively — Render's dashboard sometimes lets a trailing
+    // space slip into a pasted secret, which leaves the string truthy
+    // but Cloudinary rejects it with a cryptic auth error.
+    const cloud_name = (process.env.CLOUDINARY_CLOUD_NAME || "").trim();
+    const api_key    = (process.env.CLOUDINARY_API_KEY    || "").trim();
+    const api_secret = (process.env.CLOUDINARY_API_SECRET || "").trim();
+
+    const missing: string[] = [];
+    if (!cloud_name) missing.push("CLOUDINARY_CLOUD_NAME");
+    if (!api_key)    missing.push("CLOUDINARY_API_KEY");
+    if (!api_secret) missing.push("CLOUDINARY_API_SECRET");
+    if (missing.length > 0) {
+      this.logger.error(`Cloudinary env missing: ${missing.join(", ")}`);
+      throw new ServiceUnavailableException(
+        `Cloudinary is not configured. Missing on the backend: ${missing.join(", ")}. ` +
+        `Set these in your Render service's environment tab and redeploy.`,
+      );
     }
     if (!this.configured) {
       cloudinary.config({ cloud_name, api_key, api_secret, secure: true });
       this.configured = true;
+      this.logger.log(`Cloudinary configured (cloud_name=${cloud_name}, api_key=${api_key.slice(0, 4)}…).`);
     }
     return { cloud_name, api_key, api_secret };
   }
@@ -44,8 +58,13 @@ export class UploadsService {
   /** Signed-upload params for direct browser → Cloudinary uploads. */
   signUpload(folderInput?: string) {
     const { api_key, cloud_name, api_secret } = this.ensureConfigured();
-    const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
-    if (!uploadPreset) throw new ServiceUnavailableException("Cloudinary is not configured.");
+    const uploadPreset = (process.env.CLOUDINARY_UPLOAD_PRESET || "").trim();
+    if (!uploadPreset) {
+      throw new ServiceUnavailableException(
+        "Cloudinary is not configured. Missing CLOUDINARY_UPLOAD_PRESET on the backend. " +
+        "Set it in your Render service's environment tab and redeploy.",
+      );
+    }
 
     const folder = folderInput
       ? `subscribai/${String(folderInput).replace(/[^a-z0-9_\-/]/gi, "")}`

@@ -35,6 +35,19 @@ async function bootstrap() {
   await app.listen(port, "0.0.0.0");
   logger.log(`SubscribAI API listening on :${port}`);
   logger.log(`CORS allowed origins: ${allowedOrigins.join(", ")}`);
+
+  // Integrations sanity check — prints exactly which vendor env vars are
+  // present at boot so a broken deploy shows up in the Render logs
+  // instantly instead of only when someone tries to upload an image.
+  const check = (name: string) => (process.env[name] || "").trim().length > 0;
+  const cloudinaryOk = check("CLOUDINARY_CLOUD_NAME") && check("CLOUDINARY_API_KEY") && check("CLOUDINARY_API_SECRET");
+  logger.log(
+    `Integrations — cloudinary=${cloudinaryOk ? "ok" : "MISSING"} ` +
+    `[cloud_name=${check("CLOUDINARY_CLOUD_NAME") ? "✓" : "✗"} ` +
+    `api_key=${check("CLOUDINARY_API_KEY") ? "✓" : "✗"} ` +
+    `api_secret=${check("CLOUDINARY_API_SECRET") ? "✓" : "✗"} ` +
+    `upload_preset=${check("CLOUDINARY_UPLOAD_PRESET") ? "✓" : "✗"}]`,
+  );
 }
 
 bootstrap();
