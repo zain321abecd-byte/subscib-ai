@@ -89,7 +89,11 @@ export const apiPost = <T = any>(path: string, body?: unknown, opts?: Options) =
 export const apiPatch = <T = any>(path: string, body?: unknown, opts?: Options) => request<T>("PATCH", path, body, opts);
 export const apiDelete = <T = any>(path: string, opts?: Options) => request<T>("DELETE", path, undefined, opts);
 
-/** multipart/form-data upload (admin). Returns the parsed JSON ({ url, ... }). */
+/**
+ * multipart/form-data upload. Always sends the *portal* token because
+ * every consumer (ImagePicker / MultiImagePicker) lives inside /admin/*
+ * and the /uploads endpoint on the backend is portal-guarded.
+ */
 export async function apiUpload<T = any>(path: string, file: File, folder?: string): Promise<T> {
   const fd = new FormData();
   fd.append("file", file);
@@ -97,7 +101,7 @@ export async function apiUpload<T = any>(path: string, file: File, folder?: stri
 
   const res = await fetch(apiUrl(path), {
     method: "POST",
-    headers: await authHeaders(),
+    headers: await portalAuthHeaders(),
     body: fd,
   });
   const payload = await res.json().catch(() => ({}));

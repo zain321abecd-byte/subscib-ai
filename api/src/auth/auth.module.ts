@@ -5,6 +5,7 @@ import { AuthController } from "./auth.controller";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { PermissionGuard } from "./permission.guard";
+import { PortalTokenHelper } from "./portal-token.helper";
 import { UsersRepo } from "./users.repo";
 
 /**
@@ -17,7 +18,7 @@ import { UsersRepo } from "./users.repo";
 @Module({
   imports: [forwardRef(() => NotificationsModule)],
   controllers: [AuthController],
-  providers: [AuthService, UsersRepo, AuthGuard, AdminGuard, PermissionGuard],
-  exports: [AuthService, UsersRepo, AuthGuard, AdminGuard, PermissionGuard],
+  providers: [AuthService, UsersRepo, AuthGuard, AdminGuard, PermissionGuard, PortalTokenHelper],
+  exports: [AuthService, UsersRepo, AuthGuard, AdminGuard, PermissionGuard, PortalTokenHelper],
 })
 export class AuthModule {}

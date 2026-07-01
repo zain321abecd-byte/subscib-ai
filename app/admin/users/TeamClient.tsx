@@ -17,6 +17,52 @@
 import { useMemo, useState } from "react";
 import { apiBaseUrl, portalAuthHeaders } from "@/lib/api-client";
 
+/**
+ * Human-readable labels + icons for the permission catalog. Keeps the
+ * modal readable — nobody wants to stare at "products:write" all day.
+ * Keys not listed here fall back to the raw permission key.
+ */
+const PERMISSION_LABELS: Record<string, { label: string; hint?: string }> = {
+  "products:read":     { label: "View products" },
+  "products:write":    { label: "Create & edit products" },
+  "products:delete":   { label: "Delete products" },
+  "orders:read":       { label: "View orders" },
+  "orders:write":      { label: "Update order status" },
+  "orders:refund":     { label: "Process refunds" },
+  "orders:revenue":    { label: "See revenue figures", hint: "Sensitive — sales totals, MRR" },
+  "blog:read":         { label: "View blog posts" },
+  "blog:write":        { label: "Create & edit posts" },
+  "blog:delete":       { label: "Delete posts" },
+  "reviews:read":      { label: "View reviews" },
+  "reviews:moderate":  { label: "Approve / hide reviews" },
+  "reviews:delete":    { label: "Delete reviews" },
+  "freebies:read":     { label: "View freebies" },
+  "freebies:write":    { label: "Manage freebies" },
+  "freebies:delete":   { label: "Delete freebies" },
+  "stock:read":        { label: "View stock levels" },
+  "stock:write":       { label: "Update stock" },
+  "settings:read":     { label: "View settings" },
+  "settings:write":    { label: "Change settings", hint: "Payment keys, SMTP, site config" },
+  "emails:read":       { label: "View email history" },
+  "emails:send":       { label: "Send emails" },
+  "users:read":        { label: "View team page" },
+  "users:write":       { label: "Invite & manage teammates", hint: "Can add / remove group members" },
+  "analytics:view":    { label: "View analytics" },
+};
+
+const SECTION_ICONS: Record<string, string> = {
+  "Products": "fa-box",
+  "Orders & revenue": "fa-receipt",
+  "Blog": "fa-newspaper",
+  "Reviews": "fa-star",
+  "Freebies": "fa-gift",
+  "Stock": "fa-boxes-stacked",
+  "Settings": "fa-sliders",
+  "Emails": "fa-envelope",
+  "Users": "fa-users-gear",
+  "Analytics": "fa-chart-line",
+};
+
 export type PortalUserDto = {
   id: string;
   email: string;
@@ -58,13 +104,6 @@ async function api<T>(method: string, path: string, body?: unknown): Promise<T> 
   return data as T;
 }
 
-function initials(u: { name?: string | null; email: string }) {
-  const src = (u.name || u.email).trim();
-  const parts = src.split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return src.slice(0, 2).toUpperCase();
-}
-
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
   try { return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); }
@@ -87,7 +126,9 @@ export default function TeamClient({
   const [users, setUsers] = useState<PortalUserDto[]>(initialUsers);
   const [groups, setGroups] = useState<PortalGroupDto[]>(initialGroups);
   const [flash, setFlash] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
-  const [inviteOpen, setInviteOpen] = useState(false);
+  // Which group the invite modal is scoped to. Setting this to a group opens
+  // the modal — the group ID is baked in so the modal doesn't ask "which group?".
+  const [inviteFor, setInviteFor] = useState<PortalGroupDto | null>(null);
   const [editingGroup, setEditingGroup] = useState<PortalGroupDto | null>(null);
   const [editingUser, setEditingUser] = useState<PortalUserDto | null>(null);
 
@@ -122,11 +163,36 @@ export default function TeamClient({
         group_ids: input.groupIds,
       });
       notify("ok", `Invite sent to ${input.email}.`);
-      setInviteOpen(false);
+      setInviteFor(null);
       await refreshAll();
     } catch (err: any) {
       notify("err", err.message || "Invite failed.");
     }
+  }
+
+  /**
+   * Add an existing portal user to a group. Handy when the user was
+   * invited into group A but now needs to also see group B — the
+   * per-group + button opens the invite modal with a "pick existing"
+   * tab that calls this instead of firing a fresh invite email.
+   */
+  async function addExistingToGroup(userId: string, groupId: string) {
+    try {
+      await api("POST", `/admin/portal-groups/${groupId}/members/${userId}`, {});
+      notify("ok", "Added to group.");
+      setInviteFor(null);
+      await refreshAll();
+    } catch (err: any) { notify("err", err.message); }
+  }
+
+  /** Remove a user from a single group (leaves the account intact). */
+  async function removeFromGroup(groupId: string, userId: string, email: string) {
+    if (!confirm(`Remove ${email} from this group?`)) return;
+    try {
+      await api("DELETE", `/admin/portal-groups/${groupId}/members/${userId}`);
+      notify("ok", "Removed from group.");
+      await refreshAll();
+    } catch (err: any) { notify("err", err.message); }
   }
 
   async function resend(userId: string) {
@@ -194,6 +260,8 @@ export default function TeamClient({
   }
 
   // ─── render ────────────────────────────────────────────────────────
+  const totalPermissions = catalog.permissions.length;
+
   return (
     <div>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 16, flexWrap: "wrap" }}>
@@ -204,11 +272,8 @@ export default function TeamClient({
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button className="admin-btn admin-btn-ghost" onClick={() => setEditingGroup({ id: "", name: "", description: null, permissions: [], is_system: false, member_count: 0, members: [] })}>
+          <button className="admin-btn admin-btn-primary" onClick={() => setEditingGroup({ id: "", name: "", description: null, permissions: [], is_system: false, member_count: 0, members: [] })}>
             <i className="fa-solid fa-plus" /> New group
-          </button>
-          <button className="admin-btn admin-btn-primary" onClick={() => setInviteOpen(true)}>
-            <i className="fa-solid fa-user-plus" /> Invite teammate
           </button>
         </div>
       </header>
@@ -224,16 +289,18 @@ export default function TeamClient({
         </div>
       )}
 
-      <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ display: "grid", gap: 12 }}>
         {groups.map((g) => (
           <GroupCard
             key={g.id}
             group={g}
             allUsers={users}
+            totalPermissions={totalPermissions}
+            onInvite={() => setInviteFor(g)}
             onEdit={() => setEditingGroup(g)}
-            onResend={resend}
             onDelete={g.is_system ? undefined : () => deleteGroup(g)}
             onClickUser={(u) => setEditingUser(u)}
+            onRemoveMember={(u) => removeFromGroup(g.id, u.id, u.email)}
           />
         ))}
         {ungrouped.length > 0 && (
@@ -248,25 +315,25 @@ export default function TeamClient({
             </div>
             <MemberList
               users={ungrouped}
-              onResend={resend}
               onClick={(u) => setEditingUser(u)}
+              onRemove={undefined}
             />
           </div>
         )}
       </div>
 
-      {inviteOpen && (
+      {inviteFor && (
         <InviteModal
-          groups={groups}
+          group={inviteFor}
           existingUsers={users}
-          onClose={() => setInviteOpen(false)}
-          onSubmit={submitInvite}
+          onClose={() => setInviteFor(null)}
+          onSubmit={(input) => submitInvite({ ...input, groupIds: [inviteFor.id] })}
+          onAddExisting={(userId) => addExistingToGroup(userId, inviteFor.id)}
         />
       )}
       {editingGroup && (
         <GroupModal
           group={editingGroup}
-          allUsers={users}
           catalog={catalog}
           onClose={() => setEditingGroup(null)}
           onSave={saveGroup}
@@ -290,92 +357,156 @@ export default function TeamClient({
 
 // ─── group card ──────────────────────────────────────────────────────
 function GroupCard({
-  group, allUsers, onEdit, onResend, onDelete, onClickUser,
+  group, allUsers, totalPermissions, onInvite, onEdit, onDelete, onClickUser, onRemoveMember,
 }: {
   group: PortalGroupDto;
   allUsers: PortalUserDto[];
+  totalPermissions: number;
+  onInvite: () => void;
   onEdit: () => void;
-  onResend: (userId: string) => void;
   onDelete?: () => void;
   onClickUser: (u: PortalUserDto) => void;
+  onRemoveMember: (u: PortalUserDto) => void;
 }) {
   const members = group.members || [];
-  // Cross-ref against the top-level users list to get status, etc.
+  // Cross-ref against the top-level users list to get status, etc. — the
+  // /admin/portal-groups payload gives us a stripped-down member shape.
   const memberFull: PortalUserDto[] = members
     .map((m) => allUsers.find((u) => u.id === m.id))
     .filter(Boolean) as PortalUserDto[];
 
+  const hasAllPermissions = group.permissions.length === totalPermissions;
+
   return (
-    <section style={{ background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border)", padding: 18 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12 }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: "1.05rem", fontFamily: "var(--font-heading)" }}>{group.name}</h2>
-            {group.is_system && <span style={pillStyle("neutral")}>BUILT-IN</span>}
-            <span style={pillStyle("muted")}>{memberFull.length} {memberFull.length === 1 ? "member" : "members"}</span>
-            <span style={pillStyle("muted")}>{group.permissions.length} permissions</span>
-          </div>
-          {group.description && <p style={{ color: "var(--text-muted)", margin: "6px 0 0", fontSize: "0.85rem" }}>{group.description}</p>}
+    <section style={{ background: "var(--surface)", borderRadius: 10, border: "1px solid var(--border)", overflow: "hidden" }}>
+      {/* Header bar — tinted background, group name + inline actions on the right. */}
+      <div
+        style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "10px 14px",
+          background: "var(--surface-2, rgba(255,255,255,0.03))",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <i className="fa-solid fa-users" style={{ color: "var(--text-muted)", fontSize: 13 }} />
+        <div style={{ fontWeight: 700, letterSpacing: "0.06em", fontSize: "0.82rem", textTransform: "uppercase" }}>
+          {group.name}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="admin-btn admin-btn-ghost" onClick={onEdit}><i className="fa-solid fa-pen" /> Edit</button>
-          {onDelete && <button className="admin-btn admin-btn-ghost" onClick={onDelete} style={{ color: "#ef4444" }}><i className="fa-solid fa-trash" /></button>}
-        </div>
+        {group.is_system && (
+          <span style={{ ...pillStyle("neutral"), fontSize: "0.62rem" }}>BUILT-IN</span>
+        )}
+        <div style={{ flex: 1 }} />
+        {hasAllPermissions && (
+          <span style={{
+            padding: "3px 10px", borderRadius: 4,
+            border: "1px solid var(--border)",
+            fontSize: "0.68rem", letterSpacing: "0.06em", fontWeight: 700,
+            color: "var(--text-muted)",
+          }}>
+            ALL PERMISSIONS
+          </span>
+        )}
+        <IconBtn icon="fa-plus" title="Invite teammate to this group" onClick={onInvite} accent />
+        <IconBtn icon="fa-gear" title="Edit permissions" onClick={onEdit} />
+        {onDelete && <IconBtn icon="fa-trash" title="Delete group" onClick={onDelete} danger />}
       </div>
 
+      {/* Body — member rows or empty state. */}
       {memberFull.length === 0 ? (
-        <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", padding: "8px 4px" }}>No members yet.</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", padding: "14px 16px", fontStyle: "italic" }}>
+          No users in this group
+        </div>
       ) : (
-        <MemberList users={memberFull} onResend={onResend} onClick={onClickUser} />
+        <MemberList
+          users={memberFull}
+          onClick={onClickUser}
+          onRemove={onRemoveMember}
+        />
       )}
     </section>
   );
 }
 
-function MemberList({
-  users, onResend, onClick,
-}: { users: PortalUserDto[]; onResend: (id: string) => void; onClick: (u: PortalUserDto) => void }) {
+/** Small round action button used in each group's header. */
+function IconBtn({
+  icon, onClick, title, accent, danger,
+}: { icon: string; onClick: () => void; title: string; accent?: boolean; danger?: boolean }) {
+  const color = danger ? "#ef4444" : accent ? "#f97316" : "var(--text-muted)";
   return (
-    <div style={{ display: "grid", gap: 6 }}>
-      {users.map((u) => (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      title={title}
+      aria-label={title}
+      style={{
+        width: 30, height: 30, borderRadius: 6,
+        display: "grid", placeItems: "center",
+        background: "transparent",
+        border: "1px solid var(--border)",
+        color, cursor: "pointer",
+        fontSize: 12,
+      }}
+    >
+      <i className={`fa-solid ${icon}`} />
+    </button>
+  );
+}
+
+/**
+ * Flat member rows — matches the screenshot: user icon, name (or the
+ * "INVITE NOT ACCEPTED" pill if pending), then the email pushed to the
+ * right, and a red trash icon that removes them from the *group*
+ * (not the account). Clicking the row itself opens the user drawer.
+ */
+function MemberList({
+  users, onClick, onRemove,
+}: {
+  users: PortalUserDto[];
+  onClick: (u: PortalUserDto) => void;
+  /** Undefined when the row shouldn't offer a "remove from group" action (e.g. the ungrouped list). */
+  onRemove: ((u: PortalUserDto) => void) | undefined;
+}) {
+  return (
+    <div>
+      {users.map((u, i) => (
         <div
           key={u.id}
           onClick={() => onClick(u)}
           role="button"
           tabIndex={0}
-          style={{
-            display: "flex", alignItems: "center", gap: 12, padding: "8px 10px",
-            borderRadius: 8, background: "var(--surface-2, rgba(255,255,255,0.03))",
-            cursor: "pointer", border: "1px solid transparent",
-          }}
           onKeyDown={(e) => { if (e.key === "Enter") onClick(u); }}
+          style={{
+            display: "flex", alignItems: "center", gap: 12,
+            padding: "10px 16px",
+            borderTop: i === 0 ? "none" : "1px solid var(--border)",
+            cursor: "pointer",
+          }}
         >
-          <div style={{
-            width: 34, height: 34, borderRadius: "50%",
-            background: "linear-gradient(135deg, #f97316, #fb923c)",
-            display: "grid", placeItems: "center", color: "#fff",
-            fontWeight: 700, fontSize: 12, flexShrink: 0,
-          }}>{initials(u)}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontWeight: 600 }}>{u.name || u.email}</span>
-              {u.is_superadmin && <span style={pillStyle("gold")}>SUPERADMIN</span>}
-              {u.status === "invited" && <span style={pillStyle("warn")}>INVITE NOT ACCEPTED</span>}
-              {u.status === "disabled" && <span style={pillStyle("neutral")}>DISABLED</span>}
-            </div>
-            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-              {u.email}
-              {u.status === "active" && <> · last login {fmtDate(u.last_login_at)}</>}
-              {u.status === "invited" && <> · invited {fmtDate(u.invite_sent_at)}</>}
-            </div>
+          <i className="fa-solid fa-user" style={{ color: "var(--text-muted)", fontSize: 12, width: 14 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, flexWrap: "wrap" }}>
+            {u.status === "invited" ? (
+              <span style={pillStyle("warn")}>INVITE NOT ACCEPTED</span>
+            ) : (
+              <span style={{ fontWeight: 500 }}>{u.name || u.email.split("@")[0]}</span>
+            )}
+            {u.is_superadmin && <span style={pillStyle("gold")}>SUPERADMIN</span>}
+            {u.status === "disabled" && <span style={pillStyle("neutral")}>DISABLED</span>}
           </div>
-          {u.status === "invited" && (
+          <div style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>{u.email}</div>
+          {onRemove && (
             <button
-              className="admin-btn admin-btn-ghost"
-              onClick={(e) => { e.stopPropagation(); onResend(u.id); }}
-              style={{ fontSize: "0.8rem" }}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onRemove(u); }}
+              title="Remove from group"
+              aria-label="Remove from group"
+              style={{
+                width: 28, height: 28, borderRadius: 6,
+                display: "grid", placeItems: "center",
+                background: "transparent", border: "none",
+                color: "#ef4444", cursor: "pointer",
+              }}
             >
-              <i className="fa-solid fa-paper-plane" /> Resend
+              <i className="fa-solid fa-trash" style={{ fontSize: 12 }} />
             </button>
           )}
         </div>
@@ -384,48 +515,63 @@ function MemberList({
   );
 }
 
-// ─── invite modal ────────────────────────────────────────────────────
+/**
+ * Group-scoped invite modal. The target group is fixed (comes from
+ * whichever "+" was clicked on the group header), so there's no group
+ * picker inside — just email + name, plus an "or pick existing
+ * teammate" tab that adds an already-invited person to this group
+ * without sending a fresh invite email.
+ */
 function InviteModal({
-  groups, existingUsers, onClose, onSubmit,
+  group, existingUsers, onClose, onSubmit, onAddExisting,
 }: {
-  groups: PortalGroupDto[];
+  group: PortalGroupDto;
   existingUsers: PortalUserDto[];
   onClose: () => void;
-  onSubmit: (input: { email: string; name: string; groupIds: string[] }) => Promise<void>;
+  onSubmit: (input: { email: string; name: string }) => Promise<void>;
+  onAddExisting: (userId: string) => Promise<void>;
 }) {
   const [mode, setMode] = useState<"new" | "existing">("new");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [pickedExisting, setPickedExisting] = useState<string>("");
-  const [groupIds, setGroupIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const eligibleExisting = existingUsers.filter((u) => u.status !== "active");
-
-  function toggleGroup(id: string) {
-    setGroupIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
-  }
+  // Existing portal users who aren't already members of THIS group.
+  const alreadyIn = new Set((group.members || []).map((m) => m.id));
+  const eligibleExisting = existingUsers.filter((u) => !alreadyIn.has(u.id));
 
   async function submit() {
     setErr(null);
-    let target = { email: email.trim(), name: name.trim() };
-    if (mode === "existing") {
-      const picked = existingUsers.find((u) => u.id === pickedExisting);
-      if (!picked) { setErr("Pick a user."); return; }
-      target = { email: picked.email, name: picked.name || "" };
-    } else if (!target.email) { setErr("Enter an email address."); return; }
-    if (groupIds.length === 0) { setErr("Pick at least one group so they see something once they accept."); return; }
     setBusy(true);
-    try { await onSubmit({ email: target.email, name: target.name, groupIds }); }
-    finally { setBusy(false); }
+    try {
+      if (mode === "existing") {
+        if (!pickedExisting) { setErr("Pick a teammate."); setBusy(false); return; }
+        await onAddExisting(pickedExisting);
+      } else {
+        if (!email.trim()) { setErr("Enter an email address."); setBusy(false); return; }
+        await onSubmit({ email: email.trim(), name: name.trim() });
+      }
+    } finally { setBusy(false); }
   }
 
   return (
-    <ModalShell onClose={onClose} title="Invite teammate">
+    <ModalShell onClose={onClose} title={`Invite to ${group.name}`}>
+      <p style={{ color: "var(--text-muted)", margin: "0 0 16px", fontSize: "0.88rem" }}>
+        They'll get {group.permissions.length} permission{group.permissions.length === 1 ? "" : "s"} as soon as they accept.
+      </p>
+
       <div style={{ display: "flex", gap: 6, marginBottom: 16, background: "var(--surface-2, rgba(255,255,255,0.04))", padding: 4, borderRadius: 8 }}>
-        <button className={`admin-btn ${mode === "new" ? "admin-btn-primary" : "admin-btn-ghost"}`} style={{ flex: 1 }} onClick={() => setMode("new")}>New email</button>
-        <button className={`admin-btn ${mode === "existing" ? "admin-btn-primary" : "admin-btn-ghost"}`} style={{ flex: 1 }} onClick={() => setMode("existing")} disabled={eligibleExisting.length === 0}>
+        <button className={`admin-btn ${mode === "new" ? "admin-btn-primary" : "admin-btn-ghost"}`} style={{ flex: 1 }} onClick={() => setMode("new")}>
+          New email
+        </button>
+        <button
+          className={`admin-btn ${mode === "existing" ? "admin-btn-primary" : "admin-btn-ghost"}`}
+          style={{ flex: 1 }}
+          onClick={() => setMode("existing")}
+          disabled={eligibleExisting.length === 0}
+        >
           Existing teammate ({eligibleExisting.length})
         </button>
       </div>
@@ -433,7 +579,7 @@ function InviteModal({
       {mode === "new" ? (
         <div style={{ display: "grid", gap: 12 }}>
           <label style={labelStyle}>Email
-            <input className="admin-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="alex@subscribai.com" />
+            <input className="admin-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="alex@subscribai.com" autoFocus />
           </label>
           <label style={labelStyle}>Name (optional)
             <input className="admin-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex Chen" />
@@ -450,29 +596,12 @@ function InviteModal({
         </label>
       )}
 
-      <div style={{ marginTop: 18 }}>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>Assign groups</div>
-        <div style={{ display: "grid", gap: 6, maxHeight: 220, overflowY: "auto" }}>
-          {groups.map((g) => (
-            <label key={g.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: 10, border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer" }}>
-              <input type="checkbox" checked={groupIds.includes(g.id)} onChange={() => toggleGroup(g.id)} style={{ marginTop: 3 }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600 }}>{g.name}</div>
-                <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                  {g.description || `${g.permissions.length} permissions`}
-                </div>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-
       {err && <div style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: 12 }}>{err}</div>}
 
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
         <button className="admin-btn admin-btn-ghost" onClick={onClose} disabled={busy}>Cancel</button>
         <button className="admin-btn admin-btn-primary" onClick={submit} disabled={busy}>
-          {busy ? "Sending…" : "Send invite"}
+          {busy ? (mode === "existing" ? "Adding…" : "Sending…") : (mode === "existing" ? "Add to group" : "Send invite")}
         </button>
       </div>
     </ModalShell>
@@ -481,10 +610,9 @@ function InviteModal({
 
 // ─── group modal ─────────────────────────────────────────────────────
 function GroupModal({
-  group, allUsers, catalog, onClose, onSave, onDelete,
+  group, catalog, onClose, onSave, onDelete,
 }: {
   group: PortalGroupDto;
-  allUsers: PortalUserDto[];
   catalog: Catalog;
   onClose: () => void;
   onSave: (input: { id?: string; name: string; description: string; permissions: string[]; memberIds: string[] }) => Promise<void>;
@@ -493,16 +621,12 @@ function GroupModal({
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description || "");
   const [permissions, setPermissions] = useState<string[]>(group.permissions);
-  const [memberIds, setMemberIds] = useState<string[]>((group.members || []).map((m) => m.id));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const isNew = !group.id;
 
   function togglePerm(k: string) {
     setPermissions((prev) => prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]);
-  }
-  function toggleMember(id: string) {
-    setMemberIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   }
   function toggleGroupBulk(keys: string[]) {
     setPermissions((prev) => {
@@ -521,7 +645,10 @@ function GroupModal({
         name: name.trim(),
         description: description.trim(),
         permissions,
-        memberIds,
+        // Existing membership is preserved server-side because we send the
+        // full current list back — that way editing permissions here doesn't
+        // accidentally wipe members added via the + / trash on the card.
+        memberIds: (group.members || []).map((m) => m.id),
       });
     } finally { setBusy(false); }
   }
@@ -537,54 +664,87 @@ function GroupModal({
         </label>
       </div>
 
-      <div style={{ marginTop: 18 }}>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>Permissions</div>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", margin: "0 0 10px" }}>
+      <div style={{ marginTop: 22 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
+          <div style={{ fontWeight: 600, fontSize: "1rem" }}>Permissions</div>
+          <div style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>
+            {permissions.length} of {catalog.permissions.length} enabled
+          </div>
+        </div>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", margin: "0 0 14px" }}>
           Members of this group get every permission checked here. Superadmins bypass this list entirely.
         </p>
-        <div style={{ display: "grid", gap: 12 }}>
+        <div style={{ display: "grid", gap: 10 }}>
           {catalog.groups.map((section) => {
             const allOn = section.keys.every((k) => permissions.includes(k));
-            const someOn = section.keys.some((k) => permissions.includes(k));
+            const someOn = section.keys.some((k) => permissions.includes(k)) && !allOn;
+            const icon = SECTION_ICONS[section.label] || "fa-shield";
             return (
-              <div key={section.label} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600 }}>{section.label}</div>
+              <div
+                key={section.label}
+                style={{
+                  border: "1px solid var(--border)",
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  background: allOn ? "rgba(249,115,22,0.05)" : "transparent",
+                  transition: "background 0.15s ease",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <i className={`fa-solid ${icon}`} style={{ color: allOn ? "#f97316" : "var(--text-muted)", fontSize: 14 }} />
+                    <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>{section.label}</div>
+                    <span style={{ ...pillStyle(allOn ? "gold" : "muted"), fontSize: "0.68rem" }}>
+                      {section.keys.filter((k) => permissions.includes(k)).length}/{section.keys.length}
+                    </span>
+                  </div>
                   <button
                     type="button"
-                    className="admin-btn admin-btn-ghost"
-                    style={{ fontSize: "0.8rem" }}
                     onClick={() => toggleGroupBulk(section.keys)}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      color: allOn ? "#f97316" : "var(--text-muted)",
+                      fontSize: "0.78rem", fontWeight: 600, padding: "2px 6px",
+                    }}
                   >
-                    {allOn ? "Uncheck all" : someOn ? "Check all" : "Check all"}
+                    {allOn ? "Uncheck all" : someOn ? "Check remaining" : "Check all"}
                   </button>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 6 }}>
-                  {section.keys.map((k) => (
-                    <label key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.88rem" }}>
-                      <input type="checkbox" checked={permissions.includes(k)} onChange={() => togglePerm(k)} />
-                      <code style={{ fontSize: "0.8rem" }}>{k}</code>
-                    </label>
-                  ))}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 4 }}>
+                  {section.keys.map((k) => {
+                    const meta = PERMISSION_LABELS[k];
+                    const on = permissions.includes(k);
+                    return (
+                      <label
+                        key={k}
+                        style={{
+                          display: "flex", alignItems: "flex-start", gap: 10,
+                          padding: "8px 10px", borderRadius: 6,
+                          background: on ? "rgba(249,115,22,0.08)" : "transparent",
+                          cursor: "pointer",
+                          border: `1px solid ${on ? "rgba(249,115,22,0.25)" : "transparent"}`,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={() => togglePerm(k)}
+                          style={{ marginTop: 2, accentColor: "#f97316" }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: "0.87rem", fontWeight: 500 }}>{meta?.label || k}</div>
+                          {meta?.hint && (
+                            <div style={{ color: "var(--text-muted)", fontSize: "0.72rem", marginTop: 2 }}>{meta.hint}</div>
+                          )}
+                          <code style={{ display: "block", color: "var(--text-muted)", fontSize: "0.68rem", marginTop: 2, opacity: 0.6 }}>{k}</code>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
-        </div>
-      </div>
-
-      <div style={{ marginTop: 18 }}>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>Members</div>
-        <div style={{ display: "grid", gap: 4, maxHeight: 200, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 8, padding: 8 }}>
-          {allUsers.length === 0 && <div style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>No teammates yet — invite some first.</div>}
-          {allUsers.map((u) => (
-            <label key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 6px", borderRadius: 6, cursor: "pointer" }}>
-              <input type="checkbox" checked={memberIds.includes(u.id)} onChange={() => toggleMember(u.id)} />
-              <span style={{ flex: 1 }}>{u.name || u.email}</span>
-              <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{u.email}</span>
-              {u.status === "invited" && <span style={pillStyle("warn")}>invited</span>}
-            </label>
-          ))}
         </div>
       </div>
 

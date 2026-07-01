@@ -9,11 +9,10 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { AuthGuard } from "./auth.guard";
-import { AuthService } from "./auth.service";
-import { UsersRepo } from "./users.repo";
-import { hasPermissionFor, parseOverride, type PermissionKey, type Role } from "./permissions";
 import { type AuthedRequest, extractBearerToken } from "./auth.types";
+import { AdminGuard } from "./admin.guard";
+import { PortalTokenHelper } from "./portal-token.helper";
+import type { PermissionKey } from "./permissions";
 
 const PERMISSION_META_KEY = "subscribai:required-permissions";
 
@@ -24,13 +23,14 @@ const PERMISSION_META_KEY = "subscribai:required-permissions";
  *   @RequirePermission("orders:read", "orders:revenue")
  *   getRevenueReport() { ... }
  *
- * Applies AuthGuard + PermissionGuard together — the route is automatically
- * protected; no separate @UseGuards() is needed.
+ * Composes AdminGuard + PermissionGuard so a signed-in teammate is
+ * required AND their portal-group union of permissions must include
+ * every key listed. Superadmin bypasses.
  */
 export function RequirePermission(...keys: PermissionKey[]) {
   return applyDecorators(
     SetMetadata(PERMISSION_META_KEY, keys),
-    UseGuards(AuthGuard, PermissionGuard),
+    UseGuards(AdminGuard, PermissionGuard),
   );
 }
 
@@ -38,8 +38,7 @@ export function RequirePermission(...keys: PermissionKey[]) {
 export class PermissionGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly auth: AuthService,
-    private readonly users: UsersRepo,
+    private readonly portal: PortalTokenHelper,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -47,33 +46,35 @@ export class PermissionGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!required || required.length === 0) return true; // no @RequirePermission → pass
+    if (!required || required.length === 0) return true;
 
     const req = context.switchToHttp().getRequest<AuthedRequest>();
-    const token = req.accessToken || extractBearerToken(req);
-    if (!token) throw new UnauthorizedException("Missing Bearer token");
 
-    const payload = this.auth.verifyJwt(token);
-    const user = await this.users.findById(payload.sub);
-    if (!user) throw new UnauthorizedException("User no longer exists");
-    if (!user.email_verified_at) throw new UnauthorizedException("Email not verified");
+    // AdminGuard usually runs first (via the @RequirePermission composition)
+    // and stashes the resolved permission set on the request — reuse it to
+    // avoid a second JWT verify + DB round trip.
+    let isSuper: boolean | undefined = (req as any).portalIsSuper;
+    let permissions: Set<string> | undefined = (req as any).portalPermissions;
 
-    const override = parseOverride(user.permissions);
-    for (const key of required) {
-      if (!hasPermissionFor(user.role as Role, override, key)) {
-        throw new ForbiddenException(`Missing permission: ${key}`);
-      }
+    if (isSuper === undefined || permissions === undefined) {
+      const token = req.accessToken || extractBearerToken(req);
+      if (!token) throw new UnauthorizedException("Missing Bearer token");
+      const principal = await this.portal.resolve(token);
+      isSuper = principal.isSuper;
+      permissions = principal.permissions;
+      // Fill req.user so @CurrentUser() consumers still see something.
+      req.user = {
+        id: principal.id, email: principal.email, name: principal.name,
+        role: isSuper ? "superadmin" : "admin",
+        email_verified_at: new Date().toISOString(),
+      };
+      req.accessToken = token;
     }
 
-    // Surface the resolved user on the request — handlers can read @CurrentUser().
-    req.user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      email_verified_at: user.email_verified_at,
-    };
-    req.accessToken = token;
+    if (isSuper) return true;
+    for (const key of required) {
+      if (!permissions.has(key)) throw new ForbiddenException(`Missing permission: ${key}`);
+    }
     return true;
   }
 }

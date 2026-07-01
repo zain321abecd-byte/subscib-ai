@@ -1,45 +1,41 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
-import { AuthService } from "./auth.service";
-import { UsersRepo } from "./users.repo";
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { type AuthedRequest, extractBearerToken } from "./auth.types";
+import { PortalTokenHelper } from "./portal-token.helper";
 
 /**
- * Requires an authenticated user whose public.users.role === 'admin'.
+ * Any active portal user (Editor / Manager / Admin / Superadmin) can pass
+ * this guard — it's the "you are a signed-in teammate" gate. Finer
+ * per-permission checks live in @RequirePermission(...).
  *
- * This guard is the real protection on admin endpoints — feature services
- * use the service-role Supabase client which bypasses RLS, so admin status
- * MUST be enforced here.
+ * The name is historical — before the portal_users cutover this guard
+ * validated a customer JWT + checked public.users.role. It now validates
+ * a portal JWT. Every existing @UseGuards(AdminGuard) controller keeps
+ * working with no code change on the controller side.
  */
 @Injectable()
 export class AdminGuard implements CanActivate {
-  constructor(
-    private readonly auth: AuthService,
-    private readonly users: UsersRepo,
-  ) {}
+  constructor(private readonly portal: PortalTokenHelper) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<AuthedRequest>();
     const token = extractBearerToken(req);
     if (!token) throw new UnauthorizedException("Missing Bearer token");
 
-    const payload = this.auth.verifyJwt(token);
-    const user = await this.users.findById(payload.sub);
-    if (!user) throw new UnauthorizedException("User no longer exists");
-    if (!user.email_verified_at) throw new UnauthorizedException("Email not verified");
-    // Any back-office role can hit endpoints gated by AdminGuard — customers
-    // can't. Finer-grained access (e.g. only managers can refund) is enforced
-    // by @RequirePermission(...) on the specific routes that need it.
-    const backOfficeRoles = new Set(["superadmin", "admin", "manager", "editor"]);
-    if (!backOfficeRoles.has(user.role)) throw new ForbiddenException("Admin access required");
+    const principal = await this.portal.resolve(token);
 
+    // Populate req.user in a shape compatible with the old AdminGuard so any
+    // downstream code that reads @CurrentUser() doesn't need to change.
     req.user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      email_verified_at: user.email_verified_at,
+      id: principal.id,
+      email: principal.email,
+      name: principal.name,
+      role: principal.isSuper ? "superadmin" : "admin",
+      email_verified_at: new Date().toISOString(),
     };
     req.accessToken = token;
+    // Stash the permission set for PermissionGuard to reuse without re-hitting the DB.
+    (req as any).portalPermissions = principal.permissions;
+    (req as any).portalIsSuper = principal.isSuper;
     return true;
   }
 }

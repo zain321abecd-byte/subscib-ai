@@ -1,29 +1,21 @@
 import {
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
-import { AuthService } from "../auth/auth.service";
-import { UsersRepo } from "../auth/users.repo";
+import { PortalTokenHelper } from "../auth/portal-token.helper";
 import { type AuthedRequest, extractBearerToken } from "../auth/auth.types";
 
 /**
  * Allows a request if EITHER:
  *   1. it carries a valid `x-internal-token` header matching INTERNAL_API_TOKEN
  *      (server-to-server calls from the Next.js admin Server Actions), OR
- *   2. it carries a back-office admin JWT (legacy direct calls).
- *
- * This lets the admin email page reuse the API's already-working SMTP config
- * without duplicating credentials into the Next.js environment.
+ *   2. it carries a valid portal JWT (a signed-in teammate).
  */
 @Injectable()
 export class InternalOrAdminGuard implements CanActivate {
-  constructor(
-    private readonly auth: AuthService,
-    private readonly users: UsersRepo,
-  ) {}
+  constructor(private readonly portal: PortalTokenHelper) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<AuthedRequest>();
@@ -35,26 +27,21 @@ export class InternalOrAdminGuard implements CanActivate {
       return true;
     }
 
-    // 2 — fall back to an authenticated back-office user.
+    // 2 — fall back to an authenticated portal teammate.
     const token = extractBearerToken(req);
     if (!token) throw new UnauthorizedException("Missing Bearer token or internal token");
 
-    const payload = this.auth.verifyJwt(token);
-    const user = await this.users.findById(payload.sub);
-    if (!user) throw new UnauthorizedException("User no longer exists");
-    if (!user.email_verified_at) throw new UnauthorizedException("Email not verified");
-
-    const backOfficeRoles = new Set(["superadmin", "admin", "manager", "editor"]);
-    if (!backOfficeRoles.has(user.role)) throw new ForbiddenException("Admin access required");
-
+    const principal = await this.portal.resolve(token);
     req.user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      email_verified_at: user.email_verified_at,
+      id: principal.id,
+      email: principal.email,
+      name: principal.name,
+      role: principal.isSuper ? "superadmin" : "admin",
+      email_verified_at: new Date().toISOString(),
     };
     req.accessToken = token;
+    (req as any).portalPermissions = principal.permissions;
+    (req as any).portalIsSuper = principal.isSuper;
     return true;
   }
 }
