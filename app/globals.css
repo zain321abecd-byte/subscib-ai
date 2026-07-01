@@ -9340,12 +9340,68 @@ select.input::-ms-expand { display: none; }
     left: 0;
     width: 240px;
     height: 100dvh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     overscroll-behavior: contain;
     border-right: 1px solid var(--border);
     border-bottom: none;
   }
+  .admin-side .admin-nav { flex: 1; min-height: 0; overflow-y: auto; }
 }
+/* Pinned user card at the bottom of the sidebar. */
+.admin-side-user {
+  position: relative;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.admin-side-user-trigger {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  border-radius: 10px;
+  transition: background .12s;
+}
+.admin-side-user-trigger:hover { background: var(--surface-2, rgba(255,255,255,0.04)); }
+.admin-user-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 10px;
+  right: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.4);
+  padding: 4px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.admin-user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.admin-user-menu-item:hover { background: var(--surface-2, rgba(255,255,255,0.04)); color: var(--text); }
+.admin-user-menu-item i { width: 16px; text-align: center; opacity: .9; }
+.admin-user-menu-item.is-danger:hover { color: #ef4444; }
 .admin-side-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 18px; gap: 12px;
@@ -9373,15 +9429,19 @@ select.input::-ms-expand { display: none; }
 @media (min-width: 880px) { .admin-mobile-toggle { display: none; } }
 
 .admin-nav {
-  display: grid; gap: 2px;
-  padding: 4px 10px 18px;
+  display: grid; gap: 1px;
+  padding: 4px 10px 12px;
+  /* The nav grows to fill the sidebar (flex: 1 on desktop); without
+     align-content:start the grid distributes the extra vertical space
+     between its rows and blows out the section spacing. */
+  align-content: start;
 }
 .admin-nav.is-collapsed { display: none; }
 @media (min-width: 880px) { .admin-nav.is-collapsed { display: grid; } }
 .admin-nav-link {
   display: flex; align-items: center; gap: 12px;
-  padding: 10px 12px; border-radius: 10px;
-  color: var(--text-soft); font-size: 0.93rem;
+  padding: 7px 12px; border-radius: 8px;
+  color: var(--text-soft); font-size: 0.9rem;
   text-decoration: none; transition: background .15s, color .15s;
 }
 .admin-nav-link i { width: 18px; text-align: center; opacity: .9; }
@@ -9391,9 +9451,13 @@ select.input::-ms-expand { display: none; }
   font-weight: 600;
 }
 .admin-nav-section {
-  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--text-muted); padding: 14px 12px 6px;
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); padding: 4px 12px 2px;
+  margin-top: 6px;
 }
+/* First section shouldn't have as much top padding since the sidebar
+   head already provides breathing room. */
+.admin-nav > div:first-child .admin-nav-section { margin-top: 0; padding-top: 2px; }
 
 /* Main */
 .admin-main {
@@ -9502,6 +9566,18 @@ select.input::-ms-expand { display: none; }
 .admin-input:focus, .admin-textarea:focus, .admin-select:focus {
   outline: none; border-color: var(--brand-400);
   box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.18);
+}
+.admin-input::placeholder,
+.admin-textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.55;
+  font-style: normal;
+  letter-spacing: 0.01em;
+}
+.admin-input:disabled,
+.admin-textarea:disabled,
+.admin-select:disabled {
+  opacity: 0.5; cursor: not-allowed;
 }
 .admin-textarea { min-height: 100px; resize: vertical; line-height: 1.55; }
 .admin-help { color: var(--text-muted); font-size: 0.8rem; margin-top: 6px; }

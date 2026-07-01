@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { requiredPermissionForPath, type PermissionKey, type Role } from "@/lib/permissions";
 import AdminNavProgress from "./AdminNavProgress";
@@ -160,24 +160,10 @@ export default function AdminShell({
               })}
             </div>
           ))}
-          <div style={{ marginTop: 10, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
-            {me ? (
-              <div style={{ padding: "8px 12px", marginBottom: 8, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>
-                Signed in as
-                <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 13 }}>{me.name || me.email}</div>
-                {me.isSuper && <div style={{ color: "#f59e0b", fontSize: 11, marginTop: 2 }}>Superadmin</div>}
-              </div>
-            ) : null}
-            <Link href="/" className="admin-nav-link" onClick={() => setNavOpen(false)}>
-              <i className="fa-solid fa-arrow-up-right-from-square"></i>
-              View site
-            </Link>
-            <button type="button" className="admin-nav-link" onClick={signOut} style={{ width: "100%", background: "none", border: "none", textAlign: "left", cursor: "pointer", font: "inherit" }}>
-              <i className="fa-solid fa-right-from-bracket"></i>
-              Sign out
-            </button>
-          </div>
         </nav>
+        {/* Pinned user card at the bottom — sibling of <nav> so it always
+            stays in view while the nav scrolls. */}
+        {me && <UserCardMenu me={me} onSignOut={signOut} />}
       </aside>
       <main className="admin-main">
         {sectionPermission && !hasPermission(sectionPermission) ? (
@@ -186,6 +172,143 @@ export default function AdminShell({
           children
         )}
       </main>
+    </div>
+  );
+}
+
+/**
+ * Bottom-pinned user card with a click-to-open menu (Settings +
+ * Sign out). The card lives in .admin-side-user, styled via
+ * globals.css so it survives sidebar scrolling. The menu pops
+ * *upward* from the card because it sits at the bottom of the pane.
+ */
+function UserCardMenu({
+  me, onSignOut,
+}: { me: { id: string; email: string; name: string | null; isSuper: boolean }; onSignOut: () => void }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  // Close on outside click / Escape.
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="admin-side-user" ref={wrapRef}>
+      <button
+        type="button"
+        className="admin-side-user-trigger"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <UserCard me={me} />
+      </button>
+
+      {open && (
+        <div className="admin-user-menu" role="menu">
+          <Link
+            href="/admin/settings"
+            className="admin-user-menu-item"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+          >
+            <i className="fa-solid fa-gear" />
+            Settings
+          </Link>
+          <button
+            type="button"
+            className="admin-user-menu-item is-danger"
+            role="menuitem"
+            onClick={() => { setOpen(false); onSignOut(); }}
+          >
+            <i className="fa-solid fa-right-from-bracket" />
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Compact "signed in as" card. Avatar + display name + role pill.
+ * Truncates long emails so the card doesn't push the nav around.
+ */
+function UserCard({ me }: { me: { id: string; email: string; name: string | null; isSuper: boolean } }) {
+  const display = me.name?.trim() || me.email.split("@")[0];
+  const initial = (display[0] || me.email[0] || "?").toUpperCase();
+  return (
+    <div
+      style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "10px 12px",
+        borderRadius: 10,
+        background: "var(--surface-2, rgba(255,255,255,0.03))",
+        border: "1px solid var(--border)",
+      }}
+    >
+      <div
+        aria-hidden
+        style={{
+          width: 36, height: 36, borderRadius: "50%",
+          display: "grid", placeItems: "center", flexShrink: 0,
+          background: me.isSuper
+            ? "linear-gradient(135deg, #f97316, #fb923c)"
+            : "linear-gradient(135deg, #64748b, #94a3b8)",
+          color: "#fff", fontWeight: 700, fontSize: 14,
+          boxShadow: me.isSuper ? "0 4px 12px rgba(249,115,22,0.35)" : "none",
+        }}
+      >
+        {initial}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontWeight: 600, fontSize: 13, color: "var(--text)",
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        }}
+        title={me.email}
+        >
+          {display}
+        </div>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6, marginTop: 2,
+        }}>
+          {me.isSuper ? (
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "2px 7px", borderRadius: 999,
+              background: "rgba(249,115,22,0.15)",
+              color: "#f97316",
+              fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
+            }}>
+              <i className="fa-solid fa-crown" style={{ fontSize: 9 }} />
+              SUPERADMIN
+            </span>
+          ) : (
+            <span style={{
+              padding: "2px 7px", borderRadius: 999,
+              background: "var(--surface-2, rgba(255,255,255,0.06))",
+              color: "var(--text-muted)",
+              fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
+            }}>
+              ADMIN
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

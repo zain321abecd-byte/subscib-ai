@@ -63,14 +63,20 @@ export async function getAdminContext(): Promise<AdminAccess | null> {
 }
 
 /**
- * Hard gate for Server Actions. Redirects to /admin/login when not signed in,
- * throws Forbidden when the caller lacks the required permission.
+ * Hard gate for Server Components + Server Actions.
+ *   • Not signed in → bounce to /admin/login.
+ *   • Signed in but missing the required permission → bounce to /admin
+ *     with `?denied=<perm>` so the dashboard can show a friendly notice.
+ *
+ * Redirecting (rather than throwing) means Editors / Managers who
+ * don't have `users:read` never render the team page at all — they
+ * land back on the dashboard.
  */
 export async function requireAdmin(permission?: PermissionKey): Promise<AdminAccess> {
   const ctx = await getAdminContext();
   if (!ctx) redirect("/admin/login?error=not_admin");
   if (permission && !ctx.isSuper && !ctx.effectivePermissions.includes(permission)) {
-    throw new Error(`Forbidden: missing permission "${permission}".`);
+    redirect(`/admin?denied=${encodeURIComponent(permission)}`);
   }
   return ctx;
 }

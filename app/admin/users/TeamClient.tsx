@@ -131,10 +131,28 @@ export default function TeamClient({
   const [inviteFor, setInviteFor] = useState<PortalGroupDto | null>(null);
   const [editingGroup, setEditingGroup] = useState<PortalGroupDto | null>(null);
   const [editingUser, setEditingUser] = useState<PortalUserDto | null>(null);
+  // Pending destructive-action confirmations get funnelled through a shared
+  // styled modal instead of the browser's confirm() dialog. Each entry
+  // holds a title + message + on-confirm callback.
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: React.ReactNode;
+    confirmLabel?: string;
+    danger?: boolean;
+    onConfirm: () => Promise<void> | void;
+  } | null>(null);
 
-  // Users not currently in any group — surfaced as a "No group" row so
-  // superadmins don't lose track of freshly-invited teammates.
-  const ungrouped = useMemo(() => users.filter((u) => !u.groups || u.groups.length === 0), [users]);
+  // Superadmins sit above the group system — their access doesn't come
+  // from any group membership, so listing them under "Admins" would be
+  // misleading. Surface them as their own card at the top instead.
+  const superadmins = useMemo(() => users.filter((u) => u.is_superadmin), [users]);
+
+  // Regular (non-superadmin) users that aren't in any group. Freshly
+  // invited teammates end up here until an admin puts them in one.
+  const ungrouped = useMemo(
+    () => users.filter((u) => !u.is_superadmin && (!u.groups || u.groups.length === 0)),
+    [users],
+  );
 
   function notify(kind: "ok" | "err", msg: string) {
     setFlash({ kind, msg });
@@ -186,13 +204,25 @@ export default function TeamClient({
   }
 
   /** Remove a user from a single group (leaves the account intact). */
-  async function removeFromGroup(groupId: string, userId: string, email: string) {
-    if (!confirm(`Remove ${email} from this group?`)) return;
-    try {
-      await api("DELETE", `/admin/portal-groups/${groupId}/members/${userId}`);
-      notify("ok", "Removed from group.");
-      await refreshAll();
-    } catch (err: any) { notify("err", err.message); }
+  function removeFromGroup(groupId: string, groupName: string, user: PortalUserDto) {
+    setConfirmDialog({
+      title: `Remove from ${groupName}?`,
+      message: (
+        <>
+          <strong>{user.name || user.email}</strong> will lose the permissions this group grants.
+          Their account stays active — you can re-add them any time.
+        </>
+      ),
+      confirmLabel: "Remove from group",
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await api("DELETE", `/admin/portal-groups/${groupId}/members/${user.id}`);
+          notify("ok", "Removed from group.");
+          await refreshAll();
+        } catch (err: any) { notify("err", err.message); }
+      },
+    });
   }
 
   async function resend(userId: string) {
@@ -219,15 +249,6 @@ export default function TeamClient({
     } catch (err: any) { notify("err", err.message); }
   }
 
-  async function removeUser(u: PortalUserDto) {
-    if (!confirm(`Delete ${u.email}? This can't be undone.`)) return;
-    try {
-      await api("DELETE", `/admin/portal-users/${u.id}`);
-      notify("ok", `${u.email} deleted.`);
-      await refreshAll();
-    } catch (err: any) { notify("err", err.message); }
-  }
-
   async function saveGroup(input: { id?: string; name: string; description: string; permissions: string[]; memberIds: string[] }) {
     try {
       let groupId = input.id;
@@ -248,15 +269,28 @@ export default function TeamClient({
     } catch (err: any) { notify("err", err.message); }
   }
 
-  async function deleteGroup(g: PortalGroupDto) {
+  function deleteGroup(g: PortalGroupDto) {
     if (g.is_system) { notify("err", "Built-in groups can't be deleted."); return; }
-    if (!confirm(`Delete group "${g.name}"?`)) return;
-    try {
-      await api("DELETE", `/admin/portal-groups/${g.id}`);
-      notify("ok", "Group deleted.");
-      setEditingGroup(null);
-      await refreshAll();
-    } catch (err: any) { notify("err", err.message); }
+    const memberCount = (g.members || []).length;
+    setConfirmDialog({
+      title: `Delete group "${g.name}"?`,
+      message: (
+        <>
+          The group will be removed{memberCount > 0 && <> and its <strong>{memberCount}</strong> member{memberCount === 1 ? "" : "s"} will lose the permissions it granted</>}.
+          Their accounts stay active.
+        </>
+      ),
+      confirmLabel: "Delete group",
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await api("DELETE", `/admin/portal-groups/${g.id}`);
+          notify("ok", "Group deleted.");
+          setEditingGroup(null);
+          await refreshAll();
+        } catch (err: any) { notify("err", err.message); }
+      },
+    });
   }
 
   // ─── render ────────────────────────────────────────────────────────
@@ -289,6 +323,13 @@ export default function TeamClient({
         </div>
       )}
 
+      {superadmins.length > 0 && (
+        <SuperadminCard
+          users={superadmins}
+          onClickUser={(u) => setEditingUser(u)}
+        />
+      )}
+
       <div style={{ display: "grid", gap: 12 }}>
         {groups.map((g) => (
           <GroupCard
@@ -300,25 +341,39 @@ export default function TeamClient({
             onEdit={() => setEditingGroup(g)}
             onDelete={g.is_system ? undefined : () => deleteGroup(g)}
             onClickUser={(u) => setEditingUser(u)}
-            onRemoveMember={(u) => removeFromGroup(g.id, u.id, u.email)}
+            onRemoveMember={(u) => removeFromGroup(g.id, g.name, u)}
           />
         ))}
         {ungrouped.length > 0 && (
-          <div style={{ background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border)", padding: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div>
-                <div style={{ fontWeight: 600 }}>Not in any group</div>
-                <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 2 }}>
-                  These teammates can log in but see nothing until you add them to a group.
-                </div>
+          <section
+            style={{
+              background: "var(--surface)", borderRadius: 10,
+              border: "1px dashed rgba(245,158,11,0.4)", overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px",
+                background: "rgba(245,158,11,0.06)",
+                borderBottom: "1px solid rgba(245,158,11,0.2)",
+              }}
+            >
+              <i className="fa-solid fa-triangle-exclamation" style={{ color: "#f59e0b", fontSize: 13 }} />
+              <div style={{ fontWeight: 700, letterSpacing: "0.06em", fontSize: "0.82rem", textTransform: "uppercase", color: "#f59e0b" }}>
+                Not in any group
               </div>
+              <div style={{ flex: 1 }} />
+              <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                Can log in but see nothing until added
+              </span>
             </div>
             <MemberList
               users={ungrouped}
               onClick={(u) => setEditingUser(u)}
               onRemove={undefined}
             />
-          </div>
+          </section>
         )}
       </div>
 
@@ -348,9 +403,168 @@ export default function TeamClient({
           onResend={resend}
           onToggleSuper={toggleSuper}
           onStatus={setUserStatus}
-          onDelete={removeUser}
+          onDelete={(u) => {
+            setConfirmDialog({
+              title: `Delete ${u.email}?`,
+              message: (
+                <>
+                  This deletes the account and revokes portal access.
+                  <strong> This can't be undone.</strong>
+                </>
+              ),
+              confirmLabel: "Delete account",
+              danger: true,
+              onConfirm: async () => {
+                try {
+                  await api("DELETE", `/admin/portal-users/${u.id}`);
+                  notify("ok", `${u.email} deleted.`);
+                  setEditingUser(null);
+                  await refreshAll();
+                } catch (err: any) { notify("err", err.message); }
+              },
+            });
+          }}
         />
       )}
+      {confirmDialog && (
+        <ConfirmModal
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          danger={confirmDialog.danger}
+          onCancel={() => setConfirmDialog(null)}
+          onConfirm={async () => {
+            const d = confirmDialog;
+            setConfirmDialog(null);
+            await d.onConfirm();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── superadmin card ─────────────────────────────────────────────────
+/**
+ * Hero card at the top of the team page. Superadmins bypass every
+ * permission check, so they don't belong inside any group — this card
+ * makes their existence explicit (and gives the page a nice visual
+ * anchor). Clicking a user opens the same drawer as any group member.
+ */
+function SuperadminCard({
+  users, onClickUser,
+}: { users: PortalUserDto[]; onClickUser: (u: PortalUserDto) => void }) {
+  return (
+    <section
+      style={{
+        position: "relative",
+        borderRadius: 14,
+        marginBottom: 18,
+        overflow: "hidden",
+        border: "1px solid rgba(249,115,22,0.35)",
+        background:
+          "linear-gradient(135deg, rgba(249,115,22,0.16) 0%, rgba(251,146,60,0.06) 50%, rgba(255,255,255,0.02) 100%)",
+        boxShadow: "0 4px 20px rgba(249,115,22,0.08)",
+      }}
+    >
+      {/* Subtle sheen in the top-right corner. */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute", top: -40, right: -40,
+          width: 180, height: 180, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(249,115,22,0.25), transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+      <div style={{ padding: "18px 22px", display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 12,
+          display: "grid", placeItems: "center",
+          background: "linear-gradient(135deg, #f97316, #fb923c)",
+          color: "#fff", fontSize: 18, flexShrink: 0,
+          boxShadow: "0 6px 16px rgba(249,115,22,0.35)",
+        }}>
+          <i className="fa-solid fa-crown" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: "0.7rem", letterSpacing: "0.1em", fontWeight: 700,
+            color: "#f97316", textTransform: "uppercase", marginBottom: 2,
+          }}>
+            Superadmin{users.length > 1 ? "s" : ""}
+          </div>
+          <div style={{ fontSize: "0.95rem", fontWeight: 600 }}>
+            Full access, bypasses every permission check
+          </div>
+          <div style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 2 }}>
+            {users.length} account{users.length === 1 ? "" : "s"} · Can invite, remove, or promote any teammate
+          </div>
+        </div>
+      </div>
+
+      {/* List of superadmin accounts. */}
+      <div style={{ borderTop: "1px solid rgba(249,115,22,0.2)" }}>
+        {users.map((u, i) => (
+          <div
+            key={u.id}
+            onClick={() => onClickUser(u)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter") onClickUser(u); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "12px 22px",
+              borderTop: i === 0 ? "none" : "1px solid rgba(249,115,22,0.12)",
+              cursor: "pointer",
+              transition: "background 0.12s ease",
+            }}
+          >
+            <i className="fa-solid fa-user-shield" style={{ color: "#f97316", fontSize: 12, width: 14 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 500 }}>{u.name || u.email.split("@")[0]}</div>
+              <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{u.email}</div>
+            </div>
+            {u.status === "invited" && <span style={pillStyle("warn")}>INVITE NOT ACCEPTED</span>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── empty state ─────────────────────────────────────────────────────
+/**
+ * Placeholder shown inside a group card when there are no members.
+ * A little more visual than plain italic gray text — it draws the eye
+ * toward the "+" button that fixes it.
+ */
+function EmptyGroupPlaceholder({ groupName }: { groupName: string }) {
+  return (
+    <div
+      style={{
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        padding: "26px 18px", gap: 8, textAlign: "center",
+        color: "var(--text-muted)",
+      }}
+    >
+      <div
+        aria-hidden
+        style={{
+          width: 40, height: 40, borderRadius: "50%",
+          background: "var(--surface-2, rgba(255,255,255,0.04))",
+          display: "grid", placeItems: "center",
+          border: "1px dashed var(--border)",
+        }}
+      >
+        <i className="fa-solid fa-user-plus" style={{ fontSize: 14 }} />
+      </div>
+      <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "var(--text)" }}>
+        No teammates in {groupName} yet
+      </div>
+      <div style={{ fontSize: "0.78rem" }}>
+        Use the <strong style={{ color: "#f97316" }}>+</strong> button above to invite someone.
+      </div>
     </div>
   );
 }
@@ -371,9 +585,11 @@ function GroupCard({
   const members = group.members || [];
   // Cross-ref against the top-level users list to get status, etc. — the
   // /admin/portal-groups payload gives us a stripped-down member shape.
+  // Superadmins are surfaced in the dedicated top card, never inside a
+  // group (their access doesn't come from group membership anyway).
   const memberFull: PortalUserDto[] = members
     .map((m) => allUsers.find((u) => u.id === m.id))
-    .filter(Boolean) as PortalUserDto[];
+    .filter((u): u is PortalUserDto => !!u && !u.is_superadmin);
 
   const hasAllPermissions = group.permissions.length === totalPermissions;
 
@@ -413,9 +629,7 @@ function GroupCard({
 
       {/* Body — member rows or empty state. */}
       {memberFull.length === 0 ? (
-        <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", padding: "14px 16px", fontStyle: "italic" }}>
-          No users in this group
-        </div>
+        <EmptyGroupPlaceholder groupName={group.name} />
       ) : (
         <MemberList
           users={memberFull}
@@ -516,11 +730,12 @@ function MemberList({
 }
 
 /**
- * Group-scoped invite modal. The target group is fixed (comes from
- * whichever "+" was clicked on the group header), so there's no group
- * picker inside — just email + name, plus an "or pick existing
- * teammate" tab that adds an already-invited person to this group
- * without sending a fresh invite email.
+ * Compact per-group invite modal. Both paths live on one page:
+ *   • "Existing teammate" — a styled dropdown of portal users not yet
+ *     in this group (adds them without emailing).
+ *   • "New email" — invite by email address (with optional name).
+ * The submit button picks the right action based on which field
+ * the user filled in.
  */
 function InviteModal({
   group, existingUsers, onClose, onSubmit, onAddExisting,
@@ -531,80 +746,239 @@ function InviteModal({
   onSubmit: (input: { email: string; name: string }) => Promise<void>;
   onAddExisting: (userId: string) => Promise<void>;
 }) {
-  const [mode, setMode] = useState<"new" | "existing">("new");
+  const [pickedExisting, setPickedExisting] = useState<string>("");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [pickedExisting, setPickedExisting] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // Existing portal users who aren't already members of THIS group.
   const alreadyIn = new Set((group.members || []).map((m) => m.id));
-  const eligibleExisting = existingUsers.filter((u) => !alreadyIn.has(u.id));
+  // Superadmins don't need group membership — their access is universal —
+  // so hide them from the picker to avoid a confusing "add superadmin to
+  // Editors" option that would have no functional effect.
+  const eligibleExisting = existingUsers.filter((u) => !u.is_superadmin && !alreadyIn.has(u.id));
+
+  // Whichever field was touched last wins on submit — makes the "one form,
+  // two intents" pattern feel natural.
+  const mode: "existing" | "new" = pickedExisting ? "existing" : "new";
 
   async function submit() {
     setErr(null);
     setBusy(true);
     try {
-      if (mode === "existing") {
-        if (!pickedExisting) { setErr("Pick a teammate."); setBusy(false); return; }
+      if (pickedExisting) {
         await onAddExisting(pickedExisting);
-      } else {
-        if (!email.trim()) { setErr("Enter an email address."); setBusy(false); return; }
+      } else if (email.trim()) {
         await onSubmit({ email: email.trim(), name: name.trim() });
+      } else {
+        setErr("Pick an existing teammate or enter an email address.");
       }
     } finally { setBusy(false); }
   }
 
   return (
-    <ModalShell onClose={onClose} title={`Invite to ${group.name}`}>
-      <p style={{ color: "var(--text-muted)", margin: "0 0 16px", fontSize: "0.88rem" }}>
+    <ModalShell
+      onClose={onClose}
+      title={`Invite teammate to ${group.name}`}
+      size="sm"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            style={{
+              background: "none", border: "none",
+              fontSize: "0.82rem", letterSpacing: "0.08em", fontWeight: 700,
+              color: "var(--text-muted)", cursor: "pointer",
+              padding: "10px 16px",
+            }}
+          >
+            CANCEL
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={busy || (!pickedExisting && !email.trim())}
+            style={{
+              background: "#f97316", color: "#fff",
+              border: "none", borderRadius: 6,
+              fontSize: "0.82rem", letterSpacing: "0.08em", fontWeight: 700,
+              padding: "10px 18px",
+              cursor: "pointer",
+              opacity: (!pickedExisting && !email.trim()) || busy ? 0.55 : 1,
+            }}
+          >
+            {busy
+              ? (mode === "existing" ? "ADDING…" : "SENDING…")
+              : (mode === "existing" ? "ADD TO GROUP" : "SEND INVITE")}
+          </button>
+        </>
+      }
+    >
+      <p style={{ color: "var(--text-muted)", margin: "0 0 18px", fontSize: "0.85rem" }}>
         They'll get {group.permissions.length} permission{group.permissions.length === 1 ? "" : "s"} as soon as they accept.
       </p>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, background: "var(--surface-2, rgba(255,255,255,0.04))", padding: 4, borderRadius: 8 }}>
-        <button className={`admin-btn ${mode === "new" ? "admin-btn-primary" : "admin-btn-ghost"}`} style={{ flex: 1 }} onClick={() => setMode("new")}>
-          New email
-        </button>
-        <button
-          className={`admin-btn ${mode === "existing" ? "admin-btn-primary" : "admin-btn-ghost"}`}
-          style={{ flex: 1 }}
-          onClick={() => setMode("existing")}
-          disabled={eligibleExisting.length === 0}
-        >
-          Existing teammate ({eligibleExisting.length})
-        </button>
-      </div>
-
-      {mode === "new" ? (
-        <div style={{ display: "grid", gap: 12 }}>
-          <label style={labelStyle}>Email
-            <input className="admin-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="alex@subscribai.com" autoFocus />
-          </label>
-          <label style={labelStyle}>Name (optional)
-            <input className="admin-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex Chen" />
-          </label>
-        </div>
-      ) : (
-        <label style={labelStyle}>Choose teammate
-          <select className="admin-input" value={pickedExisting} onChange={(e) => setPickedExisting(e.target.value)}>
-            <option value="">— Pick someone —</option>
-            {eligibleExisting.map((u) => (
-              <option key={u.id} value={u.id}>{u.name ? `${u.name} · ${u.email}` : u.email} — {u.status}</option>
-            ))}
-          </select>
+      <div style={{ display: "grid", gap: 6, marginBottom: 16 }}>
+        <label style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontWeight: 500 }}>
+          Choose existing teammate
         </label>
-      )}
-
-      {err && <div style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: 12 }}>{err}</div>}
-
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
-        <button className="admin-btn admin-btn-ghost" onClick={onClose} disabled={busy}>Cancel</button>
-        <button className="admin-btn admin-btn-primary" onClick={submit} disabled={busy}>
-          {busy ? (mode === "existing" ? "Adding…" : "Sending…") : (mode === "existing" ? "Add to group" : "Send invite")}
-        </button>
+        <StyledSelect
+          value={pickedExisting}
+          onChange={(v) => { setPickedExisting(v); if (v) { setEmail(""); setName(""); } }}
+          placeholder={
+            eligibleExisting.length === 0
+              ? "Everyone is already in this group"
+              : `Search ${eligibleExisting.length} teammate${eligibleExisting.length === 1 ? "" : "s"}…`
+          }
+          disabled={eligibleExisting.length === 0}
+          options={eligibleExisting.map((u) => ({
+            value: u.id,
+            label: u.name ? `${u.name}` : u.email.split("@")[0],
+            hint: u.email + (u.status === "invited" ? " · pending" : ""),
+          }))}
+        />
       </div>
+
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10, margin: "18px 0",
+        color: "var(--text-muted)", fontSize: "0.75rem", letterSpacing: "0.08em", fontWeight: 600,
+      }}>
+        <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+        OR INVITE BY EMAIL
+        <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+      </div>
+
+      <div style={{ display: "grid", gap: 10 }}>
+        <input
+          className="admin-input"
+          type="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); if (e.target.value) setPickedExisting(""); }}
+          placeholder="alex@subscribai.com"
+          disabled={!!pickedExisting}
+        />
+        <input
+          className="admin-input"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Name (optional)"
+          disabled={!!pickedExisting || !email}
+        />
+      </div>
+
+      {err && <div style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: 14 }}>{err}</div>}
     </ModalShell>
+  );
+}
+
+/**
+ * Styled combobox with a custom dropdown panel (replaces the native
+ * <select> which can't be themed inside the modal). Closes on outside
+ * click and on selection; keyboard-friendly enough for the common case.
+ */
+function StyledSelect({
+  value, onChange, placeholder, options, disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  options: Array<{ value: string; label: string; hint?: string }>;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.value === value);
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen((v) => !v)}
+        disabled={disabled}
+        style={{
+          width: "100%", textAlign: "left",
+          padding: "12px 14px", borderRadius: 10,
+          border: `1px solid ${open ? "rgba(249,115,22,0.5)" : "var(--border)"}`,
+          background: "var(--surface-2, rgba(255,255,255,0.03))",
+          color: disabled ? "var(--text-muted)" : "var(--text)",
+          fontSize: "0.9rem",
+          display: "flex", alignItems: "center", gap: 12,
+          cursor: disabled ? "not-allowed" : "pointer",
+          opacity: disabled ? 0.55 : 1,
+          boxShadow: open ? "0 0 0 3px rgba(249,115,22,0.15)" : "none",
+          transition: "border-color 0.15s, box-shadow 0.15s",
+        }}
+      >
+        {/* Left-side icon — an "at" symbol when placeholder is showing, a checkmark when a value is picked. */}
+        <span
+          aria-hidden
+          style={{
+            width: 30, height: 30, borderRadius: 8,
+            display: "grid", placeItems: "center", flexShrink: 0,
+            background: selected ? "rgba(249,115,22,0.15)" : "var(--surface-2, rgba(255,255,255,0.05))",
+            color: selected ? "#f97316" : "var(--text-muted)",
+          }}
+        >
+          <i className={`fa-solid ${selected ? "fa-user-check" : "fa-magnifying-glass"}`} style={{ fontSize: 12 }} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+          {selected ? (
+            <>
+              <div style={{ fontWeight: 600, fontSize: "0.92rem" }}>{selected.label}</div>
+              {selected.hint && (
+                <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 1 }}>{selected.hint}</div>
+              )}
+            </>
+          ) : (
+            <span style={{ color: "var(--text-muted)", opacity: 0.75, fontSize: "0.9rem" }}>
+              {placeholder}
+            </span>
+          )}
+        </span>
+        <i className={`fa-solid ${open ? "fa-chevron-up" : "fa-chevron-down"}`} style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }} />
+      </button>
+      {open && !disabled && (
+        <>
+          {/* Click-away overlay */}
+          <div
+            onClick={() => setOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 1 }}
+          />
+          <div
+            style={{
+              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+              background: "var(--surface)", border: "1px solid var(--border)",
+              borderRadius: 8, zIndex: 2, maxHeight: 240, overflowY: "auto",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            }}
+          >
+            {options.length === 0 && (
+              <div style={{ padding: "12px 14px", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                No teammates available
+              </div>
+            )}
+            {options.map((o) => {
+              const active = o.value === value;
+              return (
+                <div
+                  key={o.value}
+                  onClick={() => { onChange(o.value); setOpen(false); }}
+                  style={{
+                    padding: "10px 14px", cursor: "pointer",
+                    display: "flex", flexDirection: "column", gap: 2,
+                    background: active ? "rgba(249,115,22,0.08)" : "transparent",
+                    borderLeft: `3px solid ${active ? "#f97316" : "transparent"}`,
+                  }}
+                >
+                  <span style={{ fontSize: "0.9rem", fontWeight: active ? 600 : 500, color: active ? "#f97316" : "var(--text)" }}>{o.label}</span>
+                  {o.hint && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{o.hint}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -653,113 +1027,225 @@ function GroupModal({
     } finally { setBusy(false); }
   }
 
+  // Which section tab is active on the left. Defaults to the first
+  // section in the catalog (usually Products).
+  const [activeSection, setActiveSection] = useState<string>(catalog.groups[0]?.label ?? "");
+
+  // Nothing has changed unless the state differs from the initial group prop.
+  const dirty =
+    name.trim() !== group.name ||
+    (description.trim() !== (group.description || "")) ||
+    permissions.length !== group.permissions.length ||
+    permissions.some((p) => !group.permissions.includes(p));
+
+  const activeSectionDef = catalog.groups.find((s) => s.label === activeSection) || catalog.groups[0];
+  const title = isNew ? "New group" : `Manage permissions for ${group.name}`;
+
   return (
-    <ModalShell onClose={onClose} title={isNew ? "New group" : `Edit "${group.name}"`}>
-      <div style={{ display: "grid", gap: 12 }}>
-        <label style={labelStyle}>Name
-          <input className="admin-input" value={name} onChange={(e) => setName(e.target.value)} disabled={group.is_system} />
-        </label>
-        <label style={labelStyle}>Description
-          <input className="admin-input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional — helps teammates understand who this is for." />
-        </label>
+    <ModalShell
+      onClose={onClose}
+      title={title}
+      size="lg"
+      footer={
+        <>
+          <div>
+            {onDelete && (
+              <button
+                className="admin-btn admin-btn-ghost"
+                style={{ color: "#ef4444" }}
+                onClick={onDelete}
+                disabled={busy}
+              >
+                <i className="fa-solid fa-trash" /> Delete group
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={busy}
+              style={{
+                background: "none", border: "none",
+                fontSize: "0.82rem", letterSpacing: "0.08em", fontWeight: 700,
+                color: "var(--text-muted)", cursor: "pointer",
+                padding: "10px 16px",
+              }}
+            >
+              CANCEL
+            </button>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={busy || (!isNew && !dirty) || !name.trim()}
+              style={{
+                background: dirty || isNew ? "#f97316" : "var(--surface-2, rgba(255,255,255,0.06))",
+                color: dirty || isNew ? "#fff" : "var(--text-muted)",
+                border: "none", borderRadius: 6,
+                fontSize: "0.82rem", letterSpacing: "0.08em", fontWeight: 700,
+                padding: "10px 18px",
+                cursor: dirty || isNew ? "pointer" : "not-allowed",
+                opacity: busy ? 0.6 : 1,
+              }}
+            >
+              {busy ? "SAVING…" : "SAVE CHANGES"}
+            </button>
+          </div>
+        </>
+      }
+    >
+      {/* Name + description (only visible when creating or explicitly renaming). */}
+      {(isNew || !group.is_system) && (
+        <div style={{ display: "grid", gap: 12, marginBottom: 22 }}>
+          <label style={labelStyle}>Name
+            <input
+              className="admin-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={group.is_system}
+              autoFocus={isNew}
+            />
+          </label>
+          <label style={labelStyle}>Description
+            <input
+              className="admin-input"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional — helps teammates understand who this is for."
+            />
+          </label>
+        </div>
+      )}
+
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>Permissions</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>
+          {permissions.length} of {catalog.permissions.length} enabled
+        </div>
       </div>
 
-      <div style={{ marginTop: 22 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
-          <div style={{ fontWeight: 600, fontSize: "1rem" }}>Permissions</div>
-          <div style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>
-            {permissions.length} of {catalog.permissions.length} enabled
-          </div>
-        </div>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", margin: "0 0 14px" }}>
-          Members of this group get every permission checked here. Superadmins bypass this list entirely.
-        </p>
-        <div style={{ display: "grid", gap: 10 }}>
+      {/* Two-column layout: left tab list, right toggle rows. */}
+      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20, minHeight: 380 }}>
+        {/* LEFT — section tabs */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, borderRight: "1px solid var(--border)", paddingRight: 20 }}>
           {catalog.groups.map((section) => {
-            const allOn = section.keys.every((k) => permissions.includes(k));
-            const someOn = section.keys.some((k) => permissions.includes(k)) && !allOn;
+            const active = activeSection === section.label;
+            const count = section.keys.filter((k) => permissions.includes(k)).length;
             const icon = SECTION_ICONS[section.label] || "fa-shield";
             return (
-              <div
+              <button
                 key={section.label}
+                type="button"
+                onClick={() => setActiveSection(section.label)}
                 style={{
-                  border: "1px solid var(--border)",
-                  borderRadius: 10,
-                  padding: "12px 14px",
-                  background: allOn ? "rgba(249,115,22,0.05)" : "transparent",
-                  transition: "background 0.15s ease",
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 12px", borderRadius: 8, cursor: "pointer",
+                  background: active ? "rgba(249,115,22,0.08)" : "transparent",
+                  border: `1px solid ${active ? "rgba(249,115,22,0.35)" : "var(--border)"}`,
+                  color: active ? "#f97316" : "var(--text)",
+                  fontSize: "0.9rem", fontWeight: active ? 600 : 500,
+                  textAlign: "left", transition: "all 0.12s ease",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <i className={`fa-solid ${icon}`} style={{ color: allOn ? "#f97316" : "var(--text-muted)", fontSize: 14 }} />
-                    <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>{section.label}</div>
-                    <span style={{ ...pillStyle(allOn ? "gold" : "muted"), fontSize: "0.68rem" }}>
-                      {section.keys.filter((k) => permissions.includes(k)).length}/{section.keys.length}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleGroupBulk(section.keys)}
-                    style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      color: allOn ? "#f97316" : "var(--text-muted)",
-                      fontSize: "0.78rem", fontWeight: 600, padding: "2px 6px",
-                    }}
-                  >
-                    {allOn ? "Uncheck all" : someOn ? "Check remaining" : "Check all"}
-                  </button>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 4 }}>
-                  {section.keys.map((k) => {
-                    const meta = PERMISSION_LABELS[k];
-                    const on = permissions.includes(k);
-                    return (
-                      <label
-                        key={k}
-                        style={{
-                          display: "flex", alignItems: "flex-start", gap: 10,
-                          padding: "8px 10px", borderRadius: 6,
-                          background: on ? "rgba(249,115,22,0.08)" : "transparent",
-                          cursor: "pointer",
-                          border: `1px solid ${on ? "rgba(249,115,22,0.25)" : "transparent"}`,
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={on}
-                          onChange={() => togglePerm(k)}
-                          style={{ marginTop: 2, accentColor: "#f97316" }}
-                        />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: "0.87rem", fontWeight: 500 }}>{meta?.label || k}</div>
-                          {meta?.hint && (
-                            <div style={{ color: "var(--text-muted)", fontSize: "0.72rem", marginTop: 2 }}>{meta.hint}</div>
-                          )}
-                          <code style={{ display: "block", color: "var(--text-muted)", fontSize: "0.68rem", marginTop: 2, opacity: 0.6 }}>{k}</code>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
+                <i className={`fa-solid ${icon}`} style={{ fontSize: 13, width: 16, textAlign: "center" }} />
+                <span style={{ flex: 1 }}>{section.label}</span>
+                {count > 0 && (
+                  <span style={{
+                    fontSize: "0.68rem", fontWeight: 700,
+                    padding: "2px 7px", borderRadius: 999,
+                    background: active ? "rgba(249,115,22,0.2)" : "var(--surface-2, rgba(255,255,255,0.06))",
+                    color: active ? "#f97316" : "var(--text-muted)",
+                  }}>
+                    {count}/{section.keys.length}
+                  </span>
+                )}
+              </button>
             );
           })}
         </div>
+
+        {/* RIGHT — toggle rows for the active section */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {activeSectionDef?.keys.map((k) => {
+            const meta = PERMISSION_LABELS[k];
+            const on = permissions.includes(k);
+            return (
+              <div
+                key={k}
+                onClick={() => togglePerm(k)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); togglePerm(k); } }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  padding: "14px 18px", borderRadius: 10,
+                  border: "1px solid var(--border)",
+                  background: on ? "rgba(249,115,22,0.04)" : "transparent",
+                  cursor: "pointer", transition: "background 0.12s ease",
+                }}
+              >
+                <i
+                  className={`fa-solid ${SECTION_ICONS[activeSectionDef.label] || "fa-shield"}`}
+                  style={{ color: on ? "#f97316" : "var(--text-muted)", fontSize: 15, width: 20, textAlign: "center" }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 500, fontSize: "0.92rem" }}>{meta?.label || k}</div>
+                  <div style={{ color: "var(--text-muted)", fontSize: "0.77rem", marginTop: 2 }}>
+                    {meta?.hint || `Grants ${k}`}
+                  </div>
+                </div>
+                <Toggle on={on} />
+              </div>
+            );
+          })}
+          {activeSectionDef && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={() => toggleGroupBulk(activeSectionDef.keys)}
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  color: "var(--text-muted)", fontSize: "0.78rem", fontWeight: 600,
+                }}
+              >
+                {activeSectionDef.keys.every((k) => permissions.includes(k))
+                  ? "Turn off all in this section"
+                  : "Turn on all in this section"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {err && <div style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: 12 }}>{err}</div>}
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 18 }}>
-        <div>
-          {onDelete && <button className="admin-btn admin-btn-ghost" style={{ color: "#ef4444" }} onClick={onDelete}><i className="fa-solid fa-trash" /> Delete group</button>}
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="admin-btn admin-btn-ghost" onClick={onClose} disabled={busy}>Cancel</button>
-          <button className="admin-btn admin-btn-primary" onClick={submit} disabled={busy}>{busy ? "Saving…" : (isNew ? "Create group" : "Save changes")}</button>
-        </div>
-      </div>
+      {err && <div style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: 16 }}>{err}</div>}
     </ModalShell>
+  );
+}
+
+/** iOS-style toggle switch. Orange when on, muted when off. */
+function Toggle({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-checked={on}
+      role="switch"
+      style={{
+        display: "inline-block", position: "relative",
+        width: 42, height: 24, borderRadius: 999,
+        background: on ? "#f97316" : "var(--surface-2, rgba(255,255,255,0.15))",
+        transition: "background 0.15s ease",
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          position: "absolute", top: 2, left: on ? 20 : 2,
+          width: 20, height: 20, borderRadius: "50%",
+          background: "#fff",
+          transition: "left 0.15s ease",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+        }}
+      />
+    </span>
   );
 }
 
@@ -830,7 +1316,25 @@ function UserModal({
 }
 
 // ─── generic modal shell ─────────────────────────────────────────────
-function ModalShell({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+/**
+ * Modal shell with an optional sticky footer. When `footer` is provided
+ * the layout becomes header (fixed) / body (scrolls) / footer (fixed) —
+ * useful for the permission editor where the actions must always be
+ * visible while the permission list scrolls.
+ *
+ * `size` picks the max-width: "sm" for the compact invite modal,
+ * "lg" for the wider permission editor.
+ */
+function ModalShell({
+  title, children, onClose, footer, size = "md",
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  footer?: React.ReactNode;
+  size?: "sm" | "md" | "lg";
+}) {
+  const maxWidth = size === "sm" ? 480 : size === "lg" ? 960 : 720;
   return (
     <div
       role="dialog"
@@ -845,24 +1349,133 @@ function ModalShell({ title, children, onClose }: { title: string; children: Rea
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--surface)", borderRadius: 14, border: "1px solid var(--border)",
-          maxWidth: 720, width: "100%", maxHeight: "88vh", overflowY: "auto",
-          padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+          maxWidth, width: "100%", maxHeight: "88vh",
+          display: "flex", flexDirection: "column",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+          overflow: "hidden",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <h2 style={{ margin: 0, fontFamily: "var(--font-heading)", fontSize: "1.2rem" }}>{title}</h2>
+        {/* Sticky header */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "16px 22px", borderBottom: "1px solid var(--border)",
+          flexShrink: 0,
+        }}>
+          <h2 style={{
+            margin: 0, fontFamily: "var(--font-heading)",
+            fontSize: "0.82rem", letterSpacing: "0.06em", textTransform: "uppercase",
+            color: "var(--text-muted)", fontWeight: 700,
+          }}>
+            {title}
+          </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 20, cursor: "pointer" }}
+            style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 18, cursor: "pointer" }}
           >
             <i className="fa-solid fa-xmark" />
           </button>
         </div>
-        {children}
+
+        {/* Scrollable body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "22px 22px" }}>
+          {children}
+        </div>
+
+        {/* Optional sticky footer */}
+        {footer && (
+          <div style={{
+            padding: "12px 22px", borderTop: "1px solid var(--border)",
+            display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+            flexShrink: 0, background: "var(--surface)",
+          }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+// ─── confirmation modal ──────────────────────────────────────────────
+/**
+ * Small styled confirmation dialog — replacement for the browser's
+ * confirm() prompt. Danger actions get a red confirm button; passing
+ * `danger={false}` renders it in the brand orange for neutral flows.
+ */
+function ConfirmModal({
+  title, message, confirmLabel = "Confirm", danger, onConfirm, onCancel,
+}: {
+  title: string;
+  message: React.ReactNode;
+  confirmLabel?: string;
+  danger?: boolean;
+  onConfirm: () => Promise<void> | void;
+  onCancel: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  async function submit() {
+    setBusy(true);
+    try { await onConfirm(); }
+    finally { setBusy(false); }
+  }
+  const confirmBg = danger ? "#ef4444" : "#f97316";
+  return (
+    <ModalShell
+      onClose={busy ? () => {} : onCancel}
+      title={title}
+      size="sm"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            style={{
+              background: "none", border: "none",
+              fontSize: "0.82rem", letterSpacing: "0.08em", fontWeight: 700,
+              color: "var(--text-muted)", cursor: "pointer",
+              padding: "10px 16px",
+            }}
+          >
+            CANCEL
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={busy}
+            style={{
+              background: confirmBg, color: "#fff",
+              border: "none", borderRadius: 6,
+              fontSize: "0.82rem", letterSpacing: "0.08em", fontWeight: 700,
+              padding: "10px 18px",
+              cursor: "pointer",
+              opacity: busy ? 0.6 : 1,
+            }}
+          >
+            {busy ? "WORKING…" : confirmLabel.toUpperCase()}
+          </button>
+        </>
+      }
+    >
+      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+        <div
+          aria-hidden
+          style={{
+            width: 40, height: 40, borderRadius: 10,
+            display: "grid", placeItems: "center", flexShrink: 0,
+            background: danger ? "rgba(239,68,68,0.12)" : "rgba(249,115,22,0.12)",
+            color: danger ? "#ef4444" : "#f97316",
+          }}
+        >
+          <i className={`fa-solid ${danger ? "fa-triangle-exclamation" : "fa-circle-info"}`} />
+        </div>
+        <div style={{ flex: 1, fontSize: "0.9rem", lineHeight: 1.5, color: "var(--text)" }}>
+          {message}
+        </div>
+      </div>
+    </ModalShell>
   );
 }
 
