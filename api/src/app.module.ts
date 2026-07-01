@@ -13,6 +13,7 @@ import { OrdersModule } from "./orders/orders.module";
 import { PublicModule } from "./public/public.module";
 import { ContentModule } from "./content/content.module";
 import { UsersAdminModule } from "./users-admin/users-admin.module";
+import { PortalModule } from "./portal/portal.module";
 
 @Module({
   imports: [
@@ -37,6 +38,8 @@ import { UsersAdminModule } from "./users-admin/users-admin.module";
     ContentModule,
     // Phase 6 — admin user / role / permission management
     UsersAdminModule,
+    // Phase 7 — portal team invites + groups (back-office teammates)
+    PortalModule,
   ],
 })
 export class AppModule {}

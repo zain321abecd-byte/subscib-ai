@@ -5,71 +5,43 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import FloatField from "../FloatField";
-import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
+import { usePortalAuth } from "@/lib/portal-auth";
 
 function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") || "/admin";
   const errorParam = params.get("error");
-  const configured = isSupabaseConfigured();
+  const { login } = usePortalAuth();
 
   const initialError =
-    !configured
-      ? "Supabase isn't configured yet. Add the env vars from ADMIN_SETUP.md and redeploy."
-      : errorParam === "not_admin"
+    errorParam === "not_admin"
       ? "Your account isn't authorised to access the admin panel."
       : "";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // "idle" | "auth" (signing in) | "verify" (admin check) | "redirect"
-  const [stage, setStage] = useState<"idle" | "auth" | "verify" | "redirect">("idle");
+  const [stage, setStage] = useState<"idle" | "auth" | "redirect">("idle");
   const [error, setError] = useState(initialError);
   const busy = stage !== "idle";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!configured) {
-      setError("Supabase isn't configured yet. Add the env vars from ADMIN_SETUP.md and redeploy.");
-      return;
-    }
     setStage("auth");
     setError("");
-    try {
-      const supabase = getSupabaseBrowser();
-      const { error: authErr } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (authErr) {
-        setError(authErr.message);
-        setStage("idle");
-        return;
-      }
-      // Confirm admin row exists before redirecting (so non-admin Supabase
-      // users get a clear error instead of an instant redirect → bounce loop).
-      setStage("verify");
-      const { data: adminRow, error: adminErr } = await supabase
-        .from("admins")
-        .select("user_id")
-        .maybeSingle();
-      if (adminErr || !adminRow) {
-        await supabase.auth.signOut();
-        setError("This account is not registered as an admin.");
-        setStage("idle");
-        return;
-      }
-      // Hard redirect — guarantees the auth cookie is on the next request,
-      // and avoids the router.push/refresh race that can leave the user
-      // stuck on /admin/login even after a successful sign-in.
-      setStage("redirect");
-      window.location.assign(next);
-    } catch (err: any) {
-      setError(err?.message || "Something went wrong.");
+    const result = await login(email.trim(), password);
+    if (!result.ok) {
+      setError(result.error);
       setStage("idle");
+      return;
     }
+    // Hard redirect — guarantees the portal token cookie is on the next
+    // request so the middleware + server components see it before rendering.
+    setStage("redirect");
+    window.location.assign(next);
   }
 
   const buttonLabel =
     stage === "auth"     ? "Signing in…" :
-    stage === "verify"   ? "Verifying admin access…" :
     stage === "redirect" ? "Redirecting…" :
     "Sign in";
 

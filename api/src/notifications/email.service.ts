@@ -267,6 +267,47 @@ export class EmailService {
     return this.sendEmail({ to, subject, html, text, emailType: "welcome" });
   }
 
+  /**
+   * Portal team invite email. Contains a one-time link to /admin/accept-invite
+   * where the invitee sets their password. Sent from the invites service.
+   */
+  async sendPortalInviteEmail(input: {
+    to: string;
+    name?: string | null;
+    inviterName?: string | null;
+    token: string;
+    groupNames: string[];
+  }) {
+    const s = await this.settings();
+    const displayName = input.name?.trim() || "there";
+    const siteUrl = s.siteUrl || "https://subscribai.com";
+    const acceptUrl = `${siteUrl}/admin/accept-invite?token=${encodeURIComponent(input.token)}&email=${encodeURIComponent(input.to)}`;
+    const subject = `You're invited to the ${BRAND} team`;
+    const groupsLine = input.groupNames.length
+      ? `You'll join the following group${input.groupNames.length === 1 ? "" : "s"}: <strong>${input.groupNames.map(escapeHtml).join(", ")}</strong>.`
+      : "Your permissions will be assigned when you accept the invite.";
+
+    const html = layout(subject, `
+      <h1 style="margin:0 0 12px;font-size:24px;color:#111827;">You're invited to ${BRAND}</h1>
+      <p style="margin:0 0 14px;line-height:1.7;color:#374151;">Hi ${escapeHtml(displayName)}, ${input.inviterName ? `${escapeHtml(input.inviterName)} has` : "a superadmin has"} invited you to join the ${BRAND} admin portal as a teammate.</p>
+      <p style="margin:0 0 22px;line-height:1.7;color:#374151;">${groupsLine}</p>
+      <p style="margin:0 0 22px;"><a href="${escapeHtml(acceptUrl)}" style="display:inline-block;background:#FF7A1A;color:#fff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:700;">Accept invitation</a></p>
+      <p style="margin:0;line-height:1.7;color:#6b7280;font-size:13px;">If you can't click the button, paste this URL into your browser:<br><span style="color:#111827;">${escapeHtml(acceptUrl)}</span></p>
+      <p style="margin:16px 0 0;line-height:1.7;color:#6b7280;font-size:12px;">This invitation is one-time — if you didn't expect it, you can ignore this email.</p>
+    `, s.contactEmail);
+
+    const text = [
+      `You're invited to the ${BRAND} admin portal.`,
+      input.groupNames.length ? `Groups: ${input.groupNames.join(", ")}` : "",
+      "",
+      `Accept: ${acceptUrl}`,
+      "",
+      `Contact: ${s.contactEmail}`,
+    ].filter(Boolean).join("\n");
+
+    return this.sendEmail({ to: input.to, subject, html, text, emailType: "portal_invite" });
+  }
+
   async sendOrderConfirmationEmail({ order }: { order: OrderEmail }) {
     const existing = await this.supabase.admin()
       .from("email_logs")

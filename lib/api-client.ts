@@ -9,6 +9,10 @@
  * localStorage under "subscribai-auth" — written by lib/auth.tsx on login.
  */
 const AUTH_STORAGE_KEY = "subscribai-auth";
+/** localStorage key for the back-office (portal) JWT — distinct from customer auth. */
+export const PORTAL_AUTH_STORAGE_KEY = "subscribai-portal-auth";
+/** Cookie name mirroring the portal token so the middleware + server components can gate /admin/*. */
+export const PORTAL_AUTH_COOKIE = "subscribai-portal-token";
 
 /** Backend base URL (no trailing slash). Throws if not configured. */
 export function apiBaseUrl(): string {
@@ -39,11 +43,25 @@ export async function authHeaders(): Promise<Record<string, string>> {
   }
 }
 
-type Options = { auth?: boolean };
+/** Authorization header carrying the *portal* JWT (from /admin/login). */
+export async function portalAuthHeaders(): Promise<Record<string, string>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(PORTAL_AUTH_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as { token?: string };
+    return parsed?.token ? { Authorization: `Bearer ${parsed.token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
+type Options = { auth?: boolean; portal?: boolean };
 
 async function request<T = any>(method: string, path: string, body?: unknown, opts: Options = {}): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (opts.auth) Object.assign(headers, await authHeaders());
+  if (opts.portal) Object.assign(headers, await portalAuthHeaders());
+  else if (opts.auth) Object.assign(headers, await authHeaders());
 
   const res = await fetch(apiUrl(path), {
     method,

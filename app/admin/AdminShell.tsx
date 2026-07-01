@@ -4,8 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth";
-import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase/browser";
+import { usePortalAuth } from "@/lib/portal-auth";
 import { requiredPermissionForPath, type PermissionKey, type Role } from "@/lib/permissions";
 import AdminNavProgress from "./AdminNavProgress";
 
@@ -51,16 +50,19 @@ export default function AdminShell({
   children,
   role,
   permissions,
+  me,
 }: {
   children: React.ReactNode;
   /** Server-resolved back-office role. Undefined on login/diagnostics. */
   role?: Role;
   /** Server-resolved effective permission keys. Authoritative for UI gating. */
   permissions?: string[];
+  /** Signed-in portal user (server-resolved). Undefined on login/diagnostics. */
+  me?: { id: string; email: string; name: string | null; isSuper: boolean };
 }) {
   const pathname = usePathname() || "/admin";
   const [navOpen, setNavOpen] = useState(false);
-  const { logout } = useAuth();
+  const { logout } = usePortalAuth();
 
   // Authoritative permission check driven by the server-provided set (NOT the
   // localStorage JWT, which the admin portal doesn't use). Superadmin passes
@@ -83,21 +85,15 @@ export default function AdminShell({
     };
   }, []);
 
-  // Don't render the chrome on standalone pages (login + diagnostics).
-  if (pathname === "/admin/login" || pathname === "/admin/diagnostics") return <>{children}</>;
+  // Don't render the chrome on standalone pages (login / accept-invite / diagnostics).
+  if (pathname === "/admin/login" || pathname === "/admin/accept-invite" || pathname === "/admin/diagnostics") {
+    return <>{children}</>;
+  }
 
-  async function signOut() {
-    try {
-      // The admin portal authenticates over the Supabase cookie session, so the
-      // session MUST be cleared here — otherwise "sign out" leaves the user
-      // still authorised. Also clear the customer-side JWT for good measure.
-      if (isSupabaseConfigured()) {
-        await getSupabaseBrowser().auth.signOut();
-      }
-      logout();
-    } finally {
-      window.location.assign("/admin/login");
-    }
+  function signOut() {
+    // logout() clears both localStorage + the portal cookie; then bounce to login.
+    logout();
+    window.location.assign("/admin/login");
   }
 
   // Sidebar link click — let Next.js handle the navigation natively (this
@@ -165,6 +161,13 @@ export default function AdminShell({
             </div>
           ))}
           <div style={{ marginTop: 10, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+            {me ? (
+              <div style={{ padding: "8px 12px", marginBottom: 8, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>
+                Signed in as
+                <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 13 }}>{me.name || me.email}</div>
+                {me.isSuper && <div style={{ color: "#f59e0b", fontSize: 11, marginTop: 2 }}>Superadmin</div>}
+              </div>
+            ) : null}
             <Link href="/" className="admin-nav-link" onClick={() => setNavOpen(false)}>
               <i className="fa-solid fa-arrow-up-right-from-square"></i>
               View site

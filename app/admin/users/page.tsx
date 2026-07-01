@@ -1,67 +1,45 @@
-import { requireAdmin } from "@/lib/admin-auth";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import {
-  PERMISSION_GROUPS,
-  PERMISSION_KEYS,
-  ROLE_DEFAULTS,
-  ROLES,
-  parseOverride,
-  resolveEffectivePermissions,
-  type Role,
-} from "@/lib/permissions";
-import UsersClient, { type AdminUser, type Catalog } from "./UsersClient";
+import { requireAdmin, getPortalToken } from "@/lib/admin-auth";
+import TeamClient, { type PortalGroupDto, type PortalUserDto } from "./TeamClient";
 
-export const metadata = { title: "Users · Admin" };
+export const metadata = { title: "Team · Admin" };
 export const dynamic = "force-dynamic";
 
-export default async function AdminUsersPage() {
-  // Gate: must be a back-office user with users:read. Redirects otherwise.
-  const me = await requireAdmin("users:read");
-
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, email, name, phone, role, permissions, email_verified_at, last_login_at, created_at")
-    .order("created_at", { ascending: false });
-
-  const users: AdminUser[] = (data || []).map((u: any) => {
-    const override = parseOverride(u.permissions);
-    return {
-      id: u.id,
-      email: u.email,
-      name: u.name ?? null,
-      phone: u.phone ?? null,
-      role: u.role as Role,
-      override,
-      effectivePermissions: Array.from(resolveEffectivePermissions(u.role as Role, override)),
-      email_verified_at: u.email_verified_at ?? null,
-      last_login_at: u.last_login_at ?? null,
-      created_at: u.created_at,
-    };
+async function backendFetch<T>(path: string, token: string): Promise<T> {
+  const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  if (!base) throw new Error("NEXT_PUBLIC_API_URL is not set.");
+  const res = await fetch(`${base}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
   });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.message || `GET ${path} → ${res.status}`);
+  }
+  return (await res.json()) as T;
+}
 
-  const catalog: Catalog = {
-    roles: ROLES,
-    permissions: [...PERMISSION_KEYS],
-    groups: PERMISSION_GROUPS.map((g) => ({ label: g.label, keys: [...g.keys] })),
-    roleDefaults: Object.fromEntries(
-      ROLES.map((r) => [r, [...ROLE_DEFAULTS[r]]]),
-    ) as Record<Role, string[]>,
-  };
+export default async function TeamPage() {
+  // Gate: users:read is the "can see the team page" permission.
+  const me = await requireAdmin("users:read");
+  const token = (await getPortalToken()) as string;
 
-  const canAssignRoles =
-    me.role === "superadmin" || me.effectivePermissions.includes("users:assign-roles");
-  const canDelete =
-    me.role === "superadmin" || me.effectivePermissions.includes("users:delete");
+  const [{ users }, { groups }, catalog] = await Promise.all([
+    backendFetch<{ users: PortalUserDto[] }>("/admin/portal-users", token),
+    backendFetch<{ groups: PortalGroupDto[] }>("/admin/portal-groups", token),
+    backendFetch<{ permissions: string[]; groups: Array<{ label: string; keys: string[] }> }>(
+      "/admin/portal-groups/catalog",
+      token,
+    ),
+  ]);
 
   return (
-    <UsersClient
-      initialUsers={users}
-      catalog={catalog}
-      meEmail={me.email}
-      canAssignRoles={canAssignRoles}
-      canDelete={canDelete}
-      loadError={error ? error.message : null}
-    />
+    <div style={{ padding: "24px 28px" }}>
+      <TeamClient
+        me={{ id: me.userId, email: me.email, isSuper: me.isSuper }}
+        initialUsers={users}
+        initialGroups={groups}
+        catalog={catalog}
+      />
+    </div>
   );
 }
