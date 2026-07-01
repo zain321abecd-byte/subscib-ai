@@ -32,7 +32,7 @@ export class PortalAuthService {
     return s;
   }
 
-  signJwt(user: PortalUserRow): string {
+  signJwt(user: PortalUserRow): { token: string; expiresAt: string } {
     const payload: PortalJwtPayload = {
       sub: user.id,
       email: user.email,
@@ -40,7 +40,12 @@ export class PortalAuthService {
       isSuper: user.is_superadmin,
     };
     const ttl = process.env.JWT_ACCESS_TTL || "7d";
-    return jwt.sign(payload, this.secret(), { expiresIn: ttl as jwt.SignOptions["expiresIn"] });
+    const token = jwt.sign(payload, this.secret(), { expiresIn: ttl as jwt.SignOptions["expiresIn"] });
+    // Decode our own token to surface the exp back to the caller — cheaper
+    // than re-deriving the TTL and correct even for weird ttl strings.
+    const decoded = jwt.decode(token) as { exp?: number } | null;
+    const expiresAt = decoded?.exp ? new Date(decoded.exp * 1000).toISOString() : new Date(Date.now() + 7 * 86400_000).toISOString();
+    return { token, expiresAt };
   }
 
   verifyJwt(token: string): PortalJwtPayload {
@@ -65,7 +70,7 @@ export class PortalAuthService {
    * Login for a portal teammate. Rejects invited-but-not-accepted users AND
    * disabled ones. Returns the JWT + a public user projection.
    */
-  async login(input: { email: string; password: string }): Promise<{ accessToken: string; user: PortalUserPublic; permissions: PortalPermissionKey[] }> {
+  async login(input: { email: string; password: string }): Promise<{ token: string; expires_at: string; user: PortalUserPublic; permissions: PortalPermissionKey[] }> {
     const email = (input.email || "").trim().toLowerCase();
     const password = String(input.password || "");
 
@@ -82,9 +87,9 @@ export class PortalAuthService {
     if (!user.password_hash) throw new UnauthorizedException("Account has no password set.");
 
     await this.users.touchLastLogin(user.id);
-    const accessToken = this.signJwt(user);
+    const { token, expiresAt } = this.signJwt(user);
     const perms = user.is_superadmin ? [] : Array.from(await this.groups.permissionsForUser(user.id));
-    return { accessToken, user: toPortalUserPublic(user), permissions: perms };
+    return { token, expires_at: expiresAt, user: toPortalUserPublic(user), permissions: perms };
   }
 
   /** Resolve the currently-signed-in portal user + their permissions. */

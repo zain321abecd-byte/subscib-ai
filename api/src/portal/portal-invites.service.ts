@@ -2,8 +2,10 @@ import { BadRequestException, ConflictException, Inject, Injectable, Logger, Not
 import * as bcrypt from "bcryptjs";
 import * as crypto from "node:crypto";
 import { EmailService } from "../notifications/email.service";
+import { PortalAuthService } from "./portal-auth.service";
 import { PortalGroupsRepo } from "./portal-groups.repo";
 import { PortalUsersRepo, toPortalUserPublic, type PortalUserPublic } from "./portal-users.repo";
+import type { PortalPermissionKey } from "./portal-permissions";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -19,6 +21,7 @@ export class PortalInvitesService {
   constructor(
     private readonly users: PortalUsersRepo,
     private readonly groups: PortalGroupsRepo,
+    private readonly auth: PortalAuthService,
     @Inject(forwardRef(() => EmailService)) private readonly email: EmailService,
   ) {}
 
@@ -94,8 +97,17 @@ export class PortalInvitesService {
     return toPortalUserPublic(rotated, groups);
   }
 
-  /** Public endpoint — invitee submits their new password. */
-  async accept(input: { token: string; password: string; name?: string }): Promise<{ user: PortalUserPublic }> {
+  /**
+   * Public endpoint — invitee submits their new password. Returns the same
+   * shape as /portal/login so the accept-invite page can drop the user
+   * straight into the admin portal without a second sign-in step.
+   */
+  async accept(input: { token: string; password: string; name?: string }): Promise<{
+    token: string;
+    expires_at: string;
+    user: PortalUserPublic;
+    permissions: PortalPermissionKey[];
+  }> {
     const token = (input.token || "").trim();
     const password = String(input.password || "");
     if (!token) throw new BadRequestException("Invitation token is required.");
@@ -110,8 +122,19 @@ export class PortalInvitesService {
     const activated = await this.users.completeInvite(existing.id, passwordHash, finalName);
     if (!activated) throw new BadRequestException("Could not activate account.");
 
+    // Sign them in immediately — same JWT shape as /portal/login.
+    const { token: jwtToken, expiresAt } = this.auth.signJwt(activated);
     const groups = await this.groupsForUser(activated.id);
-    return { user: toPortalUserPublic(activated, groups) };
+    const perms = activated.is_superadmin
+      ? []
+      : (Array.from(await this.groups.permissionsForUser(activated.id)) as PortalPermissionKey[]);
+    await this.users.touchLastLogin(activated.id);
+    return {
+      token: jwtToken,
+      expires_at: expiresAt,
+      user: toPortalUserPublic(activated, groups),
+      permissions: perms,
+    };
   }
 
   // ── helpers ────────────────────────────────────────────────────────────
