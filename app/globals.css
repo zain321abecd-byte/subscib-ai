@@ -9574,6 +9574,29 @@ select.input::-ms-expand { display: none; }
   font-style: normal;
   letter-spacing: 0.01em;
 }
+/* Themed scrollbar for scrollable modal bodies. Firefox + WebKit both
+   covered — falls back to the default track/thumb elsewhere. */
+.admin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(249, 115, 22, 0.35) transparent;
+}
+.admin-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.admin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+.admin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(249, 115, 22, 0.28);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.admin-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 0.55);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+.admin-scroll::-webkit-scrollbar-corner { background: transparent; }
 .admin-input:disabled,
 .admin-textarea:disabled,
 .admin-select:disabled {

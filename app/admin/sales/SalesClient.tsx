@@ -809,7 +809,7 @@ function ModalShell({
             <i className="fa-solid fa-xmark" />
           </button>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "22px" }}>{children}</div>
+        <div className="admin-scroll" style={{ flex: 1, overflowY: "auto", padding: "22px" }}>{children}</div>
         {footer && (
           <div style={{ padding: "12px 22px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0, background: "var(--surface)" }}>
             {footer}

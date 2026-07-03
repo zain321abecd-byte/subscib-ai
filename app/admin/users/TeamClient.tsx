@@ -1379,7 +1379,7 @@ function ModalShell({
         </div>
 
         {/* Scrollable body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "22px 22px" }}>
+        <div className="admin-scroll" style={{ flex: 1, overflowY: "auto", padding: "22px 22px" }}>
           {children}
         </div>
 
