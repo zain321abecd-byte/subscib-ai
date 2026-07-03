@@ -9574,6 +9574,39 @@ select.input::-ms-expand { display: none; }
   font-style: normal;
   letter-spacing: 0.01em;
 }
+/* Native date / time pickers pick up their icon + popup colours from the
+   element's color-scheme. Without this the calendar glyph renders black
+   and the popup calendar itself is stark white on our dark theme. */
+.admin-input[type="date"],
+.admin-input[type="datetime-local"],
+.admin-input[type="time"],
+.admin-input[type="month"],
+.admin-input[type="week"] {
+  color-scheme: dark;
+  /* Reserve room for the calendar icon so it never overlaps the value. */
+  padding-right: 34px;
+  position: relative;
+}
+/* WebKit — tint the picker glyph orange so it matches the rest of the
+   admin theme, and give it a bigger clickable target. */
+.admin-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.65;
+  padding: 4px;
+  border-radius: 4px;
+  filter:
+    /* start black → white */
+    invert(1)
+    /* then push toward brand orange (#f97316) */
+    sepia(1) saturate(6) hue-rotate(340deg) brightness(1.05);
+  transition: opacity .15s, background-color .15s;
+}
+.admin-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background-color: rgba(249, 115, 22, 0.15);
+}
+/* Firefox — no picker-indicator selector, but color-scheme above gives
+   it a dark picker and readable icon out of the box. */
 /* Themed scrollbar for scrollable modal bodies. Firefox + WebKit both
    covered — falls back to the default track/thumb elsewhere. */
 .admin-scroll {

@@ -14,7 +14,7 @@
  * they belong to (with an "INVITE NOT ACCEPTED" chip for pending
  * ones). We do the same.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiBaseUrl, portalAuthHeaders } from "@/lib/api-client";
 
 /**
@@ -888,9 +888,29 @@ function StyledSelect({
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  // Outside click / Escape → close. We used to render a full-viewport
+  // overlay to catch these but that also blocked every other click in
+  // the modal, so users couldn't interact with adjacent fields until
+  // they picked an option.
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setOpen(false); }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   const selected = options.find((o) => o.value === value);
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={wrapRef} style={{ position: "relative" }}>
       <button
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
@@ -938,45 +958,42 @@ function StyledSelect({
         <i className={`fa-solid ${open ? "fa-chevron-up" : "fa-chevron-down"}`} style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }} />
       </button>
       {open && !disabled && (
-        <>
-          {/* Click-away overlay */}
-          <div
-            onClick={() => setOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 1 }}
-          />
-          <div
-            style={{
-              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-              background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: 8, zIndex: 2, maxHeight: 240, overflowY: "auto",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-            }}
-          >
-            {options.length === 0 && (
-              <div style={{ padding: "12px 14px", color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                No teammates available
+        <div
+          role="listbox"
+          className="admin-scroll"
+          style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: 8, zIndex: 200, maxHeight: 240, overflowY: "auto",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          }}
+        >
+          {options.length === 0 && (
+            <div style={{ padding: "12px 14px", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+              No teammates available
+            </div>
+          )}
+          {options.map((o) => {
+            const active = o.value === value;
+            return (
+              <div
+                key={o.value}
+                role="option"
+                aria-selected={active}
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                style={{
+                  padding: "10px 14px", cursor: "pointer",
+                  display: "flex", flexDirection: "column", gap: 2,
+                  background: active ? "rgba(249,115,22,0.08)" : "transparent",
+                  borderLeft: `3px solid ${active ? "#f97316" : "transparent"}`,
+                }}
+              >
+                <span style={{ fontSize: "0.9rem", fontWeight: active ? 600 : 500, color: active ? "#f97316" : "var(--text)" }}>{o.label}</span>
+                {o.hint && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{o.hint}</span>}
               </div>
-            )}
-            {options.map((o) => {
-              const active = o.value === value;
-              return (
-                <div
-                  key={o.value}
-                  onClick={() => { onChange(o.value); setOpen(false); }}
-                  style={{
-                    padding: "10px 14px", cursor: "pointer",
-                    display: "flex", flexDirection: "column", gap: 2,
-                    background: active ? "rgba(249,115,22,0.08)" : "transparent",
-                    borderLeft: `3px solid ${active ? "#f97316" : "transparent"}`,
-                  }}
-                >
-                  <span style={{ fontSize: "0.9rem", fontWeight: active ? 600 : 500, color: active ? "#f97316" : "var(--text)" }}>{o.label}</span>
-                  {o.hint && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{o.hint}</span>}
-                </div>
-              );
-            })}
-          </div>
-        </>
+            );
+          })}
+        </div>
       )}
     </div>
   );

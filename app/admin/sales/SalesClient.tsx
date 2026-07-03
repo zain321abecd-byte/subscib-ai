@@ -11,7 +11,7 @@
  * the client keeps an optimistic copy of the list so the UI feels
  * instant even when the network is slow.
  */
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createSubscriptionSale,
@@ -870,12 +870,37 @@ function StyledSelect({
   icon?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * Close on outside click / Escape. Using a document-level listener
+   * instead of a full-viewport overlay div means clicks pass through
+   * to whatever the user actually aimed at (other form fields, the
+   * modal close button, etc.) — an overlay would swallow every click
+   * and freeze the surrounding UI.
+   */
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setOpen(false); }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   const selected = options.find((o) => o.value === value);
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={wrapRef} style={{ position: "relative" }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         style={{
           width: "100%", textAlign: "left",
           padding: "10px 12px", borderRadius: 10,
@@ -918,38 +943,39 @@ function StyledSelect({
         <i className={`fa-solid ${open ? "fa-chevron-up" : "fa-chevron-down"}`} style={{ fontSize: 11, color: "var(--text-muted)" }} />
       </button>
       {open && (
-        <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 1 }} />
-          <div
-            style={{
-              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-              background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: 8, zIndex: 2, maxHeight: 260, overflowY: "auto",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-            }}
-          >
-            {options.map((o) => {
-              const active = o.value === value;
-              return (
-                <div
-                  key={o.value}
-                  onClick={() => { onChange(o.value); setOpen(false); }}
-                  style={{
-                    padding: "10px 14px", cursor: "pointer",
-                    display: "flex", flexDirection: "column", gap: 2,
-                    background: active ? "rgba(249,115,22,0.08)" : "transparent",
-                    borderLeft: `3px solid ${active ? "#f97316" : "transparent"}`,
-                  }}
-                >
-                  <span style={{ fontSize: "0.88rem", fontWeight: active ? 600 : 500, color: active ? "#f97316" : "var(--text)" }}>
-                    {o.label}
-                  </span>
-                  {o.hint && <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>{o.hint}</span>}
-                </div>
-              );
-            })}
-          </div>
-        </>
+        <div
+          role="listbox"
+          className="admin-scroll"
+          style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: 8, zIndex: 200, maxHeight: 260, overflowY: "auto",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          }}
+        >
+          {options.map((o) => {
+            const active = o.value === value;
+            return (
+              <div
+                key={o.value}
+                role="option"
+                aria-selected={active}
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                style={{
+                  padding: "10px 14px", cursor: "pointer",
+                  display: "flex", flexDirection: "column", gap: 2,
+                  background: active ? "rgba(249,115,22,0.08)" : "transparent",
+                  borderLeft: `3px solid ${active ? "#f97316" : "transparent"}`,
+                }}
+              >
+                <span style={{ fontSize: "0.88rem", fontWeight: active ? 600 : 500, color: active ? "#f97316" : "var(--text)" }}>
+                  {o.label}
+                </span>
+                {o.hint && <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>{o.hint}</span>}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
