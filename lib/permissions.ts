@@ -33,6 +33,10 @@ export const PERMISSION_KEYS = [
   // Stock
   "stock:read",
   "stock:write",
+  // Daily sales / renewals
+  "sales:read",
+  "sales:write",
+  "sales:delete",
   // Settings
   "settings:read",
   "settings:write",
@@ -61,6 +65,7 @@ export const PERMISSION_GROUPS: Array<{ label: string; keys: PermissionKey[] }> 
   { label: "Reviews", keys: ["reviews:read", "reviews:moderate", "reviews:delete"] },
   { label: "Freebies", keys: ["freebies:read", "freebies:write", "freebies:delete"] },
   { label: "Stock", keys: ["stock:read", "stock:write"] },
+  { label: "Daily sales", keys: ["sales:read", "sales:write", "sales:delete"] },
   { label: "Settings", keys: ["settings:read", "settings:write"] },
   { label: "Emails", keys: ["emails:read", "emails:send"] },
   { label: "Users", keys: ["users:read", "users:write", "users:assign-roles", "users:delete"] },
@@ -90,6 +95,7 @@ export const ROLE_DEFAULTS: Record<Role, ReadonlyArray<PermissionKey>> = {
     "reviews:read", "reviews:moderate",
     "freebies:read", "freebies:write",
     "stock:read", "stock:write",
+    "sales:read", "sales:write",
     "settings:read",
     "emails:read", "emails:send",
     "analytics:view",
@@ -165,6 +171,7 @@ export const SECTION_PERMISSIONS: Array<{ prefix: string; permission: Permission
   { prefix: "/admin/reviews", permission: "reviews:read" },
   { prefix: "/admin/orders", permission: "orders:read" },
   { prefix: "/admin/stock", permission: "stock:read" },
+  { prefix: "/admin/sales", permission: "sales:read" },
   { prefix: "/admin/traffic", permission: "analytics:view" },
   { prefix: "/admin/users", permission: "users:read" },
   { prefix: "/admin/settings", permission: "settings:read" },
