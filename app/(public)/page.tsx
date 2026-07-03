@@ -9,6 +9,7 @@ import { getFeaturedProducts } from "@/lib/products";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getRegion } from "@/lib/region";
 import { Price } from "@/lib/fx";
+import { getStartingPrice, hasMultiplePrices } from "@/lib/pricing";
 
 export const revalidate = 60;
 
@@ -114,7 +115,11 @@ export default async function HomePage() {
                             </span>
                             <div>
                               <strong>{p.name}</strong>
-                              <small><Price pkr={p.price} /> / month</small>
+                              {/* Show the starting/cheapest variant, with "From " when the product has multiple tiers. */}
+                              <small>
+                                {hasMultiplePrices(p) && "From "}
+                                <Price pkr={getStartingPrice(p)} /> / month
+                              </small>
                             </div>
                             {tag && <span className={`badge ${skin.bc}`}>{tag}</span>}
                           </div>

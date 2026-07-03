@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/lib/cart";
+import { getStartingPrice } from "@/lib/pricing";
 import type { Product } from "@/lib/products";
 
 export default function AddToCartButton({ product }: { product: Product }) {
@@ -10,7 +11,9 @@ export default function AddToCartButton({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
 
   const handleAdd = () => {
-    cart.add({ id: product.id, name: product.name, price: product.price, iconClass: product.iconClass, thumbClass: product.mediaClass });
+    // Fallback path (no variation selected) — use the starting/cheapest
+    // price so this matches what the card advertised.
+    cart.add({ id: product.id, name: product.name, price: getStartingPrice(product), iconClass: product.iconClass, thumbClass: product.mediaClass });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
   };

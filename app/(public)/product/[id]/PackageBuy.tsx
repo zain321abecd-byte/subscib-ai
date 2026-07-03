@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCart } from "@/lib/cart";
 import { useFx, formatPriceFromPKR } from "@/lib/fx";
+import { getStartingPrice, hasMultiplePrices } from "@/lib/pricing";
 import type { Product } from "@/lib/products";
 import {
   ACCOUNT_TYPES,
@@ -76,9 +77,18 @@ export default function PackageBuy({ product }: { product: Product }) {
     if (addToCart()) window.location.assign("/checkout");
   }
 
-  const priceText = selectedPrice == null
-    ? "Select options"
+  // Starting/"from" price shown before the shopper picks a specific
+  // plan+account+duration triple. Once selectedPrice is set (isComplete),
+  // we swap over to the exact per-unit price.
+  const startingPrice = getStartingPrice(product);
+  const startingLabel = formatPriceFromPKR(startingPrice, currency, usdToPkr, fxReady, usdToInr);
+  const startingPriceLabel = hasMultiplePrices(product) ? `From ${startingLabel}` : startingLabel;
+  const perUnitLabel = selectedPrice == null
+    ? startingPriceLabel
     : formatPriceFromPKR(selectedPrice, currency, usdToPkr, fxReady, usdToInr);
+  const totalLabel = selectedPrice == null
+    ? startingPriceLabel
+    : formatPriceFromPKR(total, currency, usdToPkr, fxReady, usdToInr);
 
   return (
     <>
@@ -126,8 +136,12 @@ export default function PackageBuy({ product }: { product: Product }) {
 
         <div className="package-buy-summary">
           <div className="package-buy-price">
-            <strong>{selectedPrice == null ? "Choose options" : formatPriceFromPKR(total, currency, usdToPkr, fxReady, usdToInr)}</strong>
-            <small>{selectedPrice == null ? "Select Plan, Account Type, and Duration" : `${priceText} each`}</small>
+            <strong>{totalLabel}</strong>
+            <small>
+              {selectedPrice == null
+                ? "Select Plan, Account Type, and Duration"
+                : `${perUnitLabel} each`}
+            </small>
           </div>
 
           <div className="package-buy-actions">
@@ -145,7 +159,7 @@ export default function PackageBuy({ product }: { product: Product }) {
         <div className="mobile-buy-bar" role="region" aria-label="Add to cart">
           <div className="mobile-buy-bar-info">
             <small>{isComplete ? variationSummary(buildSelection()!) : "Select options"}</small>
-            <strong>{selectedPrice == null ? "Choose options" : formatPriceFromPKR(total, currency, usdToPkr, fxReady, usdToInr)}</strong>
+            <strong>{totalLabel}</strong>
           </div>
           <button type="button" className="btn btn-primary mobile-buy-bar-cta" onClick={addToCart} disabled={!isComplete}>
             {added ? (

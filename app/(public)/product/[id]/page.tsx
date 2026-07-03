@@ -8,6 +8,7 @@ import { REVIEWS, REVIEWS_GLOBAL } from "@/components/Reviews";
 import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTestimonials";
 import PackageBuy from "./PackageBuy";
 import { getAllProducts, getProduct } from "@/lib/products";
+import { getStartingPrice, hasMultiplePrices } from "@/lib/pricing";
 import { getRegion } from "@/lib/region";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getAllReviews, isSupabaseConfigured } from "@/lib/reviews";
@@ -64,10 +65,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     category: product.category,
     brand: { "@type": "Brand", name: product.brand || product.name },
     offers: {
+      // "Starting from" price for rich Google results — matches what
+      // the shopper sees on cards + on the initial state of this page.
       "@type": "Offer",
       url: `${SITE_URL}/product/${product.id}`,
       priceCurrency: "USD",
-      price: product.price,
+      price: getStartingPrice(product),
       availability: "https://schema.org/InStock",
       seller: { "@type": "Organization", name: "SubscribAI" },
     },
@@ -82,17 +85,28 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     ],
   };
 
+  // Every fetch here has its own try/catch and returns a safe empty
+  // fallback — but keep an additional guard around the batch so a
+  // single misbehaving helper (env not set on the deploy target,
+  // Supabase timing out, etc.) can't take down the page.
   const [allProducts, region, dbReviews, settings] = await Promise.all([
-    getAllProducts(),
-    getRegion(),
-    getAllReviews(),
-    getSiteSettings(),
+    getAllProducts().catch((e) => { console.error("[product] getAllProducts failed", e); return []; }),
+    getRegion().catch((e) => { console.error("[product] getRegion failed", e); return "OTHER" as const; }),
+    getAllReviews().catch((e) => { console.error("[product] getAllReviews failed", e); return []; }),
+    getSiteSettings().catch((e) => { console.error("[product] getSiteSettings failed", e); return {} as Record<string, string>; }),
   ]);
   const isPK = region === "PK";
   const fxRate = Number(settings.fx_rate_pkr_per_usd) || 280;
-  const fmtPrice = (pkr: number) => isPK
-    ? `Rs ${Math.round(pkr).toLocaleString("en-PK")} / mo`
-    : `$${(pkr / fxRate).toFixed(2)} / mo`;
+  // Card label uses the product's starting price (cheapest variation)
+  // and prepends "From " when there are multiple options. Server-rendered
+  // here so this is region-based, not FX-context based.
+  const fmtProductCardLabel = (p: typeof allProducts[number]) => {
+    const start = getStartingPrice(p);
+    const raw = isPK
+      ? `Rs ${Math.round(start).toLocaleString("en-PK")} / mo`
+      : `$${(start / fxRate).toFixed(2)} / mo`;
+    return hasMultiplePrices(p) ? `From ${raw}` : raw;
+  };
   const productById = new Map(allProducts.map((p) => [p.id, p]));
   const reviewPool = dbReviews.length > 0
     ? dbReviews
@@ -216,7 +230,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               <MobileHeroProductCard
                 key={p.id}
                 product={p}
-                priceLabel={fmtPrice(p.price)}
+                priceLabel={fmtProductCardLabel(p)}
+                addPrice={getStartingPrice(p)}
               />
             ))}
           </div>

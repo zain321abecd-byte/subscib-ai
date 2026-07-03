@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
-import { useFx, formatPriceFromPKR } from "@/lib/fx";
+import { useFx } from "@/lib/fx";
+import { formatProductPriceLabel, getStartingPrice } from "@/lib/pricing";
 import BrandIcon from "@/components/BrandIcon";
 import type { Product } from "@/lib/products";
 
@@ -18,10 +19,13 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Card "add to cart" adds the starting/cheapest variation — matches
+    // the price the user sees on the card. If they want a different
+    // variation they go to the product page and pick one there.
     cart.add({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: getStartingPrice(product),
       iconClass: product.iconClass,
       thumbClass: product.mediaClass,
     });
@@ -77,7 +81,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <h3>{product.name}</h3>
         <div className="product-bottom">
           <div className="product-card-price">
-            <b>{formatPriceFromPKR(product.price, currency, usdToPkr, fxReady, usdToInr)}</b>
+            <b>{formatProductPriceLabel(product, currency, usdToPkr, fxReady, usdToInr)}</b>
           </div>
           <div className="product-actions">
             <Link className="product-icon-action" href={`/product/${product.id}`} aria-label={`View ${product.name}`} title="View details">

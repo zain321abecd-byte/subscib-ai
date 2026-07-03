@@ -20,13 +20,20 @@ type Product = {
  *
  * The whole card is clickable (routes to /product/:id). The cart button
  * stops propagation so users can add without leaving the home page.
+ *
+ * `addPrice` — optional override for the "add to cart" line item.
+ * The card's *displayed* label already comes from the parent (starting
+ * price + optional "From "), so this makes the cart line up with
+ * that display. If omitted, falls back to `product.price`.
  */
 export default function MobileHeroProductCard({
   product,
   priceLabel,
+  addPrice,
 }: {
   product: Product;
   priceLabel: string;
+  addPrice?: number;
 }) {
   const { add } = useCart();
   const [justAdded, setJustAdded] = useState(false);
@@ -37,7 +44,7 @@ export default function MobileHeroProductCard({
     add({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: addPrice ?? product.price,
       iconClass: product.iconClass,
     });
     setJustAdded(true);

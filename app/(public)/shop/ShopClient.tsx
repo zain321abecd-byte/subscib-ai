@@ -7,6 +7,7 @@ import MobileHeroProductCard from "@/components/MobileHeroProductCard";
 import ProductCard from "@/components/ProductCard";
 import Select from "@/components/Select";
 import { useFx, formatPriceFromPKR } from "@/lib/fx";
+import { formatProductPriceLabel, getStartingPrice } from "@/lib/pricing";
 import type { Product } from "@/lib/products";
 
 const CATEGORIES = [
@@ -27,9 +28,12 @@ const SORTS = [
 type SortKey = (typeof SORTS)[number]["value"];
 
 export default function ShopClient({ products: PRODUCTS }: { products: Product[] }) {
+  // Filter + sort operate on the *starting* (cheapest) price of each
+  // product — matches what shoppers see on the cards, so "under Rs X"
+  // filtering behaves the way they expect.
   const PRICE_BOUNDS = useMemo(() => {
     if (PRODUCTS.length === 0) return { min: 0, max: 100 };
-    const prices = PRODUCTS.map((p) => p.price);
+    const prices = PRODUCTS.map(getStartingPrice);
     return { min: Math.min(...prices), max: Math.max(...prices) };
   }, [PRODUCTS]);
 
@@ -48,7 +52,11 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
   }, [sheetOpen]);
 
   const fmtFilterPrice = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
-  const fmtPriceLabel = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr) + " / mo";
+  // Card label uses the product's *starting* (cheapest) price and adds
+  // "From " when there are multiple variations, so shoppers see the
+  // entry-level price instead of the highest.
+  const fmtPriceLabel = (p: Product) =>
+    formatProductPriceLabel(p, currency, usdToPkr, fxReady, usdToInr) + " / mo";
 
   const items = useMemo(() => {
     let list = PRODUCTS.slice();
@@ -61,9 +69,9 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
         p.description?.toLowerCase().includes(q)
       );
     }
-    list = list.filter((p) => p.price <= maxPrice);
-    if (sort === "price-asc") list.sort((a, b) => a.price - b.price);
-    else if (sort === "price-desc") list.sort((a, b) => b.price - a.price);
+    list = list.filter((p) => getStartingPrice(p) <= maxPrice);
+    if (sort === "price-asc") list.sort((a, b) => getStartingPrice(a) - getStartingPrice(b));
+    else if (sort === "price-desc") list.sort((a, b) => getStartingPrice(b) - getStartingPrice(a));
     else if (sort === "name") list.sort((a, b) => a.name.localeCompare(b.name));
     else list.sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)));
     return list;
@@ -343,7 +351,8 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
               <MobileHeroProductCard
                 key={p.id}
                 product={p}
-                priceLabel={fmtPriceLabel(p.price)}
+                priceLabel={fmtPriceLabel(p)}
+                addPrice={getStartingPrice(p)}
               />
             ))}
           </div>
@@ -400,7 +409,7 @@ export default function ShopClient({ products: PRODUCTS }: { products: Product[]
                 >
                   <span>{p.tag?.split(",")[0] || "Featured"}</span>
                   <strong>{p.name}</strong>
-                  <em>{fmtPriceLabel(p.price)}</em>
+                  <em>{fmtPriceLabel(p)}</em>
                 </div>
               ))}
             </div>
