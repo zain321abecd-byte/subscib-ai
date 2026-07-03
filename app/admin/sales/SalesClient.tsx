@@ -275,31 +275,37 @@ export default function SalesClient({
           onChange={(e) => setSearch(e.target.value)}
           style={{ flex: "1 1 280px", minWidth: 220 }}
         />
-        <select
-          className="admin-input"
-          value={statusFilter}
-          onChange={(e) => setStatus(e.target.value as SaleStatus | "all")}
-          style={{ maxWidth: 180 }}
-        >
-          <option value="all">All statuses</option>
-          <option value="active">Active</option>
-          <option value="renewal_due">Renewal due</option>
-          <option value="renewed">Renewed</option>
-          <option value="expired">Expired</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-        <select
-          className="admin-input"
-          value={renewFilter}
-          onChange={(e) => setRenew(e.target.value as any)}
-          style={{ maxWidth: 200 }}
-        >
-          <option value="all">All renew dates</option>
-          <option value="today">Renew today</option>
-          <option value="tomorrow">Renew tomorrow</option>
-          <option value="week">Renew this week</option>
-          <option value="expired">Expired</option>
-        </select>
+        <div style={{ minWidth: 180, maxWidth: 220 }}>
+          <StyledSelect
+            value={statusFilter}
+            onChange={(v) => setStatus(v as SaleStatus | "all")}
+            placeholder="All statuses"
+            icon="fa-filter"
+            options={[
+              { value: "all",         label: "All statuses" },
+              { value: "active",      label: "Active" },
+              { value: "renewal_due", label: "Renewal due" },
+              { value: "renewed",     label: "Renewed" },
+              { value: "expired",     label: "Expired" },
+              { value: "cancelled",   label: "Cancelled" },
+            ]}
+          />
+        </div>
+        <div style={{ minWidth: 200, maxWidth: 240 }}>
+          <StyledSelect
+            value={renewFilter}
+            onChange={(v) => setRenew(v as any)}
+            placeholder="All renew dates"
+            icon="fa-calendar-days"
+            options={[
+              { value: "all",      label: "All renew dates" },
+              { value: "today",    label: "Renew today" },
+              { value: "tomorrow", label: "Renew tomorrow" },
+              { value: "week",     label: "Renew this week" },
+              { value: "expired",  label: "Expired" },
+            ]}
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -601,10 +607,20 @@ function SaleFormModal({
 
         <FieldRow>
           <Field label="Product">
-            <select className="admin-input" value={form.product_id ?? ""} onChange={(e) => onProductPicked(e.target.value)}>
-              <option value="">— Custom / not in catalog —</option>
-              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            <StyledSelect
+              value={form.product_id ?? ""}
+              onChange={(v) => onProductPicked(v)}
+              placeholder="— Custom / not in catalog —"
+              icon="fa-box"
+              options={[
+                { value: "", label: "Custom / not in catalog", hint: "Type a product name below" },
+                ...products.map((p) => ({
+                  value: p.id,
+                  label: p.name,
+                  hint: p.price != null ? `Rs ${Math.round(Number(p.price)).toLocaleString("en-PK")} listed` : undefined,
+                })),
+              ]}
+            />
           </Field>
           <Field label="Product name (editable) *">
             <input required className="admin-input" value={form.product_name} onChange={(e) => set("product_name", e.target.value)} />
@@ -619,12 +635,18 @@ function SaleFormModal({
             <input type="number" min="0" step="0.01" className="admin-input" value={form.sale_price ?? ""} onChange={(e) => set("sale_price", e.target.value === "" ? null : Number(e.target.value))} />
           </Field>
           <Field label="Currency">
-            <select className="admin-input" value={form.currency ?? "PKR"} onChange={(e) => set("currency", e.target.value)}>
-              <option value="PKR">PKR</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="GBP">GBP</option>
-            </select>
+            <StyledSelect
+              value={form.currency ?? "PKR"}
+              onChange={(v) => set("currency", v)}
+              placeholder="PKR"
+              icon="fa-money-bill"
+              options={[
+                { value: "PKR", label: "PKR", hint: "Pakistani rupee" },
+                { value: "USD", label: "USD", hint: "US dollar" },
+                { value: "EUR", label: "EUR", hint: "Euro" },
+                { value: "GBP", label: "GBP", hint: "Pound sterling" },
+              ]}
+            />
           </Field>
         </FieldRow>
 
@@ -648,13 +670,19 @@ function SaleFormModal({
             <input className="admin-input" value={form.transaction_id ?? ""} onChange={(e) => set("transaction_id", e.target.value)} />
           </Field>
           <Field label="Status">
-            <select className="admin-input" value={form.status ?? "active"} onChange={(e) => set("status", e.target.value as SaleStatus)}>
-              <option value="active">Active</option>
-              <option value="renewal_due">Renewal due</option>
-              <option value="renewed">Renewed</option>
-              <option value="expired">Expired</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+            <StyledSelect
+              value={form.status ?? "active"}
+              onChange={(v) => set("status", v as SaleStatus)}
+              placeholder="Active"
+              icon="fa-flag"
+              options={[
+                { value: "active",      label: "Active" },
+                { value: "renewal_due", label: "Renewal due" },
+                { value: "renewed",     label: "Renewed" },
+                { value: "expired",     label: "Expired" },
+                { value: "cancelled",   label: "Cancelled" },
+              ]}
+            />
           </Field>
         </FieldRow>
 
@@ -823,6 +851,107 @@ function ConfirmModal({
         <div style={{ flex: 1, fontSize: "0.9rem", lineHeight: 1.5 }}>{message}</div>
       </div>
     </ModalShell>
+  );
+}
+
+// ─── styled dropdown ─────────────────────────────────────────────────
+/**
+ * Themed combobox replacing native <select>. Uses the admin-input
+ * styling to match the rest of the form and drops a right-side chevron.
+ * Closes on outside click / Escape; keyboard-safe for the common case.
+ */
+function StyledSelect({
+  value, onChange, placeholder, options, icon,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  options: Array<{ value: string; label: string; hint?: string }>;
+  icon?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.value === value);
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", textAlign: "left",
+          padding: "10px 12px", borderRadius: 10,
+          border: `1px solid ${open ? "rgba(249,115,22,0.5)" : "var(--border)"}`,
+          background: "var(--surface-2, rgba(255,255,255,0.03))",
+          color: "var(--text)",
+          fontSize: "0.9rem",
+          display: "flex", alignItems: "center", gap: 10,
+          cursor: "pointer",
+          boxShadow: open ? "0 0 0 3px rgba(249,115,22,0.15)" : "none",
+          transition: "border-color 0.15s, box-shadow 0.15s",
+        }}
+      >
+        {icon && (
+          <span
+            aria-hidden
+            style={{
+              width: 26, height: 26, borderRadius: 7,
+              display: "grid", placeItems: "center", flexShrink: 0,
+              background: selected ? "rgba(249,115,22,0.15)" : "var(--surface-2, rgba(255,255,255,0.05))",
+              color: selected ? "#f97316" : "var(--text-muted)",
+              fontSize: 11,
+            }}
+          >
+            <i className={`fa-solid ${icon}`} />
+          </span>
+        )}
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+          {selected ? (
+            <>
+              <span style={{ fontWeight: 500 }}>{selected.label}</span>
+              {selected.hint && (
+                <span style={{ color: "var(--text-muted)", marginLeft: 8, fontSize: "0.78rem" }}>{selected.hint}</span>
+              )}
+            </>
+          ) : (
+            <span style={{ color: "var(--text-muted)", opacity: 0.75 }}>{placeholder}</span>
+          )}
+        </span>
+        <i className={`fa-solid ${open ? "fa-chevron-up" : "fa-chevron-down"}`} style={{ fontSize: 11, color: "var(--text-muted)" }} />
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 1 }} />
+          <div
+            style={{
+              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+              background: "var(--surface)", border: "1px solid var(--border)",
+              borderRadius: 8, zIndex: 2, maxHeight: 260, overflowY: "auto",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            }}
+          >
+            {options.map((o) => {
+              const active = o.value === value;
+              return (
+                <div
+                  key={o.value}
+                  onClick={() => { onChange(o.value); setOpen(false); }}
+                  style={{
+                    padding: "10px 14px", cursor: "pointer",
+                    display: "flex", flexDirection: "column", gap: 2,
+                    background: active ? "rgba(249,115,22,0.08)" : "transparent",
+                    borderLeft: `3px solid ${active ? "#f97316" : "transparent"}`,
+                  }}
+                >
+                  <span style={{ fontSize: "0.88rem", fontWeight: active ? 600 : 500, color: active ? "#f97316" : "var(--text)" }}>
+                    {o.label}
+                  </span>
+                  {o.hint && <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>{o.hint}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
