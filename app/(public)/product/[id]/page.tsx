@@ -7,6 +7,7 @@ import MobileHeroProductCard from "@/components/MobileHeroProductCard";
 import { REVIEWS, REVIEWS_GLOBAL } from "@/components/Reviews";
 import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTestimonials";
 import PackageBuy from "./PackageBuy";
+import RichTextRenderer from "@/components/RichTextRenderer";
 import { getAllProducts, getProduct } from "@/lib/products";
 import { getStartingPrice, hasMultiplePrices } from "@/lib/pricing";
 import { getRegion } from "@/lib/region";
@@ -192,9 +193,16 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               {product.name}
             </h1>
 
-            <p className="product-detail-tagline">
-              {product.description || "Premium AI tool delivered instantly to your inbox after payment."}
-            </p>
+            {/* Rich HTML from the admin TipTap editor, sanitised on render. */}
+            <RichTextRenderer
+              className="product-detail-description"
+              content={product.description}
+              fallback={
+                <p className="product-detail-tagline">
+                  Premium AI tool delivered instantly to your inbox after payment.
+                </p>
+              }
+            />
 
             <PackageBuy product={product} />
 

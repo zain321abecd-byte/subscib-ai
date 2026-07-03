@@ -11,6 +11,8 @@ import RelatedProductsPicker from "./RelatedProductsPicker";
 import ProductReviewsInput, { type ReviewDraft } from "./ProductReviewsInput";
 import FloatField from "../FloatField";
 import BrandIcon, { SUPPORTED_BRANDS } from "@/components/BrandIcon";
+import RichTextEditor from "@/components/RichTextEditor";
+import RichTextRenderer from "@/components/RichTextRenderer";
 import { createProduct, updateProduct } from "./actions";
 import type { ProductRow } from "@/lib/supabase/types";
 import {
@@ -441,15 +443,7 @@ export default function ProductForm({
         <input type="hidden" name="private_label" value="Shared" />
 
         <div style={{ marginTop: 16 }}>
-          <FloatField
-            as="textarea"
-            id="description"
-            name="description"
-            label="Description / what&apos;s included"
-            icon="fa-align-left"
-            defaultValue={product?.description ?? ""}
-            rows={4}
-          />
+          <DescriptionEditor initial={product?.description ?? ""} />
         </div>
       </section>
 
@@ -570,6 +564,64 @@ export default function ProductForm({
         )}
       </div>
     </form>
+  );
+}
+
+/**
+ * Rich-text description field for the product form. Uses TipTap for
+ * WYSIWYG editing, offers a live preview toggle, and syncs the HTML
+ * output into a hidden input named `description` so the existing
+ * Server Action (which does `FormData.get("description")`) needs
+ * zero changes.
+ */
+function DescriptionEditor({ initial }: { initial: string }) {
+  const [html, setHtml] = useState(initial);
+  const [showPreview, setShowPreview] = useState(false);
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 12 }}>
+        <label style={{ fontSize: "0.9rem", fontWeight: 600 }}>
+          Description / what&apos;s included
+        </label>
+        <button
+          type="button"
+          onClick={() => setShowPreview((v) => !v)}
+          style={{
+            background: "none", border: "1px solid var(--border)", borderRadius: 6,
+            padding: "4px 10px", fontSize: "0.75rem", color: "var(--text-muted)",
+            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
+          }}
+          aria-pressed={showPreview}
+        >
+          <i className={`fa-solid ${showPreview ? "fa-eye-slash" : "fa-eye"}`} />
+          {showPreview ? "Hide preview" : "Show preview"}
+        </button>
+      </div>
+      <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", margin: "0 0 10px" }}>
+        Paste content from ChatGPT or write it here — headings, bullets, bold text and
+        paragraphs are preserved and rendered on the product page.
+      </p>
+      <RichTextEditor name="description" defaultValue={initial} onChange={setHtml} />
+      {showPreview && (
+        <div style={{
+          marginTop: 12, padding: 16,
+          border: "1px dashed var(--border)", borderRadius: 10,
+          background: "var(--surface-2, rgba(255,255,255,0.02))",
+        }}>
+          <div style={{ fontSize: "0.7rem", letterSpacing: "0.08em", fontWeight: 700, color: "var(--text-muted)", marginBottom: 10, textTransform: "uppercase" }}>
+            Live preview
+          </div>
+          <RichTextRenderer
+            content={html}
+            fallback={
+              <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontStyle: "italic" }}>
+                Nothing to preview yet — start writing above.
+              </div>
+            }
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
