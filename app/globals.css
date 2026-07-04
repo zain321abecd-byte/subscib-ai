@@ -1082,6 +1082,11 @@ h3 {
   height: 100%;
   overflow: hidden;
   transition: transform 0.2s ease, border-color 0.2s ease;
+  /* Enable container queries so the price + action row can adapt to
+     the actual card width, not just the viewport. Two-column mobile
+     grids produce very narrow cards where the horizontal price + two
+     circular buttons layout can't fit and starts overlapping. */
+  container-type: inline-size;
 }
 
 .product-card:hover {
@@ -1192,21 +1197,27 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  /* Bigger gap so long price labels ("From Rs 12,999") never kiss
+     the circular action buttons when the row is tight. */
+  gap: 12px;
   min-height: 42px;
-  margin-top: 18px;
   margin-top: auto;
   padding-top: 18px;
+  /* When the row physically can't fit, wrap so nothing overlaps
+     rather than letting the price bleed under the buttons. */
+  flex-wrap: wrap;
 }
 
 .product-bottom strong {
   min-width: 0;
   max-width: 100%;
-  overflow: visible;
   color: var(--text);
   font-family: var(--heading);
   font-size: 1.35rem;
   line-height: 1.08;
+  /* Long text truncates cleanly instead of overlapping neighbours. */
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: normal;
 }
 
@@ -1214,6 +1225,11 @@ h3 {
   display: grid;
   gap: 2px;
   align-content: center;
+  /* min-width:0 is REQUIRED inside a flex parent for text-overflow:
+     ellipsis to actually take effect on the child <b>. */
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .product-card-price span {
@@ -1223,17 +1239,21 @@ h3 {
   font-weight: 900;
   line-height: 1;
   text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .product-card-price b {
   display: block;
   min-width: 0;
-  overflow: visible;
   color: inherit;
   font-family: var(--heading);
   font-size: 1em;
   line-height: 1.02;
-  text-overflow: clip;
+  /* Truncate on overflow — no more visible clash with the buttons. */
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1257,8 +1277,11 @@ h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  /* Actions must stay on a single row and never compress the price
+     row into overlap — pin their width and keep the icons intact. */
+  flex-wrap: nowrap;
   flex: 0 0 auto;
+  flex-shrink: 0;
 }
 
 .product-actions a,
@@ -1313,6 +1336,26 @@ h3 {
 .product-actions a:hover,
 .cart-line-actions button:hover {
   border-color: rgba(255, 106, 0, 0.55);
+}
+
+/* ── Narrow-card fallback ────────────────────────────────────────────
+   Two-per-row mobile grids give the card ~150–190 px of usable width.
+   Price row layout (price left / two 42 px icon buttons right) needs
+   ~230 px minimum before things start to touch. Container query flips
+   the row into a stack whenever the card can't hold both cleanly. */
+@container (max-width: 240px) {
+  .product-bottom {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .product-card-price { text-align: left; }
+  .product-actions { justify-content: flex-end; }
+  .product-icon-action {
+    /* Slightly smaller icons at very narrow widths so two buttons still
+       fit comfortably on one line under the price. */
+    width: 38px; height: 38px; min-width: 38px;
+  }
 }
 
 .empty-state {
@@ -14575,7 +14618,10 @@ body.admin-body::after {
 
 .rc-card {
   width: min(292px, calc(100vw - 44px));
-  min-height: 548px;
+  /* Fixed height — every card in the strip lines up regardless of
+     how long the individual review is. Long reviews get clamped +
+     "Read more". */
+  height: 548px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -14590,7 +14636,33 @@ body.admin-body::after {
   border: 1px solid rgba(255, 255, 255, 0.085);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
   user-select: none;
+  overflow: hidden;
 }
+.rc-content { min-height: 0; display: flex; flex-direction: column; }
+.rc-quote.rc-clamp {
+  /* Clamp long reviews to 6 lines so every card holds identical
+     vertical rhythm. Longer text is available via "Read more". */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.rc-readmore {
+  margin-top: 10px; align-self: flex-start;
+  background: transparent; border: none;
+  color: #f97316; font-weight: 600;
+  font-size: 0.82rem; letter-spacing: 0.01em;
+  padding: 4px 0; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: color .15s, transform .15s;
+}
+.rc-readmore:hover { color: #fb923c; transform: translateX(2px); }
+.rc-readmore i { font-size: 0.72rem; }
 
 /* ============================================================
    PUBLIC BLOG - premium magazine layout

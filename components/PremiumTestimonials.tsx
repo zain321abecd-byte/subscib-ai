@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import ReviewFullModal from "./ReviewFullModal";
+
+/** Above this length, the testimonial is clamped and a "Read more" opens the modal. */
+const READ_MORE_THRESHOLD = 200;
 
 /* ─────────────────────────────────────────────────────────────────────────────
    TESTIMONIAL DATA
@@ -135,6 +139,7 @@ export default function PremiumTestimonials({ slides }: { slides?: Testimonial[]
 
   const [current, setCurrent] = useState(0);
   const [visible, setVisible] = useState(true);
+  const [showFullReview, setShowFullReview] = useState(false);
 
   const busyRef    = useRef(false);
   const currentRef = useRef(0);
@@ -211,10 +216,32 @@ export default function PremiumTestimonials({ slides }: { slides?: Testimonial[]
                 &ldquo;
               </p>
 
-              {/* Review text */}
-              <p className="text-[16px] sm:text-[18px] md:text-[20px] lg:text-[22px] font-bold text-white leading-relaxed">
+              {/* Review text — clamped so long testimonials don't push
+                  the layout (nav buttons + dots stay in place). Full
+                  text lives in the modal opened by "Read more" below. */}
+              <p
+                className="text-[16px] sm:text-[18px] md:text-[20px] lg:text-[22px] font-bold text-white leading-relaxed"
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 5,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  wordBreak: "break-word",
+                  overflowWrap: "anywhere",
+                }}
+              >
                 &ldquo;{t.text}&rdquo;
               </p>
+              {t.text.length > READ_MORE_THRESHOLD && (
+                <button
+                  type="button"
+                  onClick={() => setShowFullReview(true)}
+                  className="mt-3 self-start text-orange-500 hover:text-orange-400 font-semibold text-sm inline-flex items-center gap-1.5 transition-colors"
+                >
+                  Read more <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true" />
+                </button>
+              )}
 
               {/* Stars */}
               <div className="mt-5">
@@ -273,6 +300,18 @@ export default function PremiumTestimonials({ slides }: { slides?: Testimonial[]
           </div>
         </div>
       </div>
+
+      <ReviewFullModal
+        open={showFullReview}
+        onClose={() => setShowFullReview(false)}
+        name={t.name}
+        role={t.role}
+        rating={t.rating}
+        text={t.text}
+        photoUrl={t.mainImage}
+        initials={t.mainInitials}
+        color={t.mainBg}
+      />
     </section>
   );
 }
