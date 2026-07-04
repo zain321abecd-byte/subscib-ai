@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { getSupabaseServer } from "@/lib/supabase/server";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { SiteSettingRow } from "@/lib/supabase/types";
 
 /**
@@ -89,6 +89,26 @@ function asString(v: unknown): string {
 }
 
 /**
+ * Cookie-free anon Supabase client. site_settings is publicly readable
+ * via RLS, so we don't need the visitor's session — and we MUST NOT
+ * touch `cookies()` from inside `unstable_cache` (Next throws
+ * "Route used `cookies` inside `unstable_cache`" at production runtime;
+ * the same call is only a dev-mode warning, which is why local worked
+ * and production 500'd).
+ */
+let anonClient: SupabaseClient | null = null;
+function getPublicAnonClient(): SupabaseClient | null {
+  if (anonClient) return anonClient;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  anonClient = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  return anonClient;
+}
+
+/**
  * Fetch every row of site_settings and fold aliases into their canonical
  * keys. Cached under a Next tag so `revalidateTag("site-settings")` on
  * admin save invalidates every render path immediately (works across
@@ -96,12 +116,9 @@ function asString(v: unknown): string {
  */
 const fetchAllSettings = unstable_cache(
   async (): Promise<Record<string, string>> => {
-    // No Supabase env → serve fallbacks only.
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      return { ...FALLBACKS };
-    }
+    const supabase = getPublicAnonClient();
+    if (!supabase) return { ...FALLBACKS };
     try {
-      const supabase = await getSupabaseServer();
       const { data, error } = await supabase.from("site_settings").select("*");
       if (error || !data) return { ...FALLBACKS };
       const map: Record<string, string> = { ...FALLBACKS };
