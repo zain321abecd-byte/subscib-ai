@@ -12158,8 +12158,50 @@ body.admin-body::after {
 /* ============================================================
    PUBLIC — Premium product detail page
    ============================================================ */
+/* ── Product detail — two-column layout ─────────────────────────────
+   Common e-commerce pattern (Apple, Shopify, Vercel product pages):
+   the media column is capped so the image never dwarfs the copy, and
+   the content column absorbs the remaining space. Sticky media on
+   desktop follows the shopper as they read down the features + reviews. */
 .product-detail-grid {
-  gap: clamp(28px, 4vw, 64px) !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr) !important;
+  align-items: start !important;
+  gap: clamp(28px, 4vw, 56px) !important;
+}
+.product-detail-media-col {
+  min-width: 0;
+  position: sticky;
+  top: 96px;                 /* clears the sticky admin/site header */
+  align-self: start;
+  width: 100%;
+}
+.product-detail-content {
+  min-width: 0 !important;   /* required so long copy doesn't push the column wider than its track */
+  max-width: 680px !important;
+  width: 100%;
+}
+/* Cap the paragraph text width inside the content column so long
+   descriptions don't stretch into edge-of-viewport line lengths that
+   are painful to read on wide monitors. */
+.product-detail-content .rte-content,
+.product-detail-content .product-detail-tagline,
+.product-detail-content .product-detail-description {
+  max-width: 62ch;
+}
+/* Disable sticky when the media is taller than the viewport — otherwise
+   the image would clip. Rare, but defensive. */
+@media (max-height: 800px) {
+  .product-detail-media-col { position: static; }
+}
+/* Tablet — narrow the media column a touch so the copy still gets the
+   larger share of the row before we drop to a full mobile stack. */
+@media (min-width: 720px) and (max-width: 1023px) {
+  .product-detail-grid {
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    gap: clamp(24px, 3vw, 40px) !important;
+  }
+  .product-detail-media-col { position: static; }
 }
 
 /* Refined breadcrumb */
@@ -13091,11 +13133,20 @@ body.admin-body::after {
   .v2-hero h1 { font-size: clamp(2rem, 7vw, 2.6rem) !important; }
   .v2-lede   { font-size: 0.98rem !important; }
 
-  /* Product detail */
+  /* Product detail — stack the two columns and release both sticky
+     positioning + the reading-measure cap so the copy breathes on mobile. */
   .product-detail-grid {
     grid-template-columns: 1fr !important;
     gap: var(--space-4) !important;
   }
+  .product-detail-media-col {
+    position: static !important;
+    top: auto !important;
+    max-width: 460px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .product-detail-content { max-width: 100% !important; }
   .product-gallery-stage { height: 280px !important; }
   .product-detail-title  { font-size: clamp(1.4rem, 5.6vw, 1.9rem) !important; }
 
