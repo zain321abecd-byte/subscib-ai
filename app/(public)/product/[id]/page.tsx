@@ -22,8 +22,17 @@ export function generateStaticParams() {
   return [] as { id: string }[];
 }
 
-// Re-render product pages at most every 60s; admin saves call revalidatePath.
-export const revalidate = 60;
+/**
+ * Render on every request. We used to run this as ISR (revalidate = 60),
+ * but the public layout now touches `cookies()` / `headers()` via
+ * getRegion() for currency + geo — Next 15 refuses to statically
+ * rebuild a route whose subtree reads per-request state and throws
+ * `DYNAMIC_SERVER_USAGE` at production runtime. Data fetching inside
+ * this component is already tag-cached (site_settings) or naturally
+ * fast (single Supabase row lookup), so switching to on-demand costs
+ * us nothing meaningful.
+ */
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

@@ -12,7 +12,9 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 
-export const revalidate = 60;
+// Force dynamic — public layout reads cookies/headers, incompatible with
+// static ISR in Next 15.
+export const dynamic = "force-dynamic";
 
 // Blog posts render on-demand from the database (dynamicParams defaults to
 // true). No seed slugs are pre-generated — the DB is the single source of truth.

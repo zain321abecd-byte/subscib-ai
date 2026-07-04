@@ -7,9 +7,10 @@ export const metadata = {
   alternates: { canonical: "/shop" },
 };
 
-// Re-fetch from DB at most every 60s on production. Admin saves trigger
-// revalidation explicitly via revalidatePath, so users see changes instantly.
-export const revalidate = 60;
+// Force dynamic — the public layout reads cookies() + headers() (region +
+// currency), which is incompatible with static ISR in Next 15 (would
+// throw DYNAMIC_SERVER_USAGE at production runtime).
+export const dynamic = "force-dynamic";
 
 export default async function ShopPage() {
   const products = await getAllProducts();

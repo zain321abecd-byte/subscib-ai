@@ -17,7 +17,9 @@ export const metadata: Metadata = {
   },
 };
 
-export const revalidate = 60;
+// Force dynamic — public layout reads cookies/headers (region + currency),
+// incompatible with static ISR in Next 15.
+export const dynamic = "force-dynamic";
 
 export default async function BlogPage({
   searchParams,

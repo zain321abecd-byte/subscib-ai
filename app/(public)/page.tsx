@@ -11,7 +11,13 @@ import { getRegion } from "@/lib/region";
 import { Price } from "@/lib/fx";
 import { getStartingPrice } from "@/lib/pricing";
 
-export const revalidate = 60;
+/**
+ * Force dynamic — the public layout reads cookies() + headers() via
+ * getRegion() / resolveCurrency(), which is incompatible with static
+ * ISR (Next 15 raises DYNAMIC_SERVER_USAGE in production). Data
+ * fetches here are already tag-cached (site_settings) or cheap.
+ */
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [featured, settings, region, reviewRows] = await Promise.all([
