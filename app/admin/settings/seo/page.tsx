@@ -72,31 +72,41 @@ export default async function SeoSettings({
 
         <div className="admin-row cols-2">
           <FloatField
-            id="seo_google_verification"
-            name="setting:seo_google_verification"
+            id="google_site_verification"
+            name="setting:google_site_verification"
             label="Search Console verification"
             icon="fa-shield-halved"
-            defaultValue={asString(s["seo_google_verification"])}
-            hint={<>From Google Search Console → HTML tag method → just the <code>content</code> value.</>}
+            defaultValue={asString(s["google_site_verification"] || s["seo_google_verification"])}
+            hint={<>From Google Search Console → HTML tag method → just the <code>content</code> value. Only the token — never the full <code>&lt;meta&gt;</code> tag.</>}
           />
           <FloatField
-            id="seo_google_analytics"
-            name="setting:seo_google_analytics"
+            id="google_analytics_id"
+            name="setting:google_analytics_id"
             label="Google Analytics 4 ID"
             icon="fa-chart-line"
-            defaultValue={asString(s["seo_google_analytics"])}
-            hint="Auto-injects gtag.js site-wide when set."
+            defaultValue={asString(s["google_analytics_id"] || s["seo_google_analytics"])}
+            hint={<>e.g. <code>G-XXXXXXXXXX</code>. Auto-injects gtag.js site-wide when set.</>}
           />
         </div>
 
-        <FloatField
-          id="seo_facebook_pixel"
-          name="setting:seo_facebook_pixel"
-          label="Facebook Pixel ID"
-          icon="fa-brands fa-facebook"
-          defaultValue={asString(s["seo_facebook_pixel"])}
-          hint="For Meta ads attribution. Leave empty if you don’t use it."
-        />
+        <div className="admin-row cols-2">
+          <FloatField
+            id="google_tag_manager_id"
+            name="setting:google_tag_manager_id"
+            label="Google Tag Manager ID"
+            icon="fa-cubes"
+            defaultValue={asString(s["google_tag_manager_id"])}
+            hint={<>e.g. <code>GTM-XXXXXXX</code>. Container script + noscript fallback injected automatically.</>}
+          />
+          <FloatField
+            id="meta_pixel_id"
+            name="setting:meta_pixel_id"
+            label="Meta / Facebook Pixel ID"
+            icon="fa-brands fa-facebook"
+            defaultValue={asString(s["meta_pixel_id"] || s["seo_facebook_pixel"])}
+            hint="For Meta ads attribution. Only the numeric ID — no script."
+          />
+        </div>
 
         {/* Indexing toggle */}
         <div className="settings-bool-row">

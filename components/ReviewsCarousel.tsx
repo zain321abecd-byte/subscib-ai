@@ -53,7 +53,7 @@ function ReviewAvatar({
  * A single card in the strip. Isolated so it can own the "show full
  * review" state without every neighbour sharing a bloated context.
  */
-function ReviewCarouselCard({ review, ariaHidden }: { review: Review; ariaHidden: boolean }) {
+function ReviewCarouselCard({ review, ariaHidden, whatsappUrl }: { review: Review; ariaHidden: boolean; whatsappUrl: string }) {
   const [open, setOpen] = useState(false);
   const isLong = review.text.length > READ_MORE_THRESHOLD;
 
@@ -92,7 +92,7 @@ function ReviewCarouselCard({ review, ariaHidden }: { review: Review; ariaHidden
           </div>
           <a
             className="rc-whatsapp"
-            href="https://wa.me/15550132026"
+            href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Chat on WhatsApp"
@@ -118,7 +118,14 @@ function ReviewCarouselCard({ review, ariaHidden }: { review: Review; ariaHidden
   );
 }
 
-export default function ReviewsCarousel({ reviews }: { reviews: Review[] }) {
+export default function ReviewsCarousel({
+  reviews,
+  whatsappUrl,
+}: {
+  reviews: Review[];
+  /** Fully-built wa.me URL from dynamic site_settings. */
+  whatsappUrl: string;
+}) {
   if (reviews.length === 0) return null;
 
   const doubled = [...reviews, ...reviews];
@@ -127,7 +134,7 @@ export default function ReviewsCarousel({ reviews }: { reviews: Review[] }) {
     <div className="rc-wrap" aria-label="Customer reviews">
       <div className="rc-track">
         {doubled.map((r, i) => (
-          <ReviewCarouselCard key={i} review={r} ariaHidden={i >= reviews.length} />
+          <ReviewCarouselCard key={i} review={r} ariaHidden={i >= reviews.length} whatsappUrl={whatsappUrl} />
         ))}
       </div>
     </div>

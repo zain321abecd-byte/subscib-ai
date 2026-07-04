@@ -37,7 +37,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const ogImage = s.seo_og_image?.trim() || "/assets/subscribai-logo-transparent-full.png";
   const twitterHandle = s.seo_twitter_handle?.trim() || "";
   const indexable = (s.seo_index_site ?? "true") !== "false";
-  const verification = s.seo_google_verification?.trim() || "";
+  // Prefer canonical key, fall back to legacy alias (see KEY_ALIASES
+  // in lib/site-settings). getSiteSettings() already folds them, so
+  // the canonical read is usually enough.
+  const verification =
+    (s.google_site_verification?.trim() || s.seo_google_verification?.trim() || "");
 
   const meta: Metadata = {
     metadataBase: new URL(SITE_URL),
@@ -94,10 +98,11 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Pull SEO settings here too so we can inject GA / FB Pixel scripts globally.
+  // Pull SEO / tracking settings here so scripts inject globally.
   const s = await getSiteSettings();
-  const ga = s.seo_google_analytics?.trim() || "";
-  const fbp = s.seo_facebook_pixel?.trim() || "";
+  const ga  = (s.google_analytics_id?.trim()   || s.seo_google_analytics?.trim() || "");
+  const fbp = (s.meta_pixel_id?.trim()         || s.seo_facebook_pixel?.trim()   || "");
+  const gtm = s.google_tag_manager_id?.trim() || "";
 
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
@@ -122,7 +127,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </>
         )}
 
-        {/* Facebook Pixel (only when configured) */}
+        {/* Facebook / Meta Pixel (only when configured) */}
         {fbp && (
           <script
             dangerouslySetInnerHTML={{
@@ -130,8 +135,44 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             }}
           />
         )}
+
+        {/* Google Tag Manager — head snippet (only when configured) */}
+        {gtm && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtm}');`,
+            }}
+          />
+        )}
       </head>
-      <body className="v2">{children}</body>
+      <body className="v2">
+        {/* Google Tag Manager — noscript body fallback */}
+        {gtm && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${gtm}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+              title="Google Tag Manager"
+            />
+          </noscript>
+        )}
+        {/* Meta Pixel — noscript fallback */}
+        {fbp && (
+          <noscript>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              height="1"
+              width="1"
+              alt=""
+              style={{ display: "none" }}
+              src={`https://www.facebook.com/tr?id=${fbp}&ev=PageView&noscript=1`}
+            />
+          </noscript>
+        )}
+        {children}
+      </body>
     </html>
   );
 }

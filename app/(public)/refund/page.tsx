@@ -1,3 +1,5 @@
+import { getContactLinks } from "@/lib/contact-links";
+
 export const metadata = {
   title: "Refund & Replacement Policy",
   description: "Full-period replacement guarantee on every subscription. Clear rules on what's refundable and what's not.",
@@ -7,7 +9,8 @@ export const metadata = {
 const H2 = { fontFamily: "var(--font-heading)", color: "var(--text)", fontSize: "var(--fs-lg)", letterSpacing: "-0.01em", marginBottom: "var(--space-2)", fontWeight: 600 } as const;
 const UL = { listStyle: "disc", paddingLeft: 24, display: "grid", gap: 6, marginTop: 8 } as const;
 
-export default function RefundPage() {
+export default async function RefundPage() {
+  const { whatsappUrl, email, mailtoUrl } = await getContactLinks();
   return (
     <section className="v2-section">
       <div className="v2-container" style={{ maxWidth: 760 }}>
@@ -71,7 +74,7 @@ export default function RefundPage() {
           <section>
             <h2 style={H2}>4. How to request a refund or replacement</h2>
             <ol style={{ ...UL, listStyle: "decimal" }}>
-              <li>Message us on <a href="https://wa.me/15550132026" style={{ color: "var(--brand-300)" }}>WhatsApp</a> (fastest) or email <a href="mailto:contact@subscribai.com" style={{ color: "var(--brand-300)" }}>contact@subscribai.com</a></li>
+              <li>Message us on <a href={whatsappUrl} style={{ color: "var(--brand-300)" }}>WhatsApp</a> (fastest) or email <a href={mailtoUrl} style={{ color: "var(--brand-300)" }}>{email}</a></li>
               <li>Include your order ID (in your account dashboard) and a one-line description of what&rsquo;s wrong</li>
               <li>For account issues, a screenshot helps a lot</li>
               <li>We respond within working hours (9 AM &ndash; 11 PM PKT) — usually within 15 minutes</li>
@@ -95,8 +98,8 @@ export default function RefundPage() {
           </section>
 
           <p style={{ marginTop: "var(--space-5)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>
-            Anything unclear? Email <a href="mailto:contact@subscribai.com" style={{ color: "var(--brand-300)" }}>contact@subscribai.com</a> or
-            message us on <a href="https://wa.me/15550132026" style={{ color: "var(--brand-300)" }}>WhatsApp</a> — we&rsquo;ll explain.
+            Anything unclear? Email <a href={mailtoUrl} style={{ color: "var(--brand-300)" }}>{email}</a> or
+            message us on <a href={whatsappUrl} style={{ color: "var(--brand-300)" }}>WhatsApp</a> — we&rsquo;ll explain.
           </p>
         </div>
       </div>

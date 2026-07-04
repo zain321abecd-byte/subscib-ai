@@ -10,10 +10,13 @@ export default function VerifyClient({
   token,
   email,
   next,
+  whatsappUrl,
 }: {
   token: string;
   email: string;
   next: string;
+  /** Fully-built `https://wa.me/…` URL from dynamic site_settings. */
+  whatsappUrl: string;
 }) {
   const [status, setStatus] = useState<Status>("verifying");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -200,7 +203,7 @@ export default function VerifyClient({
           }}
         >
           Need help? <Link href="/contact" style={{ color: "var(--brand-300)" }}>Contact support</Link> or
-          message us on <a href="https://wa.me/15550132026" style={{ color: "var(--brand-300)" }}>WhatsApp</a>.
+          message us on <a href={whatsappUrl} style={{ color: "var(--brand-300)" }}>WhatsApp</a>.
         </p>
       </div>
     </section>

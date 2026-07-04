@@ -1,3 +1,5 @@
+import { getContactLinks } from "@/lib/contact-links";
+
 export const metadata = {
   title: "Terms & Conditions",
   description: "SubscribAI terms of service for AI subscriptions, payments, replacements, and disputes.",
@@ -7,7 +9,8 @@ export const metadata = {
 const H2 = { fontFamily: "var(--font-heading)", color: "var(--text)", fontSize: "var(--fs-lg)", letterSpacing: "-0.01em", marginBottom: "var(--space-2)", fontWeight: 600 } as const;
 const UL = { listStyle: "disc", paddingLeft: 24, display: "grid", gap: 6, marginTop: 8 } as const;
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const { whatsappUrl, email, mailtoUrl } = await getContactLinks();
   return (
     <section className="v2-section">
       <div className="v2-container" style={{ maxWidth: 760 }}>
@@ -100,8 +103,8 @@ export default function TermsPage() {
           </section>
 
           <p style={{ marginTop: "var(--space-5)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>
-            Questions? Email <a href="mailto:contact@subscribai.com" style={{ color: "var(--brand-300)" }}>contact@subscribai.com</a> or
-            message us on <a href="https://wa.me/15550132026" style={{ color: "var(--brand-300)" }}>WhatsApp</a>.
+            Questions? Email <a href={mailtoUrl} style={{ color: "var(--brand-300)" }}>{email}</a> or
+            message us on <a href={whatsappUrl} style={{ color: "var(--brand-300)" }}>WhatsApp</a>.
           </p>
         </div>
       </div>

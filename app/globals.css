@@ -13034,6 +13034,14 @@ body.admin-body::after {
   border-radius: 999px;
   width: fit-content;
   max-width: 100%;
+  /* Sticky at the top of the settings area so the tab bar is always
+     reachable regardless of the section length. The offset accounts
+     for the AdminShell's own layout gutter. */
+  position: sticky;
+  top: 12px;
+  z-index: 20;
+  box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
 }
 .settings-tab {
   display: inline-flex;
@@ -13061,6 +13069,24 @@ body.admin-body::after {
   box-shadow: 0 8px 22px -8px rgba(255, 122, 26, 0.55);
 }
 .settings-tab.is-active > i { opacity: 1; }
+
+/* Skeleton bones used by /admin/settings/loading.tsx while the target
+   section streams in from the server. */
+.settings-skeleton-title,
+.settings-skeleton-subtitle,
+.settings-skeleton-field {
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+  background-size: 200% 100%;
+  animation: settings-skel-shimmer 1.4s ease-in-out infinite;
+}
+.settings-skeleton-title    { height: 22px; width: 140px; margin-bottom: 10px; }
+.settings-skeleton-subtitle { height: 14px; width: 260px; opacity: 0.7; }
+.settings-skeleton-field    { height: 56px; }
+@keyframes settings-skel-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
 
 @media (max-width: 720px) {
   .settings-tabs {

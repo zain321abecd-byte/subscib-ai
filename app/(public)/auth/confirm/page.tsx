@@ -1,5 +1,6 @@
 import Link from "next/link";
 import VerifyClient from "./VerifyClient";
+import { getContactLinks } from "@/lib/contact-links";
 
 export const metadata = {
   title: "Email confirmed — SubscribAI",
@@ -12,7 +13,7 @@ export default async function ConfirmPage({
 }: {
   searchParams: Promise<Record<string, string>>;
 }) {
-  const params = await searchParams;
+  const [params, { whatsappUrl }] = await Promise.all([searchParams, getContactLinks()]);
   const token = (params.token || "").trim();
   const email = (params.email || "").trim();
   const next = params.next || "/account";
@@ -57,5 +58,5 @@ export default async function ConfirmPage({
   }
 
   // Token present → hand off to the client component which calls /auth/verify.
-  return <VerifyClient token={token} email={email} next={next} />;
+  return <VerifyClient token={token} email={email} next={next} whatsappUrl={whatsappUrl} />;
 }

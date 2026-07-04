@@ -9,7 +9,7 @@ import { getFeaturedProducts } from "@/lib/products";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getRegion } from "@/lib/region";
 import { Price } from "@/lib/fx";
-import { getStartingPrice, hasMultiplePrices } from "@/lib/pricing";
+import { getStartingPrice } from "@/lib/pricing";
 
 export const revalidate = 60;
 
@@ -37,6 +37,9 @@ export default async function HomePage() {
   const isPK = region === "PK";
   const isIN = region === "IN";
   const localCurrency = isPK ? "PKR" : isIN ? "INR" : "USD";
+  // Dynamic WhatsApp link from site_settings (digits only after cleanup).
+  const waDigits = (settings.whatsapp_number || "").replace(/[^\d]/g, "");
+  const waHref = waDigits ? `https://wa.me/${waDigits}` : "https://wa.me/";
   // For non-PK visitors, strip any PKR/Pakistan/JazzCash/Easypaisa references the
   // admin may have saved. Foreign visitors must never see Pakistan-specific copy.
   const sanitizeForGlobal = (s: string) =>
@@ -115,9 +118,10 @@ export default async function HomePage() {
                             </span>
                             <div>
                               <strong>{p.name}</strong>
-                              {/* Show the starting/cheapest variant, with "From " when the product has multiple tiers. */}
+                              {/* Show the starting/cheapest variant. The "From " prefix was
+                                  removed from cards per current design — the shopper still sees
+                                  the entry-level number, which is what getStartingPrice picks. */}
                               <small>
-                                {hasMultiplePrices(p) && "From "}
                                 <Price pkr={getStartingPrice(p)} /> / month
                               </small>
                             </div>
@@ -304,7 +308,7 @@ export default async function HomePage() {
             </div>
             <div className="v2-final-cta-actions">
               <Link className="btn btn-primary btn-large" href="/shop">Browse the shop <i className="fa-solid fa-arrow-right"></i></Link>
-              <a className="btn btn-outline btn-large" href="https://wa.me/15550132026"><i className="fa-brands fa-whatsapp"></i> WhatsApp us</a>
+              <a className="btn btn-outline btn-large" href={waHref}><i className="fa-brands fa-whatsapp"></i> WhatsApp us</a>
             </div>
           </div>
         </div>

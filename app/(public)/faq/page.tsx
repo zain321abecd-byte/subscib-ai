@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getRegion } from "@/lib/region";
+import { getContactLinks } from "@/lib/contact-links";
 
 export const metadata: Metadata = {
   title: "FAQ — Frequently Asked Questions",
@@ -45,7 +46,7 @@ function buildQuestions(isPK: boolean): { q: string; a: string; category: string
 }
 
 export default async function FAQPage() {
-  const region = await getRegion();
+  const [region, { whatsappUrl }] = await Promise.all([getRegion(), getContactLinks()]);
   const isPK = region === "PK";
   const QUESTIONS = buildQuestions(isPK);
 
@@ -111,7 +112,7 @@ export default async function FAQPage() {
             Message us on WhatsApp — we usually reply in under 15 minutes during the day.
           </p>
           <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "center", flexWrap: "wrap" }}>
-            <a className="btn btn-primary" href="https://wa.me/15550132026">
+            <a className="btn btn-primary" href={whatsappUrl}>
               <i className="fa-brands fa-whatsapp"></i> WhatsApp us
             </a>
             <Link className="btn btn-outline" href="/contact">Send a message</Link>

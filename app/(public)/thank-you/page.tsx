@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ClearCartOnSuccess from "@/components/ClearCartOnSuccess";
 import OrderStatusPoller from "@/components/OrderStatusPoller";
+import { getContactLinks } from "@/lib/contact-links";
 
 export const metadata: Metadata = {
   title: "Thank You — Order Received",
@@ -43,7 +44,10 @@ const ERR_DESC: Record<string, string> = {
 };
 
 export default async function ThankYouPage({ searchParams }: { searchParams: Promise<Search> }) {
-  const sp = (await searchParams) || {};
+  const [sp, { whatsappUrl }] = await Promise.all([
+    searchParams.then((s) => s || {}),
+    getContactLinks(),
+  ]);
   const status = (sp.status || "").toLowerCase();
   const orderId = (sp.orderId || "").trim();
   const errCode = (sp.code || "").trim();
@@ -138,14 +142,14 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
           {isFailed ? (
             <>
               <Link className="btn btn-primary btn-large" href="/checkout">Try again</Link>
-              <a className="btn btn-outline btn-large" href="https://wa.me/15550132026">
+              <a className="btn btn-outline btn-large" href={whatsappUrl}>
                 <i className="fa-brands fa-whatsapp"></i> Get help
               </a>
             </>
           ) : (
             <>
               <Link className="btn btn-primary btn-large" href="/account">View my orders</Link>
-              <a className="btn btn-outline btn-large" href="https://wa.me/15550132026">
+              <a className="btn btn-outline btn-large" href={whatsappUrl}>
                 <i className="fa-brands fa-whatsapp"></i> WhatsApp support
               </a>
             </>

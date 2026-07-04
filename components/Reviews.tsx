@@ -30,6 +30,7 @@ export const REVIEWS_GLOBAL: Review[] = [
 
 import { getRegion } from "@/lib/region";
 import { getAllReviews, isSupabaseConfigured } from "@/lib/reviews";
+import { getContactLinks } from "@/lib/contact-links";
 import ReviewsCarousel from "@/components/ReviewsCarousel";
 
 /**
@@ -52,7 +53,7 @@ export default async function Reviews({
   eyebrow?: string;
   intro?: string;
 }) {
-  const [region, dbReviews] = await Promise.all([getRegion(), getAllReviews()]);
+  const [region, dbReviews, { whatsappUrl }] = await Promise.all([getRegion(), getAllReviews(), getContactLinks()]);
   const isPK = region === "PK";
 
   let defaultPool: Review[];
@@ -78,7 +79,7 @@ export default async function Reviews({
         </header>
       </div>
 
-      <ReviewsCarousel reviews={list} />
+      <ReviewsCarousel reviews={list} whatsappUrl={whatsappUrl} />
 
       <div className="v2-container">
         <div className="v2-reviews-summary">

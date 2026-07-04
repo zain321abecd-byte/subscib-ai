@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getContactLinks } from "@/lib/contact-links";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -7,7 +8,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const { whatsappUrl, email, mailtoUrl } = await getContactLinks();
   return (
     <section className="v2-section">
       <div className="v2-container" style={{ maxWidth: 760 }}>
@@ -52,7 +54,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 style={H2}>5. Your rights</h2>
-            <p>You can email <a href="mailto:contact@subscribai.com" style={{ color: "var(--brand-300)" }}>contact@subscribai.com</a> any time to request a copy of your data, request correction, or request deletion. We respond within 7 days.</p>
+            <p>You can email <a href={mailtoUrl} style={{ color: "var(--brand-300)" }}>{email}</a> any time to request a copy of your data, request correction, or request deletion. We respond within 7 days.</p>
           </section>
 
           <section>
@@ -66,8 +68,8 @@ export default function PrivacyPage() {
           </section>
 
           <p style={{ marginTop: "var(--space-5)", fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>
-            Questions? Email <a href="mailto:contact@subscribai.com" style={{ color: "var(--brand-300)" }}>contact@subscribai.com</a> or
-            message us on <a href="https://wa.me/15550132026" style={{ color: "var(--brand-300)" }}>WhatsApp</a>.
+            Questions? Email <a href={mailtoUrl} style={{ color: "var(--brand-300)" }}>{email}</a> or
+            message us on <a href={whatsappUrl} style={{ color: "var(--brand-300)" }}>WhatsApp</a>.
           </p>
 
           <p style={{ marginTop: "var(--space-3)" }}>
