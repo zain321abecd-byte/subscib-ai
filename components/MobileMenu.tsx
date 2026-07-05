@@ -23,10 +23,12 @@ export default function MobileMenu({
   open,
   onClose,
   authed,
+  whatsappUrl,
 }: {
   open: boolean;
   onClose: () => void;
   authed: boolean | null;
+  whatsappUrl?: string;
 }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -209,12 +211,18 @@ export default function MobileMenu({
 
         <p className="premium-mobile-help mt-5 text-center text-[13px] text-ink-400">
           Need help?{" "}
-          <a href="https://wa.me/15550132026" className="text-brand-500 font-semibold inline-flex items-center gap-1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <path d="M20.5 3.5A11 11 0 0 0 3.4 18.1L2 22l4-1.4A11 11 0 1 0 20.5 3.5ZM12 20.2a9 9 0 0 1-4.6-1.3l-.3-.2-2.8.9.9-2.7-.2-.3a9.2 9.2 0 1 1 7 3.6Zm5-6.7c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.2-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.8-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5L9 7.6c-.2-.5-.4-.5-.6-.5h-.5c-.2 0-.5.1-.7.4-.3.3-1 1-1 2.4 0 1.4 1.1 2.8 1.2 3 .1.2 2.1 3.4 5.2 4.7.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.6-.7 1.9-1.3.2-.6.2-1.1.2-1.3-.1-.2-.3-.3-.6-.4Z"/>
-            </svg>
-            WhatsApp us
-          </a>
+          {whatsappUrl ? (
+            <a href={whatsappUrl} className="text-brand-500 font-semibold inline-flex items-center gap-1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M20.5 3.5A11 11 0 0 0 3.4 18.1L2 22l4-1.4A11 11 0 1 0 20.5 3.5ZM12 20.2a9 9 0 0 1-4.6-1.3l-.3-.2-2.8.9.9-2.7-.2-.3a9.2 9.2 0 1 1 7 3.6Zm5-6.7c-.3-.1-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.2-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.8-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5L9 7.6c-.2-.5-.4-.5-.6-.5h-.5c-.2 0-.5.1-.7.4-.3.3-1 1-1 2.4 0 1.4 1.1 2.8 1.2 3 .1.2 2.1 3.4 5.2 4.7.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.6-.7 1.9-1.3.2-.6.2-1.1.2-1.3-.1-.2-.3-.3-.6-.4Z"/>
+              </svg>
+              WhatsApp us
+            </a>
+          ) : (
+            <Link href="/contact" className="text-brand-500 font-semibold inline-flex items-center gap-1">
+              Contact us
+            </Link>
+          )}
         </p>
       </div>
     </div>,

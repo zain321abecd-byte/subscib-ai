@@ -286,12 +286,22 @@ create table if not exists site_settings (
 insert into site_settings (key, value) values
   ('whatsapp_number',  '"15550132026"'),
   ('contact_email',    '"contact@subscribai.com"'),
+  ('support_phone',    '""'),
+  ('business_name',    '"SubscribAI"'),
+  ('business_address', '""'),
+  ('footer_text',      '""'),
   ('hero_headline',    '"Premium AI subscriptions, paid in your local currency."'),
   ('hero_subtext',     '"Activated to your inbox in under 30 minutes."'),
   ('social_instagram', '""'),
   ('social_facebook',  '""'),
   ('social_tiktok',    '""'),
-  ('social_youtube',   '""')
+  ('social_youtube',   '""'),
+  ('meta_pixel_id',              '""'),
+  ('facebook_pixel_id',          '""'),
+  ('google_site_verification',   '""'),
+  ('google_analytics_id',        '""'),
+  ('google_tag_manager_id',      '""'),
+  ('currency_display',           '"local"')
 on conflict (key) do nothing;
 
 -- ============================================================

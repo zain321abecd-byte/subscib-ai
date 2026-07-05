@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Inter, Poppins } from "next/font/google";
 import { getSiteSettings } from "@/lib/site-settings";
 import "./globals.css";
 import "./tailwind.css";
+
+export const dynamic = "force-dynamic";
 
 // `fallback` + `adjustFontFallback: false` keep the page rendering cleanly on
 // networks where Google Fonts can't be reached at build time (ETIMEDOUT). Next
@@ -118,8 +121,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Google Analytics 4 (only when configured) */}
         {ga && (
           <>
-            <script async src={`https://www.googletagmanager.com/gtag/js?id=${ga}`} />
-            <script
+            <Script id="ga-loader" src={`https://www.googletagmanager.com/gtag/js?id=${ga}`} strategy="afterInteractive" />
+            <Script
+              id="ga-config"
+              strategy="afterInteractive"
               dangerouslySetInnerHTML={{
                 __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga}',{anonymize_ip:true});`,
               }}
@@ -129,7 +134,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
         {/* Facebook / Meta Pixel (only when configured) */}
         {fbp && (
-          <script
+          <Script
+            id="meta-pixel"
+            strategy="afterInteractive"
             dangerouslySetInnerHTML={{
               __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${fbp}');fbq('track','PageView');`,
             }}
@@ -138,7 +145,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
         {/* Google Tag Manager — head snippet (only when configured) */}
         {gtm && (
-          <script
+          <Script
+            id="google-tag-manager"
+            strategy="afterInteractive"
             dangerouslySetInnerHTML={{
               __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtm}');`,
             }}

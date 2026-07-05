@@ -1,5 +1,7 @@
 import { unstable_cache } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseServer } from "@/lib/supabase/server";
 import type { SiteSettingRow } from "@/lib/supabase/types";
 
 /**
@@ -11,6 +13,20 @@ import type { SiteSettingRow } from "@/lib/supabase/types";
  */
 export const SETTINGS_TAG = "site-settings";
 
+export const SETTINGS_REVALIDATE_PATHS = [
+  "/",
+  "/shop",
+  "/prices",
+  "/checkout",
+  "/contact",
+  "/faq",
+  "/blog",
+  "/cart",
+  "/thank-you",
+  "/sitemap.xml",
+  "/robots.txt",
+];
+
 /**
  * Safe defaults returned when a key isn't present in the DB row set.
  * Every consumer reads via `getSiteSettings()` and destructures — the
@@ -18,8 +34,8 @@ export const SETTINGS_TAG = "site-settings";
  */
 const FALLBACKS: Record<string, string> = {
   // ── Business / contact ──────────────────────────────────────────
-  whatsapp_number:    "15550132026",
-  contact_email:      "contact@subscribai.com",
+  whatsapp_number:    "",
+  contact_email:      "",
   support_phone:      "",
   business_name:      "SubscribAI",
   business_address:   "",
@@ -54,6 +70,7 @@ const FALLBACKS: Record<string, string> = {
   google_tag_manager_id:    "",
   google_site_verification: "",
   meta_pixel_id:            "",
+  facebook_pixel_id:        "",
 };
 
 /**
@@ -145,9 +162,13 @@ export async function getSiteSettings(): Promise<Record<string, string>> {
   return fetchAllSettings();
 }
 
-export async function getSetting(key: string, fallback = ""): Promise<string> {
+export async function getSiteSetting(key: string, fallback = ""): Promise<string> {
   const settings = await getSiteSettings();
   return settings[key] ?? fallback;
+}
+
+export async function getSetting(key: string, fallback = ""): Promise<string> {
+  return getSiteSetting(key, fallback);
 }
 
 /**
@@ -168,6 +189,10 @@ export function stripUnsafe(v: string): string {
     .trim();
 }
 
+function hasUnsafeInput(v: string): boolean {
+  return /<script[\s\S]*?<\/script>/i.test(v) || /<[^>]+>/i.test(v) || /javascript:/i.test(v);
+}
+
 /** Normalise a phone / WhatsApp number: keep digits only. */
 export function normalisePhoneDigits(v: string): string {
   return v.replace(/[^\d]/g, "");
@@ -186,57 +211,122 @@ export function isValidEmail(v: string): boolean {
  * message string to reject the save.
  */
 type SanitiseResult = { value: string } | { error: string };
+function cleanPlainSetting(v: string, label: string, pattern: RegExp, maxLength: number): SanitiseResult {
+  if (hasUnsafeInput(v)) return { error: `${label} must be an ID/token only, not HTML or script code.` };
+  const s = stripUnsafe(v).trim();
+  if (!s) return { value: "" };
+  if (s.length > maxLength || !pattern.test(s)) {
+    return { error: `${label} must be a plain ID/token only.` };
+  }
+  return { value: s };
+}
+
 const SANITISERS: Record<string, (v: string) => SanitiseResult> = {
   contact_email: (v) => {
+    if (hasUnsafeInput(v)) return { error: "Contact email cannot contain HTML or script code." };
     const s = stripUnsafe(v);
     if (!s) return { value: "" };
     return isValidEmail(s) ? { value: s } : { error: "Contact email must be a valid email address." };
   },
-  whatsapp_number: (v) => ({ value: normalisePhoneDigits(v) }),
-  support_phone:   (v) => ({ value: normalisePhoneDigits(v) }),
+  whatsapp_number: (v) => {
+    if (hasUnsafeInput(v)) return { error: "WhatsApp number cannot contain HTML or script code." };
+    return { value: normalisePhoneDigits(v) };
+  },
+  support_phone: (v) => {
+    if (hasUnsafeInput(v)) return { error: "Support phone cannot contain HTML or script code." };
+    return { value: normalisePhoneDigits(v) };
+  },
 
   // Pixel + analytics + verification tokens are opaque identifier
-  // strings. Strip markup + drop anything with a URL scheme so admins
-  // can't smuggle a full script snippet into these fields.
-  meta_pixel_id:            (v) => ({ value: stripUnsafe(v).replace(/https?:\/\/\S*/gi, "") }),
-  google_analytics_id:      (v) => ({ value: stripUnsafe(v).replace(/https?:\/\/\S*/gi, "") }),
-  google_tag_manager_id:    (v) => ({ value: stripUnsafe(v).replace(/https?:\/\/\S*/gi, "") }),
-  google_site_verification: (v) => ({ value: stripUnsafe(v) }),
+  // strings. Reject markup/scripts instead of trying to execute or store them.
+  meta_pixel_id:            (v) => cleanPlainSetting(v, "Meta Pixel ID", /^[A-Za-z0-9_-]+$/, 80),
+  facebook_pixel_id:        (v) => cleanPlainSetting(v, "Facebook Pixel ID", /^[A-Za-z0-9_-]+$/, 80),
+  google_analytics_id:      (v) => cleanPlainSetting(v, "Google Analytics ID", /^[A-Za-z0-9_-]+$/, 40),
+  google_tag_manager_id:    (v) => cleanPlainSetting(v, "Google Tag Manager ID", /^[A-Za-z0-9_-]+$/, 40),
+  google_site_verification: (v) => cleanPlainSetting(v, "Google verification token", /^[A-Za-z0-9._:-]+$/, 180),
   // Legacy alias fields get the same treatment so old admin pages
   // continue to save valid values.
-  seo_facebook_pixel:       (v) => ({ value: stripUnsafe(v).replace(/https?:\/\/\S*/gi, "") }),
-  seo_google_analytics:     (v) => ({ value: stripUnsafe(v).replace(/https?:\/\/\S*/gi, "") }),
-  seo_google_verification:  (v) => ({ value: stripUnsafe(v) }),
+  seo_facebook_pixel:       (v) => cleanPlainSetting(v, "Meta Pixel ID", /^[A-Za-z0-9_-]+$/, 80),
+  seo_google_analytics:     (v) => cleanPlainSetting(v, "Google Analytics ID", /^[A-Za-z0-9_-]+$/, 40),
+  seo_google_verification:  (v) => cleanPlainSetting(v, "Google verification token", /^[A-Za-z0-9._:-]+$/, 180),
 
   // Social URLs — must look vaguely like a URL if set.
   social_instagram: (v) => {
+    if (hasUnsafeInput(v)) return { error: "Instagram URL cannot contain HTML or script code." };
     const s = stripUnsafe(v);
     if (!s) return { value: "" };
-    return /^https?:\/\//i.test(s) ? { value: s } : { error: "Instagram must be a full URL (https://…)." };
+    return isSafeHttpUrl(s) ? { value: s } : { error: "Instagram must be a full URL (https://...)." };
   },
   social_facebook: (v) => {
+    if (hasUnsafeInput(v)) return { error: "Facebook URL cannot contain HTML or script code." };
     const s = stripUnsafe(v);
     if (!s) return { value: "" };
-    return /^https?:\/\//i.test(s) ? { value: s } : { error: "Facebook must be a full URL (https://…)." };
+    return isSafeHttpUrl(s) ? { value: s } : { error: "Facebook must be a full URL (https://...)." };
   },
   social_tiktok: (v) => {
+    if (hasUnsafeInput(v)) return { error: "TikTok URL cannot contain HTML or script code." };
     const s = stripUnsafe(v);
     if (!s) return { value: "" };
-    return /^https?:\/\//i.test(s) ? { value: s } : { error: "TikTok must be a full URL (https://…)." };
+    return isSafeHttpUrl(s) ? { value: s } : { error: "TikTok must be a full URL (https://...)." };
   },
   social_youtube: (v) => {
+    if (hasUnsafeInput(v)) return { error: "YouTube URL cannot contain HTML or script code." };
     const s = stripUnsafe(v);
     if (!s) return { value: "" };
-    return /^https?:\/\//i.test(s) ? { value: s } : { error: "YouTube must be a full URL (https://…)." };
+    return isSafeHttpUrl(s) ? { value: s } : { error: "YouTube must be a full URL (https://...)." };
   },
 };
+
+function isSafeHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
 
 /** Public entry point — normalise + validate a single (key, value) pair. */
 export function sanitiseSettingValue(key: string, raw: string): SanitiseResult {
   const fn = SANITISERS[key];
   if (fn) return fn(raw);
   // Free-text field (hero_headline, business_name, footer_text, …).
+  if (hasUnsafeInput(raw)) return { error: `${key} cannot contain HTML or script code.` };
   return { value: stripUnsafe(raw) };
+}
+
+function revalidateSettingsSurfaces(): void {
+  revalidateTag(SETTINGS_TAG);
+  revalidatePath("/", "layout");
+  for (const path of SETTINGS_REVALIDATE_PATHS) {
+    try {
+      revalidatePath(path);
+    } catch {
+      // Some paths may not exist in older branches; settings saves should still work.
+    }
+  }
+}
+
+export async function updateSiteSettings(settingsObject: Record<string, string>): Promise<void> {
+  const cleaned: Array<{ key: string; value: string }> = [];
+  for (const [key, raw] of Object.entries(settingsObject)) {
+    const result = sanitiseSettingValue(key, raw);
+    if ("error" in result) throw new Error(result.error);
+    cleaned.push({ key, value: result.value });
+    for (const alias of aliasesFor(key)) {
+      cleaned.push({ key: alias, value: result.value });
+    }
+  }
+
+  if (cleaned.length === 0) return;
+  const supabase = await getSupabaseServer();
+  const { error } = await supabase.from("site_settings").upsert(cleaned, { onConflict: "key" });
+  if (error) throw new Error(error.message);
+  revalidateSettingsSurfaces();
+}
+
+export async function updateSiteSetting(key: string, value: string): Promise<void> {
+  await updateSiteSettings({ [key]: value });
 }
 
 // ── Convenience derived getters used by public components ───────────

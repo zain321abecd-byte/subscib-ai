@@ -68,7 +68,7 @@ export default async function GeneralSettings({
           icon="fa-location-dot"
           defaultValue={asString(s["business_address"])}
           rows={2}
-          hint="Shown on the contact page + in structured data (Organization schema)."
+          hint="Stored for admin/reference. It is not shown publicly unless the storefront is changed to display it."
         />
       </div>
     </SectionShell>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 
-export default function WhatsAppFab({ phone = "15550132026" }: { phone?: string }) {
+export default function WhatsAppFab({ phone }: { phone?: string }) {
+  if (!phone) return null;
+
   return (
     <Link
       href={`https://wa.me/${phone}`}

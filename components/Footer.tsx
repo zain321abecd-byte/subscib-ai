@@ -1,14 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import PaymentLogo from "./PaymentLogo";
-import { getSiteSettings } from "@/lib/site-settings";
+import { getSiteSettings, normalisePhoneDigits } from "@/lib/site-settings";
 import { getRegion } from "@/lib/region";
 
 export default async function Footer() {
   const [s, region] = await Promise.all([getSiteSettings(), getRegion()]);
   const isPK = region === "PK";
-  const wa = s.whatsapp_number || "15550132026";
-  const email = s.contact_email || "contact@subscribai.com";
+  const wa = normalisePhoneDigits(s.whatsapp_number || "");
+  const email = s.contact_email || "";
+  const footerText = s.footer_text?.trim() || "Premium AI subscriptions, automation packs, and digital tools — delivered in minutes.";
 
   const socials: { key: string; icon: string; label: string }[] = [
     { key: "social_instagram", icon: "fa-brands fa-instagram", label: "Instagram" },
@@ -22,7 +23,7 @@ export default async function Footer() {
       <div className="v2-container v2-footer-grid">
         <div className="v2-footer-brand">
           <Link href="/"><Image src="/assets/subscribai-logo.png" alt="SubscribAI" width={140} height={36} /></Link>
-          <p>Premium AI subscriptions, automation packs, and digital tools — delivered in minutes.</p>
+          <p>{footerText}</p>
           <div className="v2-pay-row" aria-label="Accepted payment methods">
             {isPK && <span className="v2-pay-chip" title="JazzCash"><PaymentLogo provider="jazzcash" height={32} /></span>}
             {isPK && <span className="v2-pay-chip" title="Easypaisa"><PaymentLogo provider="easypaisa" height={32} /></span>}
@@ -62,8 +63,8 @@ export default async function Footer() {
           <Link href="/refund">Refund policy</Link>
           <Link href="/terms">Terms &amp; conditions</Link>
           <Link href="/privacy">Privacy policy</Link>
-          <a href={`https://wa.me/${wa}`}><i className="fa-brands fa-whatsapp"></i> WhatsApp</a>
-          <a href={`mailto:${email}`}><i className="fa-solid fa-envelope"></i> Email</a>
+          {wa && <a href={`https://wa.me/${wa}`}><i className="fa-brands fa-whatsapp"></i> WhatsApp</a>}
+          {email && <a href={`mailto:${email}`}><i className="fa-solid fa-envelope"></i> Email</a>}
         </div>
       </div>
 

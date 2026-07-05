@@ -10,7 +10,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/faq" },
 };
 
-function buildQuestions(isPK: boolean): { q: string; a: string; category: string }[] {
+function buildQuestions(isPK: boolean, supportEmail: string): { q: string; a: string; category: string }[] {
+  const supportChannel = supportEmail ? `${supportEmail} or WhatsApp us` : "WhatsApp us";
+
   return [
   // Delivery
   { category: "Delivery", q: "How fast will I get my subscription?", a: "Most AI subscription accounts are activated within 30 minutes during business hours, and within a few hours overnight. You'll get an email and a WhatsApp confirmation when ready." },
@@ -20,7 +22,7 @@ function buildQuestions(isPK: boolean): { q: string; a: string; category: string
   // Payment
   { category: "Payment", q: "Which payment methods do you accept?", a: paymentMethodFaqAnswer },
   { category: "Payment", q: "Is there a fee for paying by card vs wallet?", a: "No — the price you see is the price you pay. We absorb the gateway fee on our end." },
-  { category: "Payment", q: "I got charged but my order didn't go through?", a: "Forward the gateway confirmation SMS or email to contact@subscribai.com or WhatsApp us. We'll either complete the order or refund within 24 hours." },
+  { category: "Payment", q: "I got charged but my order didn't go through?", a: `Forward the gateway confirmation SMS or email to ${supportChannel}. We'll either complete the order or refund within 24 hours.` },
   { category: "Payment", q: "How does local currency pricing work?", a: "Prices are shown in your selected local currency where supported, using the live exchange rate at checkout. What you see on the Pay button is what the gateway receives." },
 
   // Trust
@@ -43,9 +45,9 @@ function buildQuestions(isPK: boolean): { q: string; a: string; category: string
 }
 
 export default async function FAQPage() {
-  const [region, { whatsappUrl }] = await Promise.all([getRegion(), getContactLinks()]);
+  const [region, { whatsappUrl, email }] = await Promise.all([getRegion(), getContactLinks()]);
   const isPK = region === "PK";
-  const QUESTIONS = buildQuestions(isPK);
+  const QUESTIONS = buildQuestions(isPK, email);
 
   // Group by category
   const grouped = QUESTIONS.reduce<Record<string, typeof QUESTIONS>>((acc, q) => {

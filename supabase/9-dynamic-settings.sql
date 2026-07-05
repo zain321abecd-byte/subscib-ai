@@ -20,6 +20,7 @@ insert into public.site_settings (key, value) values
 
   -- Tracking (canonical spellings — legacy `seo_*` keys stay as they are).
   ('meta_pixel_id',              to_jsonb('' ::text)),
+  ('facebook_pixel_id',          to_jsonb('' ::text)),
   ('google_site_verification',   to_jsonb('' ::text)),
   ('google_analytics_id',        to_jsonb('' ::text)),
   ('google_tag_manager_id',      to_jsonb('' ::text)),

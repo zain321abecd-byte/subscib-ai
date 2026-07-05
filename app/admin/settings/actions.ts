@@ -1,13 +1,8 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { getSupabaseServer } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin-auth";
-import { aliasesFor, sanitiseSettingValue, SETTINGS_TAG } from "@/lib/site-settings";
-
-/** Paths that read from site_settings — invalidated after every save. */
-const REVALIDATE_PATHS = ["/", "/shop", "/checkout", "/contact", "/blog"];
+import { updateSiteSettings } from "@/lib/site-settings";
 
 function fail(msg: string, returnTo: string): never {
   redirect(`${returnTo}?error=${encodeURIComponent(msg)}`);
@@ -19,18 +14,16 @@ function fail(msg: string, returnTo: string): never {
  * which page we redirect back to after a successful save.
  *
  * Behaviour:
- *   • Every value is sanitised (script-tag stripping, phone digit
+ *   • Every value is sanitised (script/html rejection, phone digit
  *     normalisation, email + URL validation) via `sanitiseSettingValue`.
  *   • On validation failure the redirect carries an ?error= querystring
  *     so the section page can surface it.
  *   • Canonical keys are also mirrored to their legacy aliases (e.g.
  *     `meta_pixel_id` → `seo_facebook_pixel`) so older render paths
  *     that still read the old name keep working.
- *   • `revalidateTag(SETTINGS_TAG)` invalidates the tagged cache used
- *     by getSiteSettings() — every consumer picks up the new value on
- *     the next request without a redeploy.
- *   • `revalidatePath(…)` on the layout + on every setting-dependent
- *     path forces static + ISR pages to rebuild too.
+ *   • updateSiteSettings() upserts missing keys, mirrors legacy aliases,
+ *     invalidates the `site-settings` tag, and revalidates public pages
+ *     so changes appear on refresh without a redeploy.
  *
  * Boolean toggles use the hidden+checkbox pattern in the form itself:
  * an unchecked toggle posts "false" via the preceding hidden input,
@@ -52,30 +45,10 @@ export async function saveSettings(formData: FormData): Promise<void> {
   }
   if (collected.size === 0) fail("Nothing to save.", returnTo);
 
-  // 2 · Sanitise + validate. Bail on the first hard-invalid field.
-  const cleaned: Array<{ key: string; value: string }> = [];
-  for (const [key, raw] of collected) {
-    const result = sanitiseSettingValue(key, raw);
-    if ("error" in result) fail(result.error, returnTo);
-    cleaned.push({ key, value: result.value });
-    // Mirror to any historical alias so legacy consumers stay in sync.
-    for (const alias of aliasesFor(key)) {
-      cleaned.push({ key: alias, value: result.value });
-    }
-  }
-
-  // 3 · Upsert. Errors bubble up as ?error= on the redirect.
-  const supabase = await getSupabaseServer();
-  const { error } = await supabase.from("site_settings").upsert(cleaned, { onConflict: "key" });
-  if (error) fail(error.message, returnTo);
-
-  // 4 · Invalidate every cache surface. Tag first (cheap, works across
-  //    every unstable_cache reader), then path revalidation for pages
-  //    that opt into it.
-  revalidateTag(SETTINGS_TAG);
-  revalidatePath("/", "layout");
-  for (const p of REVALIDATE_PATHS) {
-    try { revalidatePath(p); } catch { /* path may not exist yet — ignore */ }
+  try {
+    await updateSiteSettings(Object.fromEntries(collected));
+  } catch (error) {
+    fail(error instanceof Error ? error.message : "Unable to save settings.", returnTo);
   }
 
   redirect(`${returnTo}?saved=1`);

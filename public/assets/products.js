@@ -23,7 +23,7 @@
   const defaultSocialLinks = {
     instagramUrl: "https://www.instagram.com/subscribai",
     facebookUrl: "https://www.facebook.com/subscribai",
-    whatsappUrl: "https://wa.me/15550132026",
+    whatsappUrl: "",
     linkedinUrl: "https://www.linkedin.com/company/subscribai"
   };
 

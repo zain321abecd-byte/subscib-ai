@@ -17,7 +17,7 @@ const NAV = [
   { href: "/contact", label: "Contact" },
 ];
 
-export default function Header() {
+export default function Header({ mobileWhatsAppUrl = "" }: { mobileWhatsAppUrl?: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, ready: authReady } = useAuth();
@@ -118,7 +118,12 @@ export default function Header() {
         </div>
       </div>
 
-      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} authed={authed} />
+      <MobileMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        authed={authed}
+        whatsappUrl={mobileWhatsAppUrl}
+      />
     </header>
   );
 }
