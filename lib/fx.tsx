@@ -62,18 +62,21 @@ export function FxProvider({
 
   useEffect(() => {
     let cancelled = false;
+    const apiBase = apiBaseUrlSafe();
 
-    fetch(`${apiBaseUrlSafe()}/fx-rate`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (cancelled) return;
-        if (!(fxOverride && fxOverride > 0) && Number.isFinite(d?.usdToPkr)) {
-          setUsdToPkr(d.usdToPkr);
-        }
-        if (Number.isFinite(d?.usdToInr)) setUsdToInr(d.usdToInr);
-        setReady(true);
-      })
-      .catch(() => {});
+    if (apiBase) {
+      fetch(`${apiBase}/fx-rate`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (cancelled) return;
+          if (!(fxOverride && fxOverride > 0) && Number.isFinite(d?.usdToPkr)) {
+            setUsdToPkr(d.usdToPkr);
+          }
+          if (Number.isFinite(d?.usdToInr)) setUsdToInr(d.usdToInr);
+          setReady(true);
+        })
+        .catch(() => {});
+    }
 
     if (fxOverride && fxOverride > 0) {
       setUsdToPkr(fxOverride);

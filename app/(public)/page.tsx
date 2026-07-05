@@ -10,6 +10,13 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { getRegion } from "@/lib/region";
 import { Price } from "@/lib/fx";
 import { getStartingPrice } from "@/lib/pricing";
+import {
+  paymentFeatureDescription,
+  paymentFeatureTitle,
+  paymentMethodFaqAnswer,
+  replaceLegacyPaymentCopy,
+} from "@/lib/payment-messaging";
+import type { Product } from "@/lib/products";
 
 /**
  * Force dynamic — the public layout reads cookies() + headers() via
@@ -18,6 +25,17 @@ import { getStartingPrice } from "@/lib/pricing";
  * fetches here are already tag-cached (site_settings) or cheap.
  */
 export const dynamic = "force-dynamic";
+
+function ProductMiniLogo({ product }: { product: Product }) {
+  if (product.imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={product.imageUrl} alt="" loading="lazy" />
+    );
+  }
+  if (product.brand) return <BrandIcon name={product.brand} size={22} />;
+  return <i className={product.iconClass} style={{ color: "#0F172A", fontSize: 14 }}></i>;
+}
 
 export default async function HomePage() {
   const [featured, settings, region, reviewRows] = await Promise.all([
@@ -56,14 +74,12 @@ export default async function HomePage() {
       .replace(/PKR/g, localCurrency)
       .replace(/\s+,/g, ",")
       .trim();
-  const rawHeadline = settings.hero_headline || "Premium AI subscriptions,";
+  const rawHeadline = replaceLegacyPaymentCopy(settings.hero_headline || "Premium AI subscriptions,");
   const heroHeadline = isPK ? rawHeadline : sanitizeForGlobal(rawHeadline);
   const rawSubtext = settings.hero_subtext;
   const heroSubtext = rawSubtext
-    ? (isPK ? rawSubtext : sanitizeForGlobal(rawSubtext))
-    : (isPK
-      ? "Pay locally with JazzCash, Easypaisa, or any card. Activated to your inbox within 30 minutes, backed by replacement guarantees and real WhatsApp support."
-      : "Activated to your inbox within 30 minutes. Backed by replacement guarantees and real human support — pay securely with any major card.");
+    ? (isPK ? replaceLegacyPaymentCopy(rawSubtext) : sanitizeForGlobal(replaceLegacyPaymentCopy(rawSubtext)))
+    : `${paymentFeatureDescription} Activated to your inbox within 30 minutes, backed by replacement guarantees and real WhatsApp support.`;
 
 
   return (
@@ -117,10 +133,8 @@ export default async function HomePage() {
                         const tag = (p.tag || "").split(",")[0].trim();
                         return (
                           <div className="v2-mini-card" key={p.id}>
-                            <span className="v2-mini-icon" style={{ background: "#ffffff" }}>
-                              {p.brand
-                                ? <BrandIcon name={p.brand} size={20} />
-                                : <i className={p.iconClass} style={{ color: "#0F172A", fontSize: 14 }}></i>}
+                            <span className={`v2-mini-icon ${p.imageUrl ? "has-product-image" : ""}`} style={{ background: "#ffffff" }}>
+                              <ProductMiniLogo product={p} />
                             </span>
                             <div>
                               <strong>{p.name}</strong>
@@ -150,9 +164,7 @@ export default async function HomePage() {
         <div className="v2-container v2-value-grid">
           {[
             { i: "fa-mobile-screen-button", t: "1. Pick your tool", d: "Choose AI subscriptions, courses, or automation packs." },
-            isPK
-              ? { i: "fa-money-bill-transfer", t: "2. Pay in PKR", d: "JazzCash, Easypaisa, or card. No forex hassle." }
-              : { i: "fa-money-bill-transfer", t: "2. Pay securely", d: "Use any major card through our secure gateway." },
+            { i: "fa-money-bill-transfer", t: paymentFeatureTitle, d: paymentFeatureDescription },
             { i: "fa-envelope-circle-check", t: "3. Get access fast", d: "Login details delivered by email, usually within minutes." },
           ].map((step) => (
             <div key={step.t} className="v2-value-item">
@@ -250,9 +262,7 @@ export default async function HomePage() {
           </header>
           <div className="v2-why-grid reveal reveal-stagger">
             {[
-              isPK
-                ? { icon: "fa-money-bill-transfer", t: "Local payment", d: "Pay with JazzCash, Easypaisa, or card. No forex headache.", bg: "#FF7A1A" }
-                : { icon: "fa-credit-card", t: "Secure payment", d: "Pay by card through a secure gateway with instant receipts.", bg: "#FF7A1A" },
+              { icon: "fa-credit-card", t: paymentFeatureTitle, d: paymentFeatureDescription, bg: "#FF7A1A" },
               { icon: "fa-bolt", t: "Fast delivery", d: "Most subscriptions go live in under 30 minutes after payment.", bg: "#FF7A1A" },
               { icon: "fa-rotate", t: "Easy renewals", d: "Get reminders before expiry and quick replacement support if needed.", bg: "#C85B08" },
               { icon: "fa-whatsapp", t: "Human support", d: "WhatsApp and email support from a real person when you need help.", bg: "#C85B08", brand: true },
@@ -291,9 +301,7 @@ export default async function HomePage() {
           <div className="v2-faq reveal reveal-stagger">
             {[
               ["How fast do I get my subscription after paying?", "Most AI subscription accounts are activated within 30 minutes during business hours, and within a few hours overnight. You'll receive your login by email and a WhatsApp confirmation."],
-              isPK
-                ? ["What payment methods do you accept?", "JazzCash, Easypaisa, and any debit or credit card via our secure payment gateway. We never store card details — payment is handled entirely by the gateway."]
-                : ["What payment methods do you accept?", "Any major debit or credit card via our secure payment gateway. We never store card details — payment is handled entirely by the gateway."],
+              ["What payment methods do you accept?", paymentMethodFaqAnswer],
               ["Are these legitimate accounts?", "Yes — every subscription is from an authorized reseller channel, family-plan slot, or our own bulk-purchase pool. We don't sell cracked or shared logins from sketchy sources."],
               ["What if my account stops working?", "Tell us on WhatsApp or email and we'll replace it within 24 hours. Subscriptions come with full-period replacement guarantees."],
               ["Can I cancel a bundle anytime?", "Yes — bundle subscriptions are month-to-month with no contracts. Cancel any time before your renewal date and you won't be charged again."],

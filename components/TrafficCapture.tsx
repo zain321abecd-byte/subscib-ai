@@ -78,8 +78,11 @@ export default function TrafficCapture() {
           utm_campaign: attribution.utm_campaign ?? null,
         };
 
+        const apiBase = apiBaseUrlSafe();
+        if (!apiBase) return;
+
         const body = JSON.stringify(payload);
-        const trafficUrl = `${apiBaseUrlSafe()}/traffic`;
+        const trafficUrl = `${apiBase}/traffic`;
         if (navigator.sendBeacon && eventType === "heartbeat") {
           // Beacon can't carry an Authorization header — heartbeats stay anonymous.
           navigator.sendBeacon(trafficUrl, new Blob([body], { type: "application/json" }));

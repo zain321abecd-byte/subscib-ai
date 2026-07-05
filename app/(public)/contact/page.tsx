@@ -14,7 +14,6 @@ export default async function ContactPage() {
   // Format the phone number for display: "+1 555 013 2026" from raw
   // digits. The link uses the raw digits so wa.me works reliably.
   const phoneDisplay = whatsappDigits ? `+${whatsappDigits}` : "";
-  const address = s.business_address?.trim();
   const supportPhone = s.support_phone?.trim();
   return (
     <section className="v2-section">
@@ -41,12 +40,6 @@ export default async function ContactPage() {
             )}
             {email && (
               <li><a href={mailtoUrl} style={{ color: "var(--brand-600)" }}><i className="fa-solid fa-envelope"></i> {email}</a></li>
-            )}
-            {address && (
-              <li style={{ color: "var(--text-soft)", display: "flex", gap: 8, alignItems: "flex-start" }}>
-                <i className="fa-solid fa-location-dot" style={{ color: "var(--brand-600)", marginTop: 4 }}></i>
-                <span>{address}</span>
-              </li>
             )}
           </ul>
         </aside>

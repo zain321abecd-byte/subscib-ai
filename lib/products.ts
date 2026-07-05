@@ -81,13 +81,83 @@ function supabaseConfigured(): boolean {
   return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
+const LOCAL_FALLBACK_PRODUCTS: Product[] = [
+  {
+    id: "chatgpt",
+    name: "Chatgpt",
+    tag: "Popular,New,Best Seller,AI",
+    price: 1899,
+    description:
+      "<p><strong>ChatGPT Plus Plan - Semi Private &amp; Private Access</strong></p><p>Get premium access to ChatGPT Plus for writing, coding, research, study, business work, content creation, image generation, file analysis, brainstorming, and daily AI assistance.</p><p>Official ChatGPT Plus price is <strong>$20/month</strong>, but we are providing it at a much more affordable price:</p><p><strong>Features included:</strong></p><ul><li>ChatGPT Plus access</li><li>Works with Plus-supported models and tools</li><li>Higher usage limits than Free plan</li><li>Advanced AI assistance for coding, writing, research, study, and business</li><li>File upload and analysis support</li><li>Image generation and creative assistance</li><li>Best for students, freelancers, developers, creators, agencies, and professionals</li></ul><blockquote><strong>Choose Semi Private if you want budget-friendly premium access.</strong></blockquote><blockquote><strong>Choose Private if you want a more personal and dedicated usage experience.</strong></blockquote><p>Limited slots available. Message now to activate your ChatGPT Plus plan.</p><blockquote><strong>Note: Usage limits and available features apply according to OpenAI&rsquo;s official Plus policy.</strong></blockquote>",
+    iconClass: "fa-solid fa-cube",
+    mediaClass: "media-blue",
+    category: "ai-subscriptions",
+    featured: true,
+    imageUrl: "https://res.cloudinary.com/dumhqo90g/image/upload/v1783246755/subscribai/products/kttbw1w8cbknkwjixede.jpg",
+    iconBgColor: "#FFFFFF",
+    inStock: true,
+    showInRelated: true,
+    relatedProductIds: ["claude-ai"],
+    privatePrice: 900,
+    sharedLabel: "Chatgpt Plus",
+    privateLabel: "Shared",
+    variationConfig: {
+      plans: [{ id: "chatgpt-plus", label: "Chatgpt Plus" }],
+      durations: [{ id: "1-month", label: "1 Month" }],
+      prices: [
+        { price: 1899, planId: "chatgpt-plus", durationId: "1-month", accountType: "private" },
+        { price: 900, planId: "chatgpt-plus", durationId: "1-month", accountType: "shared" },
+      ],
+    },
+    features: ["ChatGPT Plus access"],
+  },
+  {
+    id: "claude-ai",
+    name: "Claude Ai",
+    tag: "Popular,Best Seller,AI,Productivity",
+    price: 5500,
+    description:
+      "<p><strong>Claude AI Team Standard Seat - Semi Private &amp; Private Access</strong></p><p>Get access to Claude AI Team Standard Seat with all available Claude features and model access. Claude is best for writing, coding, research, business work, content creation, document analysis, brainstorming, and advanced AI assistance.</p><p>Official Claude Team Standard Seat price is <strong>$25/month</strong>, but we are providing it at a much lower price:</p><p><strong>Features included:</strong></p><ul><li>Claude Team Standard Seat access</li><li>Works with all available Claude models</li><li>More usage than Claude Pro</li><li>Best for coding, writing, research, study, business, and content creation</li><li>Fast and premium AI experience</li><li>Suitable for students, freelancers, developers, creators, and professionals</li></ul><p>Choose <strong>Semi Private</strong> if you want affordable access.</p><p>Choose <strong>Private</strong> if you want your own dedicated private usage experience.</p><p><strong>Limited slots available. Message now to activate your Claude AI plan.</strong></p>",
+    brand: "claude",
+    iconClass: "fa-solid fa-cube",
+    mediaClass: "media-blue",
+    category: "ai-subscriptions",
+    featured: true,
+    iconBgColor: "#D97757",
+    inStock: true,
+    showInRelated: true,
+    relatedProductIds: ["chatgpt"],
+    privatePrice: 1400,
+    sharedLabel: "Standard Team Plan",
+    privateLabel: "Shared",
+    variationConfig: {
+      plans: [{ id: "standard-team-plan", label: "Standard Team Plan" }],
+      durations: [{ id: "1-month", label: "1 Month" }],
+      prices: [
+        { price: 5500, planId: "standard-team-plan", durationId: "1-month", accountType: "private" },
+        { price: 1400, planId: "standard-team-plan", durationId: "1-month", accountType: "shared" },
+      ],
+    },
+    features: [
+      "Claude Team Standard Seat access",
+      "Works with all available Claude models",
+      "More usage than Claude Pro",
+      "Best for coding, writing, research, study, business, and content creation Fast and premium AI experience",
+    ],
+  },
+];
+
+function localFallbackProducts(): Product[] {
+  return process.env.NODE_ENV === "production" ? [] : LOCAL_FALLBACK_PRODUCTS;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Async DB-backed getters. The DATABASE is the single source of truth — the
 // catalog comes only from Supabase. An empty table shows as an empty catalog;
 // there is no dummy/seed fallback anywhere.
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAllProducts(): Promise<Product[]> {
-  if (!supabaseConfigured()) return [];
+  if (!supabaseConfigured()) return localFallbackProducts();
   try {
     const supabase = await getSupabaseServer();
     const { data, error } = await supabase
@@ -103,7 +173,7 @@ export async function getAllProducts(): Promise<Product[]> {
 }
 
 export async function getProduct(id: string): Promise<Product | undefined> {
-  if (!supabaseConfigured()) return undefined;
+  if (!supabaseConfigured()) return localFallbackProducts().find((p) => p.id === id);
   try {
     const supabase = await getSupabaseServer();
     const { data, error } = await supabase.from("products").select("*").eq("id", id).maybeSingle();

@@ -26,7 +26,7 @@ const FALLBACKS: Record<string, string> = {
   footer_text:        "",
 
   // ── Hero / homepage copy ────────────────────────────────────────
-  hero_headline:      "Premium AI subscriptions,",
+  hero_headline:      "Premium AI subscriptions, paid in your local currency.",
   hero_subtext:       "Activated to your inbox in under 30 minutes.",
 
   // ── Socials ─────────────────────────────────────────────────────

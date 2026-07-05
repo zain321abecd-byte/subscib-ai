@@ -28,13 +28,6 @@ const orgJsonLd = {
     availableLanguage: ["en", "ur"],
     url: `${SITE_URL}/contact`,
   }],
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: "Saleem Complex, Shop No 30, Q Block, Model Town",
-    addressLocality: "Lahore",
-    addressRegion: "Punjab",
-    addressCountry: "PK",
-  },
 };
 const websiteJsonLd = {
   "@context": "https://schema.org",

@@ -45,6 +45,8 @@ export default function ProductCard({ product }: { product: Product }) {
     product.imageUrl ? "image" : product.brand ? "brand" : "fallback";
 
   const showBrandBadge = effective === "image" && !!product.brand;
+  const priceLabel = formatProductPriceLabel(product, currency, usdToPkr, fxReady, usdToInr);
+  const fromMatch = priceLabel.match(/^From\s+(.+)$/i);
 
   const mediaStyle: React.CSSProperties | undefined =
     effective === "brand" && product.iconBgColor ? { background: product.iconBgColor } : undefined;
@@ -52,7 +54,7 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <article className="product-card" data-product-id={product.id}>
       <Link
-        className={`product-media ${effective === "image" ? product.mediaClass : "product-media-plain"}`}
+        className={`product-media ${effective === "image" ? `${product.mediaClass} has-product-image` : "product-media-plain"}`}
         style={mediaStyle}
         href={`/product/${product.id}`}
         aria-label={`View ${product.name}`}
@@ -81,7 +83,16 @@ export default function ProductCard({ product }: { product: Product }) {
         <h3>{product.name}</h3>
         <div className="product-bottom">
           <div className="product-card-price">
-            <b>{formatProductPriceLabel(product, currency, usdToPkr, fxReady, usdToInr)}</b>
+            <b>
+              {fromMatch ? (
+                <>
+                  <span className="product-card-price-prefix">From</span>
+                  <span className="product-card-price-value">{fromMatch[1]}</span>
+                </>
+              ) : (
+                <span className="product-card-price-value">{priceLabel}</span>
+              )}
+            </b>
           </div>
           <div className="product-actions">
             <Link className="product-icon-action" href={`/product/${product.id}`} aria-label={`View ${product.name}`} title="View details">

@@ -156,13 +156,12 @@ export function formatPrice(price: number, currency: Currency = "PKR"): string {
 
 /**
  * The user-facing price label shown on cards / listings — PKR-only.
- * Shows the starting/cheapest price without a "From" prefix per the
- * current product-card design; the underlying number is still
- * getStartingPrice(), so shoppers see the entry price when a product
- * has multiple variations.
+ * Shows the starting/cheapest price with a "From" prefix when multiple
+ * distinct prices exist.
  */
 export function getProductPriceLabel(product: Product): string {
-  return formatPKR(getStartingPrice(product));
+  const label = formatPKR(getStartingPrice(product));
+  return hasMultiplePrices(product) ? `From ${label}` : label;
 }
 
 /**
@@ -181,9 +180,10 @@ export function formatProductPriceLabel(
   usdToInr = 83,
 ): string {
   const start = getStartingPrice(product);
+  const prefix = hasMultiplePrices(product) ? "From " : "";
   // If we're on PKR (native), just format directly — no FX round-trip.
-  if (currency === "PKR") return formatPKR(start);
+  if (currency === "PKR") return `${prefix}${formatPKR(start)}`;
   if (!fxReady || !usdToPkr) return "—";
-  if (currency === "INR") return formatINR((start / usdToPkr) * usdToInr);
-  return formatUSD(start / usdToPkr);
+  if (currency === "INR") return `${prefix}${formatINR((start / usdToPkr) * usdToInr)}`;
+  return `${prefix}${formatUSD(start / usdToPkr)}`;
 }

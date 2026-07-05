@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getRegion } from "@/lib/region";
 import { getContactLinks } from "@/lib/contact-links";
+import { paymentMethodFaqAnswer } from "@/lib/payment-messaging";
 
 export const metadata: Metadata = {
   title: "FAQ — Frequently Asked Questions",
@@ -17,14 +18,10 @@ function buildQuestions(isPK: boolean): { q: string; a: string; category: string
   { category: "Delivery", q: "Can I get my account on a different email later?", a: "Yes — message us on WhatsApp with your order ID and the new email. We'll re-issue the credentials." },
 
   // Payment
-  { category: "Payment", q: "Which payment methods do you accept?", a: isPK
-      ? "JazzCash, Easypaisa, and any debit or credit card. All processed securely through our payment gateway. We never see or store your card number."
-      : "Any major debit or credit card, processed securely through our payment gateway. We never see or store your card number." },
+  { category: "Payment", q: "Which payment methods do you accept?", a: paymentMethodFaqAnswer },
   { category: "Payment", q: "Is there a fee for paying by card vs wallet?", a: "No — the price you see is the price you pay. We absorb the gateway fee on our end." },
   { category: "Payment", q: "I got charged but my order didn't go through?", a: "Forward the gateway confirmation SMS or email to contact@subscribai.com or WhatsApp us. We'll either complete the order or refund within 24 hours." },
-  ...(isPK
-    ? [{ category: "Payment", q: "Why are prices in USD with PKR conversion?", a: "Industry-standard for AI tools. We charge you in PKR at the live exchange rate at checkout — what you see on the Pay button is what hits your wallet." }]
-    : []),
+  { category: "Payment", q: "How does local currency pricing work?", a: "Prices are shown in your selected local currency where supported, using the live exchange rate at checkout. What you see on the Pay button is what the gateway receives." },
 
   // Trust
   { category: "Trust", q: "Are these legitimate accounts?", a: "Yes. Every subscription is from an authorized reseller channel, family-plan slot, or our own bulk-purchase pool. We don't sell cracked or shared logins from sketchy sources." },

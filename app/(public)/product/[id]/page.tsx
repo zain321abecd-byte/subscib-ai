@@ -12,6 +12,7 @@ import { getAllProducts, getProduct } from "@/lib/products";
 import { getStartingPrice } from "@/lib/pricing";
 import { getRegion } from "@/lib/region";
 import { getAllReviews, isSupabaseConfigured } from "@/lib/reviews";
+import { paymentFeatureTitle } from "@/lib/payment-messaging";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 
@@ -213,7 +214,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                     "Activated within 30 minutes",
                     "Replacement guarantee for the full subscription period",
                     "WhatsApp + email support",
-                    isPK ? "Pay with JazzCash, Easypaisa, or Card" : "Secure payment by major card",
+                    paymentFeatureTitle,
                   ]
               ).map((line) => (
                 <li key={line}>

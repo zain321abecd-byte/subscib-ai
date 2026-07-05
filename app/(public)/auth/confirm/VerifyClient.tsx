@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiBaseUrl } from "@/lib/api-client";
+import { paymentFeatureDescription, paymentFeatureTitle } from "@/lib/payment-messaging";
 
 type Status = "verifying" | "success" | "already" | "error";
 
@@ -131,7 +132,7 @@ export default function VerifyClient({
           {[
             { n: 1, t: "Sign in", d: "Use the same email and password you signed up with." },
             { n: 2, t: "Browse the shop", d: "Pick from premium AI subscriptions, courses & automation packs." },
-            { n: 3, t: "Pay your way", d: "JazzCash, Easypaisa, bank or card on PayFast's secure checkout." },
+            { n: 3, t: paymentFeatureTitle, d: paymentFeatureDescription },
           ].map((s) => (
             <li
               key={s.n}

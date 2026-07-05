@@ -8,7 +8,7 @@ import { useCart } from "@/lib/cart";
 import { formatPriceFromPKR, useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
 import { apiUrl, authHeaders } from "@/lib/api-client";
-import { paymentFeatureDescription } from "@/lib/payment-messaging";
+import { paymentFeatureDescription, paymentFeatureTitle } from "@/lib/payment-messaging";
 
 type StatusPill = "idle" | "submitting" | "redirecting" | "failed";
 
@@ -294,7 +294,7 @@ export default function CheckoutPage() {
             <div className="surface-card" style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <i className="fa-solid fa-shield-halved" style={{ color: "var(--accent-600)", fontSize: 22 }}></i>
               <div>
-                <strong style={{ color: "var(--text)", display: "block" }}>You&apos;ll choose your payment method on PayFast</strong>
+                <strong style={{ color: "var(--text)", display: "block" }}>{paymentFeatureTitle}</strong>
                 <span style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
                   {paymentFeatureDescription}
                 </span>
@@ -334,9 +334,7 @@ export default function CheckoutPage() {
             {fxReady && (
               <p style={{ marginTop: 10, fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
                 <i className="fa-solid fa-circle-info" style={{ marginRight: 6 }}></i>
-                {isPK
-                  ? `Charged in PKR via secure PayFast checkout.`
-                  : `Charged in USD via secure card payment on PayFast.`}
+                Charged securely via PayFast checkout.
               </p>
             )}
 
