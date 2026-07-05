@@ -1,20 +1,19 @@
 /**
  * Safe renderer for the HTML stored in products.description.
  *
- * The admin form writes TipTap-generated HTML into the field. We
- * sanitise on every render — never trust stored HTML at the boundary
- * even when the input path was controlled by a signed-in admin. This
- * runs on the server (Node) via isomorphic-dompurify, so nothing
- * touches the browser until it's already clean.
+ * The admin editor (TipTap / Quill) writes clean HTML into the field.
+ * We sanitise on every render — never trust stored HTML at the
+ * boundary even when the input path was controlled by a signed-in
+ * admin. `sanitize-html` is pure JavaScript (no jsdom, no native
+ * modules) so it works cleanly on serverless functions — the previous
+ * `isomorphic-dompurify` implementation pulled in `jsdom` → `@exodus/bytes`
+ * which crashed Vercel with `require() of ES Module` errors.
  *
  * Backwards compat: rows created before the editor was introduced
  * store either plain text or Markdown. Plain text is wrapped so its
- * line breaks survive; Markdown-ish content still renders reasonably
- * because paragraph + list HTML equivalents come out of the admin form
- * from now on. Old Markdown symbols on old rows show as-is until an
- * admin edits and re-saves — that's fine.
+ * line breaks and paragraphs survive; Markdown-ish content shows as-is.
  */
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
 /** Wrap loose plain text so paragraph and line-break semantics survive. */
 function wrapPlainText(raw: string): string {
@@ -34,10 +33,14 @@ function wrapPlainText(raw: string): string {
 /**
  * Tags + attributes the renderer allows. Deliberately narrow — no
  * <script>, <iframe>, <style>, event handlers, or `on*` attrs.
- * Data URIs are blocked so someone can't smuggle base64 script.
+ * Data URIs are blocked so nobody can smuggle base64-encoded script.
+ *
+ * Every <a> gets `target="_blank"` + `rel="noopener noreferrer nofollow"`
+ * forced on via `transformTags` so external navigation is always safe
+ * regardless of what the editor wrote.
  */
-const SANITISE_CONFIG: Parameters<typeof DOMPurify.sanitize>[1] = {
-  ALLOWED_TAGS: [
+const SANITISE_CONFIG: sanitizeHtml.IOptions = {
+  allowedTags: [
     "p", "br", "strong", "em", "u", "s", "code", "pre", "blockquote",
     "h1", "h2", "h3", "h4", "h5", "h6",
     "ul", "ol", "li",
@@ -45,26 +48,25 @@ const SANITISE_CONFIG: Parameters<typeof DOMPurify.sanitize>[1] = {
     "span",
     "hr",
   ],
-  ALLOWED_ATTR: ["href", "target", "rel", "class", "style"],
-  ALLOWED_URI_REGEXP: /^(?:https?|mailto|tel):/i,
-  // Always force safe link attributes on <a>. DOMPurify adds these
-  // via the ADD_ATTR list combined with a post-hook below.
+  allowedAttributes: {
+    a:    ["href", "target", "rel", "class"],
+    span: ["class", "style"],
+    "*":  ["class"],
+  },
+  allowedSchemes: ["http", "https", "mailto", "tel"],
+  allowedSchemesAppliedToAttributes: ["href"],
+  allowProtocolRelative: false,
+  // Force safe link attributes even if the editor forgot them.
+  transformTags: {
+    a: sanitizeHtml.simpleTransform("a", {
+      target: "_blank",
+      rel: "noopener noreferrer nofollow",
+    }, true),
+  },
+  // Strip inline style declarations entirely — too easy to hide
+  // background-image: url(...) exfil, position: fixed abuse, etc.
+  allowedStyles: {},
 };
-
-/**
- * Post-process the HTML string so every <a> gets safe rel/target.
- * DOMPurify has no built-in for this; a regex is sufficient because
- * the sanitised HTML never contains user-crafted quoting tricks.
- */
-function hardenLinks(html: string): string {
-  return html.replace(/<a\b([^>]*)>/gi, (_full, attrs: string) => {
-    const withTarget = /\btarget=/i.test(attrs) ? attrs : `${attrs} target="_blank"`;
-    const withRel = /\brel=/i.test(withTarget)
-      ? withTarget
-      : `${withTarget} rel="noopener noreferrer nofollow"`;
-    return `<a${withRel}>`;
-  });
-}
 
 export default function RichTextRenderer({
   content, className, fallback,
@@ -76,15 +78,14 @@ export default function RichTextRenderer({
   const raw = (content ?? "").toString();
   if (!raw.trim()) return <>{fallback ?? null}</>;
   const wrapped = wrapPlainText(raw);
-  const cleaned = DOMPurify.sanitize(wrapped, SANITISE_CONFIG) as string;
-  const hardened = hardenLinks(cleaned);
+  const cleaned = sanitizeHtml(wrapped, SANITISE_CONFIG);
   return (
     <div
       className={`rte-content ${className || ""}`.trim()}
-      // Sanitised output — every tag + attribute has been through DOMPurify,
-      // links have been re-armed with target/rel, and inline scripts /
-      // event handlers are stripped. Safe to inject.
-      dangerouslySetInnerHTML={{ __html: hardened }}
+      // Sanitised output — every tag + attribute has been through
+      // sanitize-html, links are re-armed with target/rel via
+      // transformTags, inline scripts / event handlers stripped. Safe.
+      dangerouslySetInnerHTML={{ __html: cleaned }}
     />
   );
 }
