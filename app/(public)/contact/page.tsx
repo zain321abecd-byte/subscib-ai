@@ -1,5 +1,6 @@
 import { getContactLinks } from "@/lib/contact-links";
 import { getSiteSettings } from "@/lib/site-settings";
+import ContactForm from "./ContactForm";
 
 export const metadata = {
   title: "Contact",
@@ -22,12 +23,7 @@ export default async function ContactPage() {
           <p className="v2-eyebrow">Contact</p>
           <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-2xl)", color: "var(--text)", marginBottom: "var(--space-3)" }}>Talk to a human</h2>
           <p style={{ color: "var(--text-soft)", marginBottom: "var(--space-5)" }}>Reach out on WhatsApp for the fastest reply, or email and we&apos;ll get back within a few hours.</p>
-          <form style={{ display: "grid", gap: "var(--space-3)" }}>
-            <div className="field"><label className="field-label">Name</label><input className="input" placeholder="Your name" /></div>
-            <div className="field"><label className="field-label">Email</label><input className="input" type="email" placeholder="you@example.com" /></div>
-            <div className="field"><label className="field-label">Message</label><textarea className="textarea input" rows={5} placeholder="How can we help?" /></div>
-            <button type="button" className="btn btn-primary">Send message</button>
-          </form>
+          <ContactForm />
         </div>
         <aside className="surface-card">
           <h3 style={{ fontFamily: "var(--font-heading)", color: "var(--text)", marginBottom: "var(--space-3)" }}>Reach us</h3>

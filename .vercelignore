@@ -1,3 +1,5 @@
 # The NestJS backend deploys to Render, not Vercel. Keep it out of the
 # frontend build/upload entirely.
 api
+!app/api
+!app/api/**

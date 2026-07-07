@@ -11,10 +11,24 @@ export type CartItem = {
   iconClass?: string;
   variation?: {
     plan?: string;
-    accountType?: "private" | "shared";
+    accountType?: "private" | "shared" | "bundle";
     accountLabel?: string;
     duration?: string;
     summary?: string;
+    bundle?: {
+      key: "creator" | "growth";
+      name: string;
+      billingCycle: "monthly" | "yearly";
+      selectedTools: string[];
+      toolLimit: number;
+    };
+    pricingPlan?: {
+      planId: string;
+      slug: string;
+      name: string;
+      billingCycle: "monthly" | "yearly";
+      currency: string;
+    };
   };
 };
 

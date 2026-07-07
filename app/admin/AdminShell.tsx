@@ -27,6 +27,9 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: "Operations",
     items: [
       { href: "/admin/orders",  label: "Orders",  icon: "fa-receipt",        permission: "orders:read" },
+      { href: "/admin/bundle-orders", label: "Bundle Orders", icon: "fa-layer-group", permission: "orders:read" },
+      { href: "/admin/custom-pricing-requests", label: "Custom Pricing Requests", icon: "fa-file-signature", permission: "orders:read" },
+      { href: "/admin/contact-messages", label: "Contact Messages", icon: "fa-message" },
       { href: "/admin/email",   label: "Emails",  icon: "fa-envelope",       permission: "emails:read" },
       { href: "/admin/stock",   label: "Stock",   icon: "fa-boxes-stacked",  permission: "stock:read" },
       { href: "/admin/sales",   label: "Daily Sales", icon: "fa-hand-holding-dollar", permission: "sales:read" },
@@ -37,6 +40,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: "Configuration",
     items: [
       { href: "/admin/users",    label: "Team & permissions", icon: "fa-users-gear", permission: "users:read" },
+      { href: "/admin/pricing-plans", label: "Pricing Plans", icon: "fa-tags", permission: "settings:read" },
       { href: "/admin/settings", label: "Site settings",      icon: "fa-sliders",    permission: "settings:read" },
     ],
   },

@@ -131,6 +131,8 @@ create table if not exists orders (
   subtotal_pkr     numeric(12, 2),
   status           text not null default 'pending',
                    -- pending | paid | delivered | failed | refunded | cancelled
+  fulfillment_status text not null default 'pending'
+                   check (fulfillment_status in ('pending', 'in_progress', 'activated', 'rejected', 'expired')),
   payment_method   text,                         -- jazzcash | easypaisa | card | whatsapp
   transaction_id   text,
   notes            text,                         -- admin internal notes
@@ -140,6 +142,7 @@ create table if not exists orders (
 );
 
 create index if not exists orders_status_idx on orders(status);
+create index if not exists orders_fulfillment_status_idx on orders(fulfillment_status);
 create index if not exists orders_created_idx on orders(created_at desc);
 create index if not exists orders_email_idx on orders(customer_email);
 
@@ -200,6 +203,117 @@ create table if not exists stock_items (
 create index if not exists stock_items_expiry_date_idx on stock_items(expiry_date);
 create index if not exists stock_items_status_idx on stock_items(status);
 create index if not exists stock_items_supplier_idx on stock_items(supplier_name);
+
+-- ============================================================
+-- 3D. CONTACT MESSAGES
+-- ============================================================
+create table if not exists contact_messages (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  email      text not null,
+  message    text not null,
+  status     text not null default 'unread'
+             check (status in ('unread', 'read', 'resolved')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists contact_messages_status_idx on contact_messages(status);
+create index if not exists contact_messages_created_at_idx on contact_messages(created_at desc);
+create index if not exists contact_messages_email_idx on contact_messages(email);
+
+-- ============================================================
+-- 3E. PRICING PLANS
+-- ============================================================
+create table if not exists pricing_plans (
+  id            uuid primary key default gen_random_uuid(),
+  name          text not null,
+  slug          text unique not null,
+  description   text not null default '',
+  monthly_price numeric(12, 2) not null default 0 check (monthly_price >= 0),
+  yearly_price  numeric(12, 2) not null default 0 check (yearly_price >= 0),
+  currency      text not null default 'PKR',
+  features      text[] not null default '{}'::text[],
+  badge_text    text,
+  button_text   text,
+  is_popular    boolean not null default false,
+  is_active     boolean not null default true,
+  price_type    text not null default 'fixed' check (price_type in ('fixed', 'custom')),
+  sort_order    int not null default 0,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+alter table pricing_plans add column if not exists button_text text;
+
+create index if not exists pricing_plans_active_sort_idx on pricing_plans(is_active, sort_order);
+create index if not exists pricing_plans_slug_idx on pricing_plans(slug);
+
+insert into pricing_plans (name, slug, description, monthly_price, yearly_price, currency, features, badge_text, button_text, is_popular, is_active, price_type, sort_order)
+values
+  ('Creator', 'creator', 'Solo creators & freelancers', 8055, 72495, 'PKR',
+   array['2 AI subscriptions of your choice', 'Prompt vault (200+ curated prompts)', 'Weekly drops & tips', 'Email support'],
+   null, 'Choose Creator', false, true, 'fixed', 10),
+  ('Growth', 'growth', 'Teams scaling content & ops', 16387, 147483, 'PKR',
+   array['4 AI subscriptions of your choice', 'All automation packs included', 'Prompt vault + workflow library', 'WhatsApp priority support'],
+   'Most Popular', 'Choose Growth', true, true, 'fixed', 20),
+  ('Business', 'business', 'Agencies & established teams', 0, 0, 'PKR',
+   array['Unlimited AI subscriptions', 'Custom automation builds', 'Dedicated account manager', 'Onboarding & training'],
+   null, 'Custom Pricing', false, true, 'custom', 30)
+on conflict (slug) do nothing;
+
+update pricing_plans set button_text = coalesce(button_text, 'Choose Creator') where slug = 'creator';
+update pricing_plans set button_text = coalesce(button_text, 'Choose Growth') where slug = 'growth';
+update pricing_plans set button_text = coalesce(button_text, 'Custom Pricing') where slug = 'business';
+
+-- ============================================================
+-- 3F. BUSINESS BUNDLE INQUIRIES
+-- ============================================================
+create table if not exists business_bundle_inquiries (
+  id             uuid primary key default gen_random_uuid(),
+  name           text not null,
+  email          text not null,
+  whatsapp       text not null,
+  company_name   text not null,
+  team_size      text not null,
+  required_tools text not null,
+  message        text not null,
+  status         text not null default 'new'
+                 check (status in ('new', 'contacted', 'resolved', 'rejected')),
+  admin_note     text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+
+create index if not exists business_bundle_inquiries_status_idx on business_bundle_inquiries(status);
+create index if not exists business_bundle_inquiries_created_at_idx on business_bundle_inquiries(created_at desc);
+create index if not exists business_bundle_inquiries_email_idx on business_bundle_inquiries(email);
+
+-- ============================================================
+-- 3G. CUSTOM PRICING REQUESTS
+-- ============================================================
+create table if not exists custom_pricing_requests (
+  id             uuid primary key default gen_random_uuid(),
+  full_name      text not null,
+  email          text not null,
+  whatsapp       text not null,
+  company_name   text,
+  team_size      text,
+  required_tools text not null,
+  billing_cycle  text not null default 'monthly'
+                 check (billing_cycle in ('monthly', 'yearly')),
+  budget         text,
+  message        text not null,
+  status         text not null default 'new'
+                 check (status in ('new', 'contacted', 'in_progress', 'converted', 'rejected')),
+  admin_note     text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+
+create index if not exists custom_pricing_requests_status_idx on custom_pricing_requests(status);
+create index if not exists custom_pricing_requests_created_at_idx on custom_pricing_requests(created_at desc);
+create index if not exists custom_pricing_requests_email_idx on custom_pricing_requests(email);
 
 -- ============================================================
 -- 4. REVIEWS
@@ -312,6 +426,22 @@ drop trigger if exists trg_stock_items_updated_at on stock_items;
 create trigger trg_stock_items_updated_at before update on stock_items
   for each row execute function set_updated_at();
 
+drop trigger if exists trg_contact_messages_updated_at on contact_messages;
+create trigger trg_contact_messages_updated_at before update on contact_messages
+  for each row execute function set_updated_at();
+
+drop trigger if exists trg_pricing_plans_updated_at on pricing_plans;
+create trigger trg_pricing_plans_updated_at before update on pricing_plans
+  for each row execute function set_updated_at();
+
+drop trigger if exists trg_business_bundle_inquiries_updated_at on business_bundle_inquiries;
+create trigger trg_business_bundle_inquiries_updated_at before update on business_bundle_inquiries
+  for each row execute function set_updated_at();
+
+drop trigger if exists trg_custom_pricing_requests_updated_at on custom_pricing_requests;
+create trigger trg_custom_pricing_requests_updated_at before update on custom_pricing_requests
+  for each row execute function set_updated_at();
+
 drop trigger if exists trg_site_settings_updated_at on site_settings;
 create trigger trg_site_settings_updated_at before update on site_settings
   for each row execute function set_updated_at();
@@ -331,6 +461,10 @@ alter table redirects      enable row level security;
 alter table orders         enable row level security;
 alter table traffic_sessions enable row level security;
 alter table stock_items    enable row level security;
+alter table contact_messages enable row level security;
+alter table pricing_plans  enable row level security;
+alter table business_bundle_inquiries enable row level security;
+alter table custom_pricing_requests enable row level security;
 alter table reviews        enable row level security;
 alter table freebies       enable row level security;
 alter table site_settings  enable row level security;
@@ -397,6 +531,34 @@ drop policy if exists "stock items admin read" on stock_items;
 drop policy if exists "stock items admin write" on stock_items;
 create policy "stock items admin read" on stock_items for select using (is_admin());
 create policy "stock items admin write" on stock_items for all
+  using (is_admin()) with check (is_admin());
+
+-- ----- contact_messages (server route inserts; admin-only read/update) -----
+drop policy if exists "contact messages admin read" on contact_messages;
+drop policy if exists "contact messages admin write" on contact_messages;
+create policy "contact messages admin read" on contact_messages for select using (is_admin());
+create policy "contact messages admin write" on contact_messages for all
+  using (is_admin()) with check (is_admin());
+
+-- ----- pricing_plans (public read active; admin write) -----
+drop policy if exists "pricing plans read active" on pricing_plans;
+drop policy if exists "pricing plans admin write" on pricing_plans;
+create policy "pricing plans read active" on pricing_plans for select using (is_active = true or is_admin());
+create policy "pricing plans admin write" on pricing_plans for all
+  using (is_admin()) with check (is_admin());
+
+-- ----- business_bundle_inquiries (server route inserts; admin-only read/update) -----
+drop policy if exists "business bundle inquiries admin read" on business_bundle_inquiries;
+drop policy if exists "business bundle inquiries admin write" on business_bundle_inquiries;
+create policy "business bundle inquiries admin read" on business_bundle_inquiries for select using (is_admin());
+create policy "business bundle inquiries admin write" on business_bundle_inquiries for all
+  using (is_admin()) with check (is_admin());
+
+-- ----- custom_pricing_requests (server route inserts; admin-only read/update) -----
+drop policy if exists "custom pricing requests admin read" on custom_pricing_requests;
+drop policy if exists "custom pricing requests admin write" on custom_pricing_requests;
+create policy "custom pricing requests admin read" on custom_pricing_requests for select using (is_admin());
+create policy "custom pricing requests admin write" on custom_pricing_requests for all
   using (is_admin()) with check (is_admin());
 
 -- ----- reviews -----

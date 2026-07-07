@@ -132,6 +132,20 @@ export type OrderItem = {
     accountLabel?: string;
     duration?: string;
     summary?: string;
+    pricingPlan?: {
+      planId: string;
+      slug: string;
+      name: string;
+      billingCycle: "monthly" | "yearly";
+      currency: string;
+    };
+    bundle?: {
+      key: string;
+      name: string;
+      billingCycle: "monthly" | "yearly";
+      selectedTools: string[];
+      toolLimit: number;
+    };
   };
 };
 
@@ -149,6 +163,7 @@ export type OrderRow = {
   transaction_id: string | null;
   notes: string | null;
   delivered_at: string | null;
+  fulfillment_status: "pending" | "in_progress" | "activated" | "rejected" | "expired" | null;
   /** Traffic attribution captured at first landing. */
   utm_source: string | null;
   utm_medium: string | null;
@@ -199,6 +214,25 @@ export type StockItemRow = {
   updated_at: string;
 };
 
+export type PricingPlanRow = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  monthly_price: number;
+  yearly_price: number;
+  currency: string;
+  features: string[];
+  badge_text: string | null;
+  button_text: string | null;
+  is_popular: boolean;
+  is_active: boolean;
+  price_type: "fixed" | "custom";
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type SiteSettingRow = {
   key: string;
   value: unknown;
@@ -224,6 +258,54 @@ export type TrafficSessionRow = {
   device_type: string | null;
   platform: string | null;
   user_agent: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ContactMessageStatus = "unread" | "read" | "resolved";
+
+export type ContactMessageRow = {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  status: ContactMessageStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BusinessBundleInquiryStatus = "new" | "contacted" | "resolved" | "rejected";
+
+export type BusinessBundleInquiryRow = {
+  id: string;
+  name: string;
+  email: string;
+  whatsapp: string;
+  company_name: string;
+  team_size: string;
+  required_tools: string;
+  message: string;
+  status: BusinessBundleInquiryStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomPricingRequestStatus = "new" | "contacted" | "in_progress" | "converted" | "rejected";
+
+export type CustomPricingRequestRow = {
+  id: string;
+  full_name: string;
+  email: string;
+  whatsapp: string;
+  company_name: string | null;
+  team_size: string | null;
+  required_tools: string;
+  billing_cycle: "monthly" | "yearly";
+  budget: string | null;
+  message: string;
+  status: CustomPricingRequestStatus;
+  admin_note: string | null;
   created_at: string;
   updated_at: string;
 };

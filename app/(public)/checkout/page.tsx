@@ -9,6 +9,7 @@ import { formatPriceFromPKR, useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
 import { apiUrl, authHeaders } from "@/lib/api-client";
 import { paymentFeatureDescription, paymentFeatureTitle } from "@/lib/payment-messaging";
+import type { CartItem } from "@/lib/cart";
 
 type StatusPill = "idle" | "submitting" | "redirecting" | "failed";
 
@@ -20,6 +21,29 @@ function newBasketId(): string {
 }
 
 type InitFields = Record<string, string>;
+
+async function canonicalizePlanItems(items: CartItem[]): Promise<CartItem[]> {
+  const out: CartItem[] = [];
+  for (const item of items) {
+    const plan = item.variation?.pricingPlan;
+    if (!plan?.planId || !plan.billingCycle) {
+      out.push(item);
+      continue;
+    }
+
+    const res = await fetch("/api/pricing-plans/checkout-item", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planId: plan.planId, billingCycle: plan.billingCycle }),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok || !body?.item) {
+      throw new Error(body?.error || "Could not verify the selected plan price.");
+    }
+    out.push({ ...body.item, qty: item.qty || 1 });
+  }
+  return out;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -137,8 +161,16 @@ export default function CheckoutPage() {
     setOrderId(basketId);
 
     // Snapshot — keep history visible after the cart is cleared on return.
-    const orderItemsSnapshot = cart.items.map((i) => ({ ...i }));
-    const orderSubtotalSnapshot = cart.subtotal;
+    let orderItemsSnapshot = cart.items.map((i) => ({ ...i }));
+    try {
+      orderItemsSnapshot = await canonicalizePlanItems(orderItemsSnapshot);
+    } catch (err) {
+      setStatus("failed");
+      setMessage(err instanceof Error ? err.message : "Could not verify the selected plan price.");
+      return;
+    }
+    const orderSubtotalSnapshot = orderItemsSnapshot.reduce((sum, item) => sum + Number(item.price) * Number(item.qty || 1), 0);
+    const checkoutPkrTotal = Math.round(orderSubtotalSnapshot);
 
     // Best-effort: record the pending order. Payment proceeds even on DB outage.
     const attribution = readAttribution();
@@ -155,8 +187,8 @@ export default function CheckoutPage() {
       customer_email: email,
       customer_phone: phone,
       customer_name: name,
-      subtotal_pkr: pkrTotal,
-      subtotal_usd: fxReady && usdToPkr > 0 ? Number((pkrTotal / usdToPkr).toFixed(2)) : undefined,
+      subtotal_pkr: checkoutPkrTotal,
+      subtotal_usd: fxReady && usdToPkr > 0 ? Number((checkoutPkrTotal / usdToPkr).toFixed(2)) : undefined,
       payment_method: "payfast",
       transaction_id: basketId,
       utm_source: attribution.utm_source ?? null,
@@ -204,7 +236,7 @@ export default function CheckoutPage() {
       placedAt: Date.now(),
       items: orderItemsSnapshot,
       subtotalUsd: orderSubtotalSnapshot,
-      pkrTotal,
+      pkrTotal: checkoutPkrTotal,
       paymentProvider: "payfast",
       status: "pending",
     });
@@ -215,9 +247,9 @@ export default function CheckoutPage() {
     // The cart subtotal is canonical PKR; we convert to USD via the live FX rate.
     const txnCurrency: "PKR" | "USD" = isPK ? "PKR" : "USD";
     const usdAmount = fxReady && usdToPkr > 0
-      ? cart.subtotal / usdToPkr
-      : pkrTotal / 280; // safe fallback FX if rate hasn't loaded
-    const txnAmount = isPK ? pkrTotal.toFixed(2) : usdAmount.toFixed(2);
+      ? checkoutPkrTotal / usdToPkr
+      : checkoutPkrTotal / 280; // safe fallback FX if rate hasn't loaded
+    const txnAmount = isPK ? checkoutPkrTotal.toFixed(2) : usdAmount.toFixed(2);
 
     // For non-PK visitors restrict the PayFast hosted page to Card only —
     // JazzCash / Easypaisa wallets are PK-only, bank direct-debit needs a

@@ -12,6 +12,7 @@ type ItemInput = {
 
 const VALID_STATUSES = ["pending", "paid", "delivered", "failed", "refunded", "cancelled"] as const;
 type Status = (typeof VALID_STATUSES)[number];
+type BillingCycle = "monthly" | "yearly";
 
 function shortOrderNumber(): string {
   const y = new Date();
@@ -22,6 +23,10 @@ function shortOrderNumber(): string {
 
 function isValidEmail(s: unknown): s is string {
   return typeof s === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+}
+
+function isBillingCycle(value: unknown): value is BillingCycle {
+  return value === "monthly" || value === "yearly";
 }
 
 @Injectable()
@@ -35,7 +40,8 @@ export class OrdersService {
 
   /** Record a new order. `accessToken` (optional) ties it to a logged-in user. */
   async create(body: any, accessToken?: string) {
-    const items: ItemInput[] = Array.isArray(body?.items) ? body.items : [];
+    const submittedItems: ItemInput[] = Array.isArray(body?.items) ? body.items : [];
+    const items = await this.resolvePricingPlanItems(submittedItems);
     if (items.length === 0) throw new BadRequestException("No items");
     if (!isValidEmail(body?.customer_email)) throw new BadRequestException("Invalid email");
 
@@ -84,6 +90,62 @@ export class OrdersService {
       this.logger.error(`Post-order email workflow failed for order ${data.order_number}: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
     return { ok: true, id: data.id, order_number: data.order_number, stored: true };
+  }
+
+  private async resolvePricingPlanItems(items: ItemInput[]): Promise<ItemInput[]> {
+    const resolved: ItemInput[] = [];
+
+    for (const item of items) {
+      const pricingPlan = item?.variation?.pricingPlan as Record<string, unknown> | undefined;
+      const planId = typeof pricingPlan?.planId === "string" ? pricingPlan.planId.trim() : "";
+      const billingCycle = isBillingCycle(pricingPlan?.billingCycle) ? pricingPlan.billingCycle : null;
+
+      if (!planId && !billingCycle) {
+        resolved.push(item);
+        continue;
+      }
+      if (!planId || !billingCycle) {
+        throw new BadRequestException("Invalid pricing plan selection");
+      }
+
+      const { data: plan, error } = await this.supabase
+        .admin()
+        .from("pricing_plans")
+        .select("*")
+        .eq("id", planId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (error) throw new InternalServerErrorException(error.message);
+      if (!plan) throw new BadRequestException("Selected pricing plan is not available");
+      if (plan.price_type === "custom") throw new BadRequestException("Custom plans require contacting sales");
+
+      const price = Number(billingCycle === "monthly" ? plan.monthly_price : plan.yearly_price);
+      if (!Number.isFinite(price) || price <= 0) throw new BadRequestException("Selected pricing plan has no valid price");
+
+      resolved.push({
+        id: `pricing-plan-${plan.slug}-${billingCycle}`,
+        name: String(plan.name),
+        qty: Number(item.qty || 1),
+        price,
+        variation: {
+          ...(item.variation || {}),
+          accountType: "bundle",
+          accountLabel: String(plan.name),
+          duration: billingCycle,
+          summary: `${plan.name} · ${billingCycle === "monthly" ? "Monthly" : "Yearly"} · Rs ${price.toLocaleString("en-PK")}`,
+          pricingPlan: {
+            planId: plan.id,
+            slug: plan.slug,
+            name: plan.name,
+            billingCycle,
+            currency: plan.currency,
+          },
+        },
+      });
+    }
+
+    return resolved;
   }
 
   private async afterOrderCreated(order: any) {

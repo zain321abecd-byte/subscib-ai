@@ -170,10 +170,13 @@ export const SECTION_PERMISSIONS: Array<{ prefix: string; permission: Permission
   { prefix: "/admin/blog", permission: "blog:read" },
   { prefix: "/admin/reviews", permission: "reviews:read" },
   { prefix: "/admin/orders", permission: "orders:read" },
+  { prefix: "/admin/bundle-orders", permission: "orders:read" },
+  { prefix: "/admin/custom-pricing-requests", permission: "orders:read" },
   { prefix: "/admin/stock", permission: "stock:read" },
   { prefix: "/admin/sales", permission: "sales:read" },
   { prefix: "/admin/traffic", permission: "analytics:view" },
   { prefix: "/admin/users", permission: "users:read" },
+  { prefix: "/admin/pricing-plans", permission: "settings:read" },
   { prefix: "/admin/settings", permission: "settings:read" },
   { prefix: "/admin/email", permission: "emails:read" },
 ];
