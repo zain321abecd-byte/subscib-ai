@@ -11,7 +11,7 @@ const READ_MORE_THRESHOLD = 200;
    ─ mainImage : any URL or /public/ path.
    ─ Initials + bg are shown when the image fails to load or is absent.
    ─ rating: 1–5, supports 0.5 steps.
-   ─ slides prop: DB rows passed from the server override the static array.
+   ─ slides prop: DB/admin rows passed from the server.
 ───────────────────────────────────────────────────────────────────────────── */
 export type Testimonial = {
   id: number;
@@ -23,71 +23,6 @@ export type Testimonial = {
   mainInitials?: string;
   mainBg?: string;
 };
-
-/* 3 testimonials — 3 real people reused across slides as main / side characters */
-const MAN1  = "https://randomuser.me/api/portraits/men/32.jpg";   // Hamza
-const WOMAN1 = "https://randomuser.me/api/portraits/women/44.jpg"; // Sara
-const MAN2  = "https://randomuser.me/api/portraits/men/68.jpg";   // Ali
-const WOMAN2 = "https://randomuser.me/api/portraits/women/68.jpg"; // Fatima
-const MAN3  = "https://randomuser.me/api/portraits/men/75.jpg";   // Bilal
-const WOMAN3 = "https://randomuser.me/api/portraits/women/22.jpg"; // Aisha
-
-const TESTIMONIALS: Testimonial[] = [
-  {
-    id: 1,
-    name: "Hamza Ahmed",
-    role: "Freelancer",
-    rating: 4.5,
-    text: "As a freelancer, I rely on tools that save me time and money. SubscribAI keeps delivering exactly that — new updates every visit, reliable credentials, and instant delivery. It's my top source for premium digital tools.",
-    mainImage: MAN1,
-    mainInitials: "HA", mainBg: "#c2410c",
-  },
-  {
-    id: 2,
-    name: "Sara Khan",
-    role: "Content Creator",
-    rating: 5,
-    text: "SubscribAI completely transformed my content workflow. I save hours every week and my audience engagement has doubled since I started using these AI subscriptions. The support is also incredibly fast.",
-    mainImage: WOMAN1,
-    mainInitials: "SK", mainBg: "#166534",
-  },
-  {
-    id: 3,
-    name: "Ali Raza",
-    role: "Agency Owner",
-    rating: 5,
-    text: "I run a digital agency and SubscribAI is my go-to for premium AI tools. Reliable credentials, instant delivery, and support that actually responds. My team is impressed with every single order we place.",
-    mainImage: MAN2,
-    mainInitials: "AR", mainBg: "#1e3a5f",
-  },
-  {
-    id: 4,
-    name: "Fatima Malik",
-    role: "MBA Student",
-    rating: 5,
-    text: "I was paying for ChatGPT through a friend abroad. SubscribAI is half the hassle — I get my own credentials and the support team replies within minutes. Wish I had switched months ago.",
-    mainImage: WOMAN2,
-    mainInitials: "FM", mainBg: "#7c3aed",
-  },
-  {
-    id: 5,
-    name: "Bilal Siddiqui",
-    role: "YouTube Creator",
-    rating: 5,
-    text: "Canva Pro went live in eight minutes. I run a content channel and needed it the same day — it worked perfectly. SubscribAI is the most reliable place I've found for AI and creative tools.",
-    mainImage: MAN3,
-    mainInitials: "BS", mainBg: "#c2410c",
-  },
-  {
-    id: 6,
-    name: "Aisha Imtiaz",
-    role: "Boutique Owner",
-    rating: 4.5,
-    text: "I run a small clothing brand. The social auto-poster cut my Instagram time from two hours a day to thirty minutes. Worth ten times what I paid — and the Canva Pro access made my posts look professional instantly.",
-    mainImage: WOMAN3,
-    mainInitials: "AI", mainBg: "#7c3aed",
-  },
-];
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 
@@ -135,7 +70,9 @@ function DotGrid() {
 /* ─── Main component ─────────────────────────────────────────────────────── */
 
 export default function PremiumTestimonials({ slides }: { slides?: Testimonial[] }) {
-  const data = slides && slides.length > 0 ? slides : TESTIMONIALS;
+  const data = slides ?? [];
+
+  if (data.length === 0) return null;
 
   const [current, setCurrent] = useState(0);
   const [visible, setVisible] = useState(true);
