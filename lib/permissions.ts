@@ -170,6 +170,7 @@ export const SECTION_PERMISSIONS: Array<{ prefix: string; permission: Permission
   { prefix: "/admin/blog", permission: "blog:read" },
   { prefix: "/admin/reviews", permission: "reviews:read" },
   { prefix: "/admin/orders", permission: "orders:read" },
+  { prefix: "/admin/customer-contacts", permission: "orders:read" },
   { prefix: "/admin/bundle-orders", permission: "orders:read" },
   { prefix: "/admin/business-bundle-inquiries", permission: "orders:read" },
   { prefix: "/admin/custom-pricing-requests", permission: "orders:read" },

@@ -27,6 +27,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: "Operations",
     items: [
       { href: "/admin/orders",  label: "Orders",  icon: "fa-receipt",        permission: "orders:read" },
+      { href: "/admin/customer-contacts", label: "Customer Contacts", icon: "fa-address-book", permission: "orders:read" },
       { href: "/admin/bundle-orders", label: "Bundle Orders", icon: "fa-layer-group", permission: "orders:read" },
       { href: "/admin/business-bundle-inquiries", label: "Business Bundle Inquiries", icon: "fa-building-circle-check", permission: "orders:read" },
       { href: "/admin/custom-pricing-requests", label: "Custom Pricing Requests", icon: "fa-file-signature", permission: "orders:read" },
