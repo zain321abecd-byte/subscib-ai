@@ -60,7 +60,7 @@ export default function Header({ mobileWhatsAppUrl = "" }: { mobileWhatsAppUrl?:
           {authed ? (
             <Link className="btn btn-outline btn-small" href="/account"><i className="fa-solid fa-user"></i> Account</Link>
           ) : (
-            <Link className="btn btn-outline btn-small" href="/login">Sign in</Link>
+            <Link className="btn btn-outline btn-small" href="/login?mode=signup">Sign Up</Link>
           )}
           <Link className="btn btn-primary btn-small" href="/shop">Start now</Link>
         </div>

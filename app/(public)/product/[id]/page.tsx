@@ -13,8 +13,7 @@ import { getStartingPrice } from "@/lib/pricing";
 import { getRegion } from "@/lib/region";
 import { getAllReviews, isSupabaseConfigured } from "@/lib/reviews";
 import { paymentFeatureTitle } from "@/lib/payment-messaging";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
+import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 
 // Product pages render on-demand from the database (dynamicParams defaults to
 // true). We don't pre-generate any ids so no dummy/seed URLs are ever built —
@@ -51,7 +50,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       type: "website",
       title,
       description: desc,
-      url: `${SITE_URL}/product/${product.id}`,
+      url: absoluteUrl(`/product/${product.id}`),
     },
     twitter: {
       card: "summary_large_image",
@@ -78,7 +77,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       // "Starting from" price for rich Google results — matches what
       // the shopper sees on cards + on the initial state of this page.
       "@type": "Offer",
-      url: `${SITE_URL}/product/${product.id}`,
+      url: absoluteUrl(`/product/${product.id}`),
       priceCurrency: "USD",
       price: getStartingPrice(product),
       availability: "https://schema.org/InStock",
@@ -90,8 +89,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "Shop", item: `${SITE_URL}/shop` },
-      { "@type": "ListItem", position: 3, name: product.name, item: `${SITE_URL}/product/${product.id}` },
+      { "@type": "ListItem", position: 2, name: "Shop", item: absoluteUrl("/shop") },
+      { "@type": "ListItem", position: 3, name: product.name, item: absoluteUrl(`/product/${product.id}`) },
     ],
   };
 

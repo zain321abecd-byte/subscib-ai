@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { formatPriceFromPKR, useFx } from "@/lib/fx";
@@ -54,7 +53,6 @@ async function canonicalizePlanItems(items: CartItem[]): Promise<CartItem[]> {
 }
 
 export default function CheckoutPage() {
-  const router = useRouter();
   const { user, ready: authReady } = useAuth();
   const cart = useCart();
   const { currency, usdToPkr, usdToInr, ready: fxReady, region } = useFx();
@@ -71,15 +69,8 @@ export default function CheckoutPage() {
   const autoSubmitRef = useRef<HTMLFormElement | null>(null);
   const [pendingPost, setPendingPost] = useState<{ action: string; fields: InitFields } | null>(null);
 
-  // Gate: payment requires a signed-in account. Redirect anonymous visitors
-  // to /login?next=/checkout so they come back here after authenticating.
-  useEffect(() => {
-    if (!authReady) return;
-    if (!user) router.replace(`/login?next=${encodeURIComponent("/checkout")}`);
-  }, [authReady, user, router]);
-
   // Prefill name + email from the authenticated user so the checkout form is
-  // pre-populated with the account's verified address.
+  // pre-populated for logged-in customers while guests can still continue.
   useEffect(() => {
     if (!user) return;
     if (user.email) setEmail(user.email);
@@ -98,30 +89,6 @@ export default function CheckoutPage() {
   const usdTotal = fxReady && usdToPkr > 0 ? cart.subtotal / usdToPkr : 0;
   const usdFormatted = usdTotal.toFixed(2);
   const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
-
-  // Auth gate placeholder — while the gate effect is preparing the redirect.
-  if (!authReady || !user) {
-    return (
-      <section className="v2-section">
-        <div className="v2-container">
-          <div className="surface-card">
-            <div className="empty-state">
-              <div className="empty-state-icon"><i className="fa-solid fa-lock"></i></div>
-              <h3>Sign in to complete checkout</h3>
-              <p>You need an account to pay securely. We&rsquo;ll bring you straight back to your cart.</p>
-              <Link
-                href={`/login?next=${encodeURIComponent("/checkout")}`}
-                className="btn btn-primary"
-                style={{ marginTop: "var(--space-3)" }}
-              >
-                Sign in or create an account <i className="fa-solid fa-arrow-right"></i>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   if (cart.ready && cart.items.length === 0 && status === "idle") {
     return (
@@ -312,6 +279,24 @@ export default function CheckoutPage() {
           <div style={{ display: "grid", gap: "var(--space-5)" }}>
             <div className="surface-card">
               <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-xl)", color: "var(--text)", marginBottom: "var(--space-4)" }}>Contact</h3>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface-soft)", color: "var(--text-soft)", fontSize: "var(--fs-sm)", marginBottom: "var(--space-4)" }}>
+                <i className={`fa-solid ${authReady && user ? "fa-circle-check" : "fa-user-check"}`} style={{ color: "var(--accent-600)", marginTop: 2 }}></i>
+                <div>
+                  <strong style={{ display: "block", color: "var(--text)", marginBottom: 2 }}>
+                    {authReady && user ? "Checking out with your account" : "Guest checkout available"}
+                  </strong>
+                  {authReady && user ? (
+                    <span>Your order will stay linked to this account and the contact details below.</span>
+                  ) : (
+                    <span>
+                      No account needed. Want saved order history?{" "}
+                      <Link href={`/login?mode=signup&next=${encodeURIComponent("/checkout")}`}>Create an account</Link>
+                      {" "}or{" "}
+                      <Link href={`/login?next=${encodeURIComponent("/checkout")}`}>sign in</Link>.
+                    </span>
+                  )}
+                </div>
+              </div>
               <div className="field">
                 <label className="field-label">Full name</label>
                 <input className={`input ${errors.name ? "is-invalid" : ""}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />

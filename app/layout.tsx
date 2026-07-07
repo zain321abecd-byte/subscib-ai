@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Inter, Poppins } from "next/font/google";
 import { getSiteSettings } from "@/lib/site-settings";
+import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
 import "./tailwind.css";
 
@@ -27,7 +28,6 @@ const poppins = Poppins({
   adjustFontFallback: false,
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 const SITE_NAME = "SubscribAI";
 const DEFAULT_DESCRIPTION =
   "Premium AI subscriptions delivered in minutes. ChatGPT Plus, Claude Pro, Midjourney, Canva, Notion AI, automation packs, and full courses.";

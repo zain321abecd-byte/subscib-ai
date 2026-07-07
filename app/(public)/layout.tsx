@@ -11,10 +11,10 @@ import NavigationProgress from "@/components/NavigationProgress";
 import RevealOnScroll from "@/components/RevealOnScroll";
 import WhatsAppFab from "@/components/WhatsAppFab";
 import TrafficCapture from "@/components/TrafficCapture";
+import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
 const SITE_NAME = "SubscribAI";
 const websiteJsonLd = {
   "@context": "https://schema.org",
@@ -23,7 +23,7 @@ const websiteJsonLd = {
   url: SITE_URL,
   potentialAction: {
     "@type": "SearchAction",
-    target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/shop?q={search_term_string}` },
+    target: { "@type": "EntryPoint", urlTemplate: `${absoluteUrl("/shop")}?q={search_term_string}` },
     "query-input": "required name=search_term_string",
   },
 };
@@ -42,13 +42,13 @@ export default async function PublicLayout({ children }: { children: React.React
     "@type": "Organization",
     name: settings.business_name?.trim() || SITE_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/assets/subscribai-logo.png`,
+    logo: absoluteUrl("/assets/subscribai-logo.png"),
     sameAs: socials,
     contactPoint: [{
       "@type": "ContactPoint",
       contactType: "customer support",
       availableLanguage: ["en", "ur"],
-      url: `${SITE_URL}/contact`,
+      url: absoluteUrl("/contact"),
       ...(settings.contact_email ? { email: settings.contact_email } : {}),
     }],
   };

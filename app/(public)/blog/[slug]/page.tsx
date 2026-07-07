@@ -9,8 +9,7 @@ import TagCloud from "@/components/blog/TagCloud";
 import { extractHeadings, slugifyBlogTitle } from "@/lib/blog-seo";
 import { getAllPosts, getPost } from "@/lib/blog";
 import { getSupabaseServer } from "@/lib/supabase/server";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
+import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 
 // Force dynamic — public layout reads cookies/headers, incompatible with
 // static ISR in Next 15.
@@ -26,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = await getPost(slug);
   if (!post) return {};
-  const canonical = post.canonicalUrl || `${SITE_URL}/blog/${post.slug}`;
+  const canonical = post.canonicalUrl || absoluteUrl(`/blog/${post.slug}`);
 
   return {
     title: post.metaTitle,
@@ -231,7 +230,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const previous = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
   const next = currentIndex >= 0 && currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
   const toc = extractHeadings(post.content);
-  const canonical = post.canonicalUrl || `${SITE_URL}/blog/${post.slug}`;
+  const canonical = post.canonicalUrl || absoluteUrl(`/blog/${post.slug}`);
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -246,7 +245,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     publisher: {
       "@type": "Organization",
       name: "SubscribAI",
-      logo: { "@type": "ImageObject", url: `${SITE_URL}/assets/subscribai-logo.png` },
+      logo: { "@type": "ImageObject", url: absoluteUrl("/assets/subscribai-logo.png") },
     },
   };
   const faqJsonLd = post.faqItems.length ? {
@@ -263,7 +262,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE_URL}/blog` },
+      { "@type": "ListItem", position: 2, name: "Blog", item: absoluteUrl("/blog") },
       { "@type": "ListItem", position: 3, name: post.title, item: canonical },
     ],
   };
