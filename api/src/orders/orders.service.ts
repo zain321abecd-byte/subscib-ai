@@ -14,6 +14,25 @@ const VALID_STATUSES = ["pending", "paid", "delivered", "failed", "refunded", "c
 type Status = (typeof VALID_STATUSES)[number];
 type BillingCycle = "monthly" | "yearly";
 
+const BUNDLE_TOOL_LIMITS: Record<string, number> = {
+  creator: 2,
+  growth: 4,
+};
+
+const AVAILABLE_BUNDLE_TOOLS = new Set([
+  "ChatGPT",
+  "Claude",
+  "Gemini",
+  "Grok",
+  "Canva",
+  "CapCut",
+  "ElevenLabs",
+  "Perplexity",
+  "Semrush",
+  "Heygen",
+  "Veo",
+]);
+
 function shortOrderNumber(): string {
   const y = new Date();
   const ym = `${y.getUTCFullYear().toString().slice(2)}${String(y.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -27,6 +46,11 @@ function isValidEmail(s: unknown): s is string {
 
 function isBillingCycle(value: unknown): value is BillingCycle {
   return value === "monthly" || value === "yearly";
+}
+
+function cleanSelectedTools(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((tool) => typeof tool === "string" ? tool.trim() : "").filter(Boolean);
 }
 
 @Injectable()
@@ -120,8 +144,23 @@ export class OrdersService {
       if (!plan) throw new BadRequestException("Selected pricing plan is not available");
       if (plan.price_type === "custom") throw new BadRequestException("Custom plans require contacting sales");
 
-      const price = Number(billingCycle === "monthly" ? plan.monthly_price : plan.yearly_price);
+      const price = billingCycle === "monthly"
+        ? Number(plan.monthly_price)
+        : Math.round(Number(plan.monthly_price || 0) * 12 * 0.75);
       if (!Number.isFinite(price) || price <= 0) throw new BadRequestException("Selected pricing plan has no valid price");
+
+      const bundle = item?.variation?.bundle as Record<string, unknown> | undefined;
+      const selectedTools = cleanSelectedTools(bundle?.selectedTools);
+      const requiredToolCount = BUNDLE_TOOL_LIMITS[String(plan.slug)] ?? 0;
+      if (requiredToolCount > 0) {
+        const uniqueTools = new Set(selectedTools);
+        if (selectedTools.length !== requiredToolCount || uniqueTools.size !== requiredToolCount) {
+          throw new BadRequestException(`${plan.name} requires exactly ${requiredToolCount} selected tools`);
+        }
+        for (const tool of selectedTools) {
+          if (!AVAILABLE_BUNDLE_TOOLS.has(tool)) throw new BadRequestException(`Unsupported bundle tool: ${tool}`);
+        }
+      }
 
       resolved.push({
         id: `pricing-plan-${plan.slug}-${billingCycle}`,
@@ -141,6 +180,15 @@ export class OrdersService {
             billingCycle,
             currency: plan.currency,
           },
+          ...(requiredToolCount > 0 ? {
+            bundle: {
+              key: String(plan.slug),
+              name: String(plan.name),
+              billingCycle,
+              selectedTools,
+              toolLimit: requiredToolCount,
+            },
+          } : {}),
         },
       });
     }

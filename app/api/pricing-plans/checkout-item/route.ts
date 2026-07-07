@@ -44,7 +44,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Custom plans require contacting sales." }, { status: 400 });
   }
 
-  const price = billingCycle === "monthly" ? plan.monthly_price : plan.yearly_price;
+  const price = billingCycle === "monthly"
+    ? Number(plan.monthly_price)
+    : Math.round(Number(plan.monthly_price || 0) * 12 * 0.75);
   if (!Number.isFinite(Number(price)) || Number(price) <= 0) {
     return NextResponse.json({ error: "Selected plan does not have a valid price." }, { status: 400 });
   }

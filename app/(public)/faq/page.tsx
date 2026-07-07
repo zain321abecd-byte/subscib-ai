@@ -31,7 +31,7 @@ function buildQuestions(isPK: boolean, supportEmail: string): { q: string; a: st
   { category: "Trust", q: "What if my account stops working?", a: "Tell us on WhatsApp or email and we'll replace it within 24 hours. Subscriptions come with full-period replacement guarantees — if you bought one month, you get one month of working access, end of story." },
 
   // Subscriptions
-  { category: "Subscriptions", q: "Can I cancel a bundle anytime?", a: "Yes — bundle subscriptions are month-to-month with no contracts. Cancel any time before your renewal date and you won't be charged again." },
+  { category: "Subscriptions", q: "Can I cancel a bundle anytime?", a: "Yes — bundle subscriptions are month-to-month with no contracts. Cancel anytime before your renewal date and you won't be charged again." },
   { category: "Subscriptions", q: "Do you auto-renew my subscription?", a: "We send a renewal reminder 3 days before expiry. You confirm — we don't auto-charge. You stay in control." },
   { category: "Subscriptions", q: "Can I upgrade or downgrade mid-cycle?", a: "Yes. Message us on WhatsApp; we'll prorate the difference and switch you over without losing access." },
 

@@ -304,7 +304,7 @@ export default async function HomePage() {
               ["What payment methods do you accept?", paymentMethodFaqAnswer],
               ["Are these legitimate accounts?", "Yes — every subscription is from an authorized reseller channel, family-plan slot, or our own bulk-purchase pool. We don't sell cracked or shared logins from sketchy sources."],
               ["What if my account stops working?", "Tell us on WhatsApp or email and we'll replace it within 24 hours. Subscriptions come with full-period replacement guarantees."],
-              ["Can I cancel a bundle anytime?", "Yes — bundle subscriptions are month-to-month with no contracts. Cancel any time before your renewal date and you won't be charged again."],
+              ["Can I cancel a bundle anytime?", "Yes — bundle subscriptions are month-to-month with no contracts. Cancel anytime before your renewal date and you won't be charged again."],
             ].map(([q, a]) => (
               <details key={q}><summary>{q}</summary><p>{a}</p></details>
             ))}

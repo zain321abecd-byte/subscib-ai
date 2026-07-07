@@ -28,6 +28,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/orders",  label: "Orders",  icon: "fa-receipt",        permission: "orders:read" },
       { href: "/admin/bundle-orders", label: "Bundle Orders", icon: "fa-layer-group", permission: "orders:read" },
+      { href: "/admin/business-bundle-inquiries", label: "Business Bundle Inquiries", icon: "fa-building-circle-check", permission: "orders:read" },
       { href: "/admin/custom-pricing-requests", label: "Custom Pricing Requests", icon: "fa-file-signature", permission: "orders:read" },
       { href: "/admin/contact-messages", label: "Contact Messages", icon: "fa-message" },
       { href: "/admin/email",   label: "Emails",  icon: "fa-envelope",       permission: "emails:read" },

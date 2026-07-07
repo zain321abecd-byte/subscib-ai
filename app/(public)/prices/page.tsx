@@ -109,6 +109,12 @@ function formatPKR(value: number) {
   return `Rs ${Number(value || 0).toLocaleString("en-PK")}`;
 }
 
+function priceForCycle(plan: PricingPlanRow, cycle: BillingCycle) {
+  if (plan.price_type === "custom") return 0;
+  if (cycle === "yearly") return Math.round(Number(plan.monthly_price || 0) * 12 * 0.75);
+  return Number(plan.monthly_price || 0);
+}
+
 function planIcon(slug: string) {
   if (slug === "growth") return "fa-rocket";
   if (slug === "business") return "fa-building";
@@ -168,9 +174,9 @@ export default function PricesPage() {
 
         <div className="v2-pricing-grid reveal reveal-stagger">
           {activePlans.map((plan) => {
-            const price = cycle === "monthly" ? plan.monthly_price : plan.yearly_price;
             const isCustom = plan.price_type === "custom";
             const cycleLabel = cycle === "monthly" ? "/ month" : "/ year";
+            const effectivePrice = priceForCycle(plan, cycle);
             return (
               <article key={plan.id} className={`surface-card v2-tier ${plan.is_popular ? "is-featured" : ""}`}>
                 {(plan.badge_text || plan.is_popular) && <span className="v2-tier-flag">{plan.badge_text || "Most popular"}</span>}
@@ -187,8 +193,13 @@ export default function PricesPage() {
                     </>
                   ) : (
                     <>
-                      <strong>{formatPKR(price)}</strong>
+                      <strong>{formatPKR(effectivePrice)}</strong>
                       <span>{cycleLabel}</span>
+                      {cycle === "yearly" && (
+                        <small style={{ display: "block", color: "var(--accent-300)", fontSize: "var(--fs-xs)", fontWeight: 700, marginTop: 4 }}>
+                          25% yearly discount
+                        </small>
+                      )}
                     </>
                   )}
                 </div>

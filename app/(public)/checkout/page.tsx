@@ -40,7 +40,15 @@ async function canonicalizePlanItems(items: CartItem[]): Promise<CartItem[]> {
     if (!res.ok || !body?.item) {
       throw new Error(body?.error || "Could not verify the selected plan price.");
     }
-    out.push({ ...body.item, qty: item.qty || 1 });
+    out.push({
+      ...body.item,
+      qty: item.qty || 1,
+      variation: {
+        ...(body.item.variation || {}),
+        bundle: item.variation?.bundle,
+        summary: item.variation?.summary || body.item.variation?.summary,
+      },
+    });
   }
   return out;
 }
