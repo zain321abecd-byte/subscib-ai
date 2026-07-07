@@ -4,12 +4,14 @@ import { notFound } from "next/navigation";
 import ProductGallery from "@/components/ProductGallery";
 import BrandIcon from "@/components/BrandIcon";
 import ProductCard from "@/components/ProductCard";
+import { REVIEWS, REVIEWS_GLOBAL } from "@/components/Reviews";
 import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTestimonials";
 import PackageBuy from "./PackageBuy";
 import RichTextRenderer from "@/components/RichTextRenderer";
 import { getAllProducts, getProduct } from "@/lib/products";
 import { getStartingPrice } from "@/lib/pricing";
-import { getAllReviews } from "@/lib/reviews";
+import { getRegion } from "@/lib/region";
+import { getAllReviews, isSupabaseConfigured } from "@/lib/reviews";
 import { paymentFeatureTitle } from "@/lib/payment-messaging";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://subscribai.com";
@@ -97,12 +99,16 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   // fallback — but keep an additional guard around the batch so a
   // single misbehaving helper (env not set on the deploy target,
   // Supabase timing out, etc.) can't take down the page.
-  const [allProducts, dbReviews] = await Promise.all([
+  const [allProducts, region, dbReviews] = await Promise.all([
     getAllProducts().catch((e) => { console.error("[product] getAllProducts failed", e); return []; }),
+    getRegion().catch((e) => { console.error("[product] getRegion failed", e); return "OTHER" as const; }),
     getAllReviews().catch((e) => { console.error("[product] getAllReviews failed", e); return []; }),
   ]);
+  const isPK = region === "PK";
   const productById = new Map(allProducts.map((p) => [p.id, p]));
-  const reviewPool = dbReviews;
+  const reviewPool = dbReviews.length > 0
+    ? dbReviews
+    : (!isSupabaseConfigured() ? (isPK ? REVIEWS : REVIEWS_GLOBAL) : []);
   const matchedReviews = reviewPool.filter((r) => r.product === product.name);
   const otherReviews = reviewPool.filter((r) => r.product !== product.name);
   const testimonialSlides: Testimonial[] = [...matchedReviews, ...otherReviews].slice(0, 6).map((r, i) => ({

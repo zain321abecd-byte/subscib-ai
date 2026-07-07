@@ -279,7 +279,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CUSTOMER REVIEWS - powered by approved admin reviews only */}
+      {/* CUSTOMER REVIEWS - powered by admin panel, falls back to static data */}
       <PremiumTestimonials slides={testimonialSlides} />
 
       {/* STATS - desktop only */}
