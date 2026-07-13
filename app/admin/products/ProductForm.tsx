@@ -497,6 +497,14 @@ export default function ProductForm({
               </span>
             </label>
             <label className="admin-toggle">
+              <input type="checkbox" name="show_on_homepage" defaultChecked={product?.show_on_homepage ?? false} />
+              <span className="admin-toggle-slider" aria-hidden />
+              <span>
+                <strong>Show in &ldquo;More tools&rdquo;</strong>
+                <small>Displays this product in the second homepage tools section.</small>
+              </span>
+            </label>
+            <label className="admin-toggle">
               <input type="checkbox" name="show_in_related" defaultChecked={product?.show_in_related ?? true} />
               <span className="admin-toggle-slider" aria-hidden />
               <span>

@@ -28,6 +28,7 @@ export type ProductFormData = {
   variation_config: unknown | null;
   in_stock: boolean;
   featured: boolean;
+  show_on_homepage: boolean;
   show_in_related: boolean;
   sort_order: number;
 };
@@ -94,6 +95,7 @@ function parseForm(formData: FormData): ProductFormData {
     variation_config: parseVariationConfig(str(formData.get("variation_config"))),
     in_stock: formData.get("in_stock") === "on",
     featured: formData.get("featured") === "on",
+    show_on_homepage: formData.get("show_on_homepage") === "on",
     // Default to true unless the checkbox is explicitly omitted (it's `_off`
     // marker absent → checkbox unchecked).
     show_in_related: formData.get("show_in_related") === "on",

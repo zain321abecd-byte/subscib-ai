@@ -25,6 +25,7 @@ type ProductInput = {
   variation_config: unknown | null;
   in_stock: boolean;
   featured: boolean;
+  show_on_homepage: boolean;
   show_in_related: boolean;
   sort_order: number;
 };
@@ -71,6 +72,7 @@ function normalize(raw: any): ProductInput {
     variation_config: raw.variation_config && typeof raw.variation_config === "object" ? raw.variation_config : null,
     in_stock: raw.in_stock === true || raw.in_stock === "on",
     featured: raw.featured === true || raw.featured === "on",
+    show_on_homepage: raw.show_on_homepage === true || raw.show_on_homepage === "on",
     show_in_related: raw.show_in_related === true || raw.show_in_related === "on",
     sort_order: Number(raw.sort_order) || 0,
   };

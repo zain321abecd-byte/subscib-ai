@@ -14,6 +14,8 @@ export type Product = {
   mediaClass: "media-green" | "media-blue" | "media-pink" | "media-orange";
   category: "ai-subscriptions" | "design-tools" | "productivity" | "automation" | "courses";
   featured?: boolean;
+  /** Selected in admin for the secondary homepage tools section. */
+  showOnHomepage?: boolean;
   /** Cloudinary or external image, set via admin panel. Optional. */
   imageUrl?: string;
   /** Hex color (e.g. "#10A37F") rendered behind the brand icon. */
@@ -56,6 +58,7 @@ function rowToProduct(row: ProductRow): Product {
     mediaClass: (row.media_class as Product["mediaClass"]) ?? "media-blue",
     category: row.category as Product["category"],
     featured: row.featured,
+    showOnHomepage: row.show_on_homepage ?? false,
     imageUrl: row.image_url ?? undefined,
     iconBgColor: row.icon_bg_color ?? undefined,
     displaySource: row.display_source === "image" || row.display_source === "brand" ? row.display_source : undefined,

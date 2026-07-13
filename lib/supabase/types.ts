@@ -21,6 +21,8 @@ export type ProductRow = {
   gallery: string[] | null;
   in_stock: boolean;
   featured: boolean;
+  /** Whether this product appears in the secondary homepage tools section. */
+  show_on_homepage: boolean;
   /** Whether this product appears in "You may also like" on other product pages. */
   show_in_related: boolean;
   /** Admin-curated list of product IDs to feature in this product's "You may also like". */

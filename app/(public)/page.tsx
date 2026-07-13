@@ -46,7 +46,9 @@ export default async function HomePage() {
     getAllReviewRows(),
   ]);
   const featuredIds = new Set(featured.map((product) => product.id));
-  const additionalTools = allProducts.filter((product) => !featuredIds.has(product.id)).slice(0, 4);
+  const additionalTools = allProducts
+    .filter((product) => product.showOnHomepage && !featuredIds.has(product.id))
+    .slice(0, 4);
 
   /* Map DB rows to PremiumTestimonials slides. */
   const testimonialSlides: Testimonial[] = reviewRows.map((r, i) => {

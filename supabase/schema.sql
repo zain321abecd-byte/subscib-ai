@@ -19,6 +19,7 @@ create table if not exists products (
   display_source text,                           -- "image" | "brand"; null = auto (image > brand)
   in_stock      boolean not null default true,
   featured      boolean not null default false,
+  show_on_homepage boolean not null default false,
   sort_order    int not null default 0,
   variation_config jsonb,                       -- 3-step variation selector config
   created_at    timestamptz not null default now(),
