@@ -4,14 +4,13 @@ import { notFound } from "next/navigation";
 import ProductGallery from "@/components/ProductGallery";
 import BrandIcon from "@/components/BrandIcon";
 import ProductCard from "@/components/ProductCard";
-import { REVIEWS, REVIEWS_GLOBAL } from "@/components/Reviews";
 import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTestimonials";
 import PackageBuy from "./PackageBuy";
 import RichTextRenderer from "@/components/RichTextRenderer";
 import { getAllProducts, getProduct } from "@/lib/products";
 import { getStartingPrice } from "@/lib/pricing";
 import { getRegion } from "@/lib/region";
-import { getAllReviews, isSupabaseConfigured } from "@/lib/reviews";
+import { getAllReviews } from "@/lib/reviews";
 import { paymentFeatureTitle } from "@/lib/payment-messaging";
 import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 
@@ -105,9 +104,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   ]);
   const isPK = region === "PK";
   const productById = new Map(allProducts.map((p) => [p.id, p]));
-  const reviewPool = dbReviews.length > 0
-    ? dbReviews
-    : (!isSupabaseConfigured() ? (isPK ? REVIEWS : REVIEWS_GLOBAL) : []);
+  const reviewPool = dbReviews;
   const matchedReviews = reviewPool.filter((r) => r.product === product.name);
   const otherReviews = reviewPool.filter((r) => r.product !== product.name);
   const testimonialSlides: Testimonial[] = [...matchedReviews, ...otherReviews].slice(0, 6).map((r, i) => ({
