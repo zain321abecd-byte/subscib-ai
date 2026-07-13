@@ -5,7 +5,7 @@ import BrandIcon from "@/components/BrandIcon";
 import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTestimonials";
 import { getAllReviewRows } from "@/lib/reviews";
 import TrustBadges from "@/components/TrustBadges";
-import { getFeaturedProducts } from "@/lib/products";
+import { getAllProducts, getFeaturedProducts } from "@/lib/products";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getRegion } from "@/lib/region";
 import { Price } from "@/lib/fx";
@@ -38,12 +38,15 @@ function ProductMiniLogo({ product }: { product: Product }) {
 }
 
 export default async function HomePage() {
-  const [featured, settings, region, reviewRows] = await Promise.all([
+  const [featured, allProducts, settings, region, reviewRows] = await Promise.all([
     getFeaturedProducts(4),
+    getAllProducts(),
     getSiteSettings(),
     getRegion(),
     getAllReviewRows(),
   ]);
+  const featuredIds = new Set(featured.map((product) => product.id));
+  const additionalTools = allProducts.filter((product) => !featuredIds.has(product.id)).slice(0, 4);
 
   /* Map DB rows to PremiumTestimonials slides. */
   const testimonialSlides: Testimonial[] = reviewRows.map((r, i) => {
@@ -193,6 +196,23 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {additionalTools.length > 0 && (
+        <section className="v2-section v2-section-elevated reveal">
+          <div className="v2-container">
+            <header className="v2-section-head v2-section-head-split">
+              <div>
+                <p className="v2-eyebrow">Explore more</p>
+                <h2>More tools for your workflow</h2>
+              </div>
+              <Link href="/shop" className="btn btn-outline">View all <i className="fa-solid fa-arrow-right"></i></Link>
+            </header>
+            <div className="v2-product-grid">
+              {additionalTools.map((product) => <ProductCard key={product.id} product={product} />)}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CATEGORIES */}
       <section className="v2-section v2-section-elevated reveal">
