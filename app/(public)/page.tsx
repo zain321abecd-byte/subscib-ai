@@ -198,7 +198,7 @@ export default async function HomePage() {
       </section>
 
       {additionalTools.length > 0 && (
-        <section className="v2-section v2-section-elevated reveal">
+        <section className="v2-section reveal">
           <div className="v2-container">
             <header className="v2-section-head v2-section-head-split">
               <div>
