@@ -34,7 +34,7 @@ const CATEGORIES = [
 ];
 
 const MEDIA_OPTIONS: { value: MediaValue; label: string; swatch: string }[] = [
-  { value: "media-orange", label: "Orange", swatch: "linear-gradient(135deg, #ff9d57, #ff7a1a)" },
+  { value: "media-orange", label: "Orange", swatch: "linear-gradient(135deg, #8FB4FF, #4884FF)" },
   { value: "media-blue",   label: "Blue",   swatch: "linear-gradient(135deg, #6dc1ff, #3a7bd5)" },
   { value: "media-pink",   label: "Pink",   swatch: "linear-gradient(135deg, #ff8db8, #d6336c)" },
   { value: "media-green",  label: "Green",  swatch: "linear-gradient(135deg, #7ee2a4, #2da76d)" },
@@ -162,7 +162,7 @@ export default function ProductForm({
       </ol>
 
       {error && (
-        <div className="admin-card" style={{ background: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)", color: "#fca5a5" }}>
+        <div className="admin-card" style={{ background: "rgba(245,72,72,0.10)", borderColor: "rgba(245,72,72,0.30)", color: "#fca5a5" }}>
           {error}
         </div>
       )}
@@ -350,7 +350,7 @@ export default function ProductForm({
             >
               <i className="fa-solid fa-ban" style={{ color: "var(--text-muted)", fontSize: 14 }}></i>
             </button>
-            {["#FFFFFF", "#10A37F", "#4796E3", "#D97757", "#7B68EE", "#FF4F00", "#0F172A", "#EA4B71"].map((c) => (
+            {["#FFFFFF", "#10A37F", "#4796E3", "#D97757", "#7B68EE", "#3471EF", "#0F172A", "#EA4B71"].map((c) => (
               <button
                 key={c}
                 type="button"

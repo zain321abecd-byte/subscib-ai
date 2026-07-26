@@ -66,7 +66,7 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
       <i className="fa-solid fa-circle-xmark"></i> Payment didn&apos;t go through
     </span>
   ) : (
-    <span className="badge" style={{ background: "var(--warning-soft, #fff5e0)", color: "var(--warning-500, #b87800)", marginBottom: "var(--space-4)" }}>
+    <span className="badge" style={{ background: "var(--warning-soft, #fff5e0)", color: "var(--warning-500, #2A5FD0)", marginBottom: "var(--space-4)" }}>
       <i className="fa-solid fa-clock"></i> Payment pending
     </span>
   );
@@ -110,7 +110,7 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
         )}
 
         {!hashOk && (
-          <p style={{ color: "var(--warning-500, #b87800)", fontSize: "var(--fs-sm)", marginBottom: "var(--space-4)" }}>
+          <p style={{ color: "var(--warning-500, #2A5FD0)", fontSize: "var(--fs-sm)", marginBottom: "var(--space-4)" }}>
             <i className="fa-solid fa-triangle-exclamation"></i> We could not verify the payment signature from PayFast. Please contact support before retrying.
           </p>
         )}

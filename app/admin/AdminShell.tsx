@@ -273,10 +273,10 @@ function UserCard({ me }: { me: { id: string; email: string; name: string | null
           width: 36, height: 36, borderRadius: "50%",
           display: "grid", placeItems: "center", flexShrink: 0,
           background: me.isSuper
-            ? "linear-gradient(135deg, #f97316, #fb923c)"
+            ? "linear-gradient(135deg, #4884FF, #8FB4FF)"
             : "linear-gradient(135deg, #64748b, #94a3b8)",
           color: "#fff", fontWeight: 700, fontSize: 14,
-          boxShadow: me.isSuper ? "0 4px 12px rgba(249,115,22,0.35)" : "none",
+          boxShadow: me.isSuper ? "0 4px 12px rgba(72,132,255,0.35)" : "none",
         }}
       >
         {initial}
@@ -297,8 +297,8 @@ function UserCard({ me }: { me: { id: string; email: string; name: string | null
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 4,
               padding: "2px 7px", borderRadius: 999,
-              background: "rgba(249,115,22,0.15)",
-              color: "#f97316",
+              background: "rgba(72,132,255,0.15)",
+              color: "#4884FF",
               fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
             }}>
               <i className="fa-solid fa-crown" style={{ fontSize: 9 }} />

@@ -315,9 +315,9 @@ export default function TeamClient({
       {flash && (
         <div className={`admin-flash admin-flash-${flash.kind}`} style={{
           padding: "10px 14px", borderRadius: 8, marginBottom: 16, fontSize: "0.9rem",
-          background: flash.kind === "ok" ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-          color: flash.kind === "ok" ? "#22c55e" : "#ef4444",
-          border: `1px solid ${flash.kind === "ok" ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)"}`,
+          background: flash.kind === "ok" ? "rgba(34,197,94,0.12)" : "rgba(245,72,72,0.12)",
+          color: flash.kind === "ok" ? "#22c55e" : "#F54848",
+          border: `1px solid ${flash.kind === "ok" ? "rgba(34,197,94,0.35)" : "rgba(245,72,72,0.35)"}`,
         }}>
           {flash.msg}
         </div>
@@ -348,19 +348,19 @@ export default function TeamClient({
           <section
             style={{
               background: "var(--surface)", borderRadius: 10,
-              border: "1px dashed rgba(245,158,11,0.4)", overflow: "hidden",
+              border: "1px dashed rgba(245,150,34,0.4)", overflow: "hidden",
             }}
           >
             <div
               style={{
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "10px 14px",
-                background: "rgba(245,158,11,0.06)",
-                borderBottom: "1px solid rgba(245,158,11,0.2)",
+                background: "rgba(245,150,34,0.06)",
+                borderBottom: "1px solid rgba(245,150,34,0.2)",
               }}
             >
-              <i className="fa-solid fa-triangle-exclamation" style={{ color: "#f59e0b", fontSize: 13 }} />
-              <div style={{ fontWeight: 700, letterSpacing: "0.06em", fontSize: "0.82rem", textTransform: "uppercase", color: "#f59e0b" }}>
+              <i className="fa-solid fa-triangle-exclamation" style={{ color: "#F59622", fontSize: 13 }} />
+              <div style={{ fontWeight: 700, letterSpacing: "0.06em", fontSize: "0.82rem", textTransform: "uppercase", color: "#F59622" }}>
                 Not in any group
               </div>
               <div style={{ flex: 1 }} />
@@ -461,10 +461,10 @@ function SuperadminCard({
         borderRadius: 14,
         marginBottom: 18,
         overflow: "hidden",
-        border: "1px solid rgba(249,115,22,0.35)",
+        border: "1px solid rgba(72,132,255,0.35)",
         background:
-          "linear-gradient(135deg, rgba(249,115,22,0.16) 0%, rgba(251,146,60,0.06) 50%, rgba(255,255,255,0.02) 100%)",
-        boxShadow: "0 4px 20px rgba(249,115,22,0.08)",
+          "linear-gradient(135deg, rgba(72,132,255,0.16) 0%, rgba(143,180,255,0.06) 50%, rgba(255,255,255,0.02) 100%)",
+        boxShadow: "0 4px 20px rgba(72,132,255,0.08)",
       }}
     >
       {/* Subtle sheen in the top-right corner. */}
@@ -473,7 +473,7 @@ function SuperadminCard({
         style={{
           position: "absolute", top: -40, right: -40,
           width: 180, height: 180, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(249,115,22,0.25), transparent 70%)",
+          background: "radial-gradient(circle, rgba(72,132,255,0.25), transparent 70%)",
           pointerEvents: "none",
         }}
       />
@@ -481,16 +481,16 @@ function SuperadminCard({
         <div style={{
           width: 44, height: 44, borderRadius: 12,
           display: "grid", placeItems: "center",
-          background: "linear-gradient(135deg, #f97316, #fb923c)",
+          background: "linear-gradient(135deg, #4884FF, #8FB4FF)",
           color: "#fff", fontSize: 18, flexShrink: 0,
-          boxShadow: "0 6px 16px rgba(249,115,22,0.35)",
+          boxShadow: "0 6px 16px rgba(72,132,255,0.35)",
         }}>
           <i className="fa-solid fa-crown" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontSize: "0.7rem", letterSpacing: "0.1em", fontWeight: 700,
-            color: "#f97316", textTransform: "uppercase", marginBottom: 2,
+            color: "#4884FF", textTransform: "uppercase", marginBottom: 2,
           }}>
             Superadmin{users.length > 1 ? "s" : ""}
           </div>
@@ -504,7 +504,7 @@ function SuperadminCard({
       </div>
 
       {/* List of superadmin accounts. */}
-      <div style={{ borderTop: "1px solid rgba(249,115,22,0.2)" }}>
+      <div style={{ borderTop: "1px solid rgba(72,132,255,0.2)" }}>
         {users.map((u, i) => (
           <div
             key={u.id}
@@ -515,12 +515,12 @@ function SuperadminCard({
             style={{
               display: "flex", alignItems: "center", gap: 12,
               padding: "12px 22px",
-              borderTop: i === 0 ? "none" : "1px solid rgba(249,115,22,0.12)",
+              borderTop: i === 0 ? "none" : "1px solid rgba(72,132,255,0.12)",
               cursor: "pointer",
               transition: "background 0.12s ease",
             }}
           >
-            <i className="fa-solid fa-user-shield" style={{ color: "#f97316", fontSize: 12, width: 14 }} />
+            <i className="fa-solid fa-user-shield" style={{ color: "#4884FF", fontSize: 12, width: 14 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 500 }}>{u.name || u.email.split("@")[0]}</div>
               <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{u.email}</div>
@@ -563,7 +563,7 @@ function EmptyGroupPlaceholder({ groupName }: { groupName: string }) {
         No teammates in {groupName} yet
       </div>
       <div style={{ fontSize: "0.78rem" }}>
-        Use the <strong style={{ color: "#f97316" }}>+</strong> button above to invite someone.
+        Use the <strong style={{ color: "#4884FF" }}>+</strong> button above to invite someone.
       </div>
     </div>
   );
@@ -645,7 +645,7 @@ function GroupCard({
 function IconBtn({
   icon, onClick, title, accent, danger,
 }: { icon: string; onClick: () => void; title: string; accent?: boolean; danger?: boolean }) {
-  const color = danger ? "#ef4444" : accent ? "#f97316" : "var(--text-muted)";
+  const color = danger ? "#F54848" : accent ? "#4884FF" : "var(--text-muted)";
   return (
     <button
       type="button"
@@ -717,7 +717,7 @@ function MemberList({
                 width: 28, height: 28, borderRadius: 6,
                 display: "grid", placeItems: "center",
                 background: "transparent", border: "none",
-                color: "#ef4444", cursor: "pointer",
+                color: "#F54848", cursor: "pointer",
               }}
             >
               <i className="fa-solid fa-trash" style={{ fontSize: 12 }} />
@@ -801,7 +801,7 @@ function InviteModal({
             onClick={submit}
             disabled={busy || (!pickedExisting && !email.trim())}
             style={{
-              background: "#f97316", color: "#fff",
+              background: "#4884FF", color: "#fff",
               border: "none", borderRadius: 6,
               fontSize: "0.82rem", letterSpacing: "0.08em", fontWeight: 700,
               padding: "10px 18px",
@@ -868,7 +868,7 @@ function InviteModal({
         />
       </div>
 
-      {err && <div style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: 14 }}>{err}</div>}
+      {err && <div style={{ color: "#F54848", fontSize: "0.85rem", marginTop: 14 }}>{err}</div>}
     </ModalShell>
   );
 }
@@ -918,14 +918,14 @@ function StyledSelect({
         style={{
           width: "100%", textAlign: "left",
           padding: "12px 14px", borderRadius: 10,
-          border: `1px solid ${open ? "rgba(249,115,22,0.5)" : "var(--border)"}`,
+          border: `1px solid ${open ? "rgba(72,132,255,0.5)" : "var(--border)"}`,
           background: "var(--surface-2, rgba(255,255,255,0.03))",
           color: disabled ? "var(--text-muted)" : "var(--text)",
           fontSize: "0.9rem",
           display: "flex", alignItems: "center", gap: 12,
           cursor: disabled ? "not-allowed" : "pointer",
           opacity: disabled ? 0.55 : 1,
-          boxShadow: open ? "0 0 0 3px rgba(249,115,22,0.15)" : "none",
+          boxShadow: open ? "0 0 0 3px rgba(72,132,255,0.15)" : "none",
           transition: "border-color 0.15s, box-shadow 0.15s",
         }}
       >
@@ -935,8 +935,8 @@ function StyledSelect({
           style={{
             width: 30, height: 30, borderRadius: 8,
             display: "grid", placeItems: "center", flexShrink: 0,
-            background: selected ? "rgba(249,115,22,0.15)" : "var(--surface-2, rgba(255,255,255,0.05))",
-            color: selected ? "#f97316" : "var(--text-muted)",
+            background: selected ? "rgba(72,132,255,0.15)" : "var(--surface-2, rgba(255,255,255,0.05))",
+            color: selected ? "#4884FF" : "var(--text-muted)",
           }}
         >
           <i className={`fa-solid ${selected ? "fa-user-check" : "fa-magnifying-glass"}`} style={{ fontSize: 12 }} />
@@ -984,11 +984,11 @@ function StyledSelect({
                 style={{
                   padding: "10px 14px", cursor: "pointer",
                   display: "flex", flexDirection: "column", gap: 2,
-                  background: active ? "rgba(249,115,22,0.08)" : "transparent",
-                  borderLeft: `3px solid ${active ? "#f97316" : "transparent"}`,
+                  background: active ? "rgba(72,132,255,0.08)" : "transparent",
+                  borderLeft: `3px solid ${active ? "#4884FF" : "transparent"}`,
                 }}
               >
-                <span style={{ fontSize: "0.9rem", fontWeight: active ? 600 : 500, color: active ? "#f97316" : "var(--text)" }}>{o.label}</span>
+                <span style={{ fontSize: "0.9rem", fontWeight: active ? 600 : 500, color: active ? "#4884FF" : "var(--text)" }}>{o.label}</span>
                 {o.hint && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{o.hint}</span>}
               </div>
             );
@@ -1069,7 +1069,7 @@ function GroupModal({
             {onDelete && (
               <button
                 className="admin-btn admin-btn-ghost"
-                style={{ color: "#ef4444" }}
+                style={{ color: "#F54848" }}
                 onClick={onDelete}
                 disabled={busy}
               >
@@ -1096,7 +1096,7 @@ function GroupModal({
               onClick={submit}
               disabled={busy || (!isNew && !dirty) || !name.trim()}
               style={{
-                background: dirty || isNew ? "#f97316" : "var(--surface-2, rgba(255,255,255,0.06))",
+                background: dirty || isNew ? "#4884FF" : "var(--surface-2, rgba(255,255,255,0.06))",
                 color: dirty || isNew ? "#fff" : "var(--text-muted)",
                 border: "none", borderRadius: 6,
                 fontSize: "0.82rem", letterSpacing: "0.08em", fontWeight: 700,
@@ -1157,9 +1157,9 @@ function GroupModal({
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
                   padding: "10px 12px", borderRadius: 8, cursor: "pointer",
-                  background: active ? "rgba(249,115,22,0.08)" : "transparent",
-                  border: `1px solid ${active ? "rgba(249,115,22,0.35)" : "var(--border)"}`,
-                  color: active ? "#f97316" : "var(--text)",
+                  background: active ? "rgba(72,132,255,0.08)" : "transparent",
+                  border: `1px solid ${active ? "rgba(72,132,255,0.35)" : "var(--border)"}`,
+                  color: active ? "#4884FF" : "var(--text)",
                   fontSize: "0.9rem", fontWeight: active ? 600 : 500,
                   textAlign: "left", transition: "all 0.12s ease",
                 }}
@@ -1170,8 +1170,8 @@ function GroupModal({
                   <span style={{
                     fontSize: "0.68rem", fontWeight: 700,
                     padding: "2px 7px", borderRadius: 999,
-                    background: active ? "rgba(249,115,22,0.2)" : "var(--surface-2, rgba(255,255,255,0.06))",
-                    color: active ? "#f97316" : "var(--text-muted)",
+                    background: active ? "rgba(72,132,255,0.2)" : "var(--surface-2, rgba(255,255,255,0.06))",
+                    color: active ? "#4884FF" : "var(--text-muted)",
                   }}>
                     {count}/{section.keys.length}
                   </span>
@@ -1197,13 +1197,13 @@ function GroupModal({
                   display: "flex", alignItems: "center", gap: 14,
                   padding: "14px 18px", borderRadius: 10,
                   border: "1px solid var(--border)",
-                  background: on ? "rgba(249,115,22,0.04)" : "transparent",
+                  background: on ? "rgba(72,132,255,0.04)" : "transparent",
                   cursor: "pointer", transition: "background 0.12s ease",
                 }}
               >
                 <i
                   className={`fa-solid ${SECTION_ICONS[activeSectionDef.label] || "fa-shield"}`}
-                  style={{ color: on ? "#f97316" : "var(--text-muted)", fontSize: 15, width: 20, textAlign: "center" }}
+                  style={{ color: on ? "#4884FF" : "var(--text-muted)", fontSize: 15, width: 20, textAlign: "center" }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 500, fontSize: "0.92rem" }}>{meta?.label || k}</div>
@@ -1234,7 +1234,7 @@ function GroupModal({
         </div>
       </div>
 
-      {err && <div style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: 16 }}>{err}</div>}
+      {err && <div style={{ color: "#F54848", fontSize: "0.85rem", marginTop: 16 }}>{err}</div>}
     </ModalShell>
   );
 }
@@ -1248,7 +1248,7 @@ function Toggle({ on }: { on: boolean }) {
       style={{
         display: "inline-block", position: "relative",
         width: 42, height: 24, borderRadius: 999,
-        background: on ? "#f97316" : "var(--surface-2, rgba(255,255,255,0.15))",
+        background: on ? "#4884FF" : "var(--surface-2, rgba(255,255,255,0.15))",
         transition: "background 0.15s ease",
         flexShrink: 0,
       }}
@@ -1323,7 +1323,7 @@ function UserModal({
           <button className="admin-btn admin-btn-ghost" onClick={() => onStatus(user, "active")}>Enable</button>
         )}
         {me.isSuper && !isSelf && (
-          <button className="admin-btn admin-btn-ghost" style={{ color: "#ef4444" }} onClick={() => onDelete(user)}>
+          <button className="admin-btn admin-btn-ghost" style={{ color: "#F54848" }} onClick={() => onDelete(user)}>
             <i className="fa-solid fa-trash" /> Delete
           </button>
         )}
@@ -1437,7 +1437,7 @@ function ConfirmModal({
     try { await onConfirm(); }
     finally { setBusy(false); }
   }
-  const confirmBg = danger ? "#ef4444" : "#f97316";
+  const confirmBg = danger ? "#F54848" : "#4884FF";
   return (
     <ModalShell
       onClose={busy ? () => {} : onCancel}
@@ -1482,8 +1482,8 @@ function ConfirmModal({
           style={{
             width: 40, height: 40, borderRadius: 10,
             display: "grid", placeItems: "center", flexShrink: 0,
-            background: danger ? "rgba(239,68,68,0.12)" : "rgba(249,115,22,0.12)",
-            color: danger ? "#ef4444" : "#f97316",
+            background: danger ? "rgba(245,72,72,0.12)" : "rgba(72,132,255,0.12)",
+            color: danger ? "#F54848" : "#4884FF",
           }}
         >
           <i className={`fa-solid ${danger ? "fa-triangle-exclamation" : "fa-circle-info"}`} />
@@ -1502,15 +1502,15 @@ const labelStyle: React.CSSProperties = { display: "grid", gap: 6, fontSize: "0.
 function pillStyle(kind: "ok" | "warn" | "gold" | "muted" | "neutral"): React.CSSProperties {
   const bg = {
     ok:      "rgba(34,197,94,0.15)",
-    warn:    "rgba(245,158,11,0.15)",
-    gold:    "rgba(249,115,22,0.18)",
+    warn:    "rgba(245,150,34,0.15)",
+    gold:    "rgba(72,132,255,0.18)",
     muted:   "rgba(255,255,255,0.06)",
     neutral: "rgba(255,255,255,0.08)",
   }[kind];
   const color = {
     ok: "#22c55e",
-    warn: "#f59e0b",
-    gold: "#f97316",
+    warn: "#F59622",
+    gold: "#4884FF",
     muted: "var(--text-muted)",
     neutral: "var(--text-muted)",
   }[kind];

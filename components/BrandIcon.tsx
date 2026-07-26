@@ -54,7 +54,7 @@ const MONOGRAM_BRANDS: Record<string, { letter: string; color: string; label: st
   canva:      { letter: "Cv", color: "#00C4CC", label: "Canva" },
   capcut:     { letter: "CC", color: "#000000", label: "CapCut" },
   adobe:      { letter: "Ai", color: "#FF0000", label: "Adobe" },
-  firefly:    { letter: "Ff", color: "#FF7A1A", label: "Firefly" },
+  firefly:    { letter: "Ff", color: "#F59622", label: "Firefly" },
   leonardo:   { letter: "L",  color: "#0F172A", label: "Leonardo" },
   n8n:        { letter: "n8", color: "#EA4B71", label: "n8n" },
 };

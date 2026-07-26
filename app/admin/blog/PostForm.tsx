@@ -22,10 +22,10 @@ const CATEGORY_OPTIONS = ["AI Guides", "Premium Tools", "Automation", "Subscript
 const STATUS_OPTIONS = ["Draft", "Published", "Scheduled"].map((value) => ({ value, label: value }));
 const SCHEMA_OPTIONS = ["BlogPosting", "Article"].map((value) => ({ value, label: value }));
 const COLOR_OPTIONS = [
-  { value: "var(--brand-soft)", label: "Orange", swatch: "linear-gradient(135deg, #ff9d57, #ff7a1a)" },
+  { value: "var(--brand-soft)", label: "Orange", swatch: "linear-gradient(135deg, #8FB4FF, #4884FF)" },
   { value: "var(--accent-soft)", label: "Pink", swatch: "linear-gradient(135deg, #ff8db8, #d6336c)" },
   { value: "var(--info-soft)", label: "Blue", swatch: "linear-gradient(135deg, #6dc1ff, #3a7bd5)" },
-  { value: "var(--warning-soft)", label: "Amber", swatch: "linear-gradient(135deg, #ffd479, #f59e0b)" },
+  { value: "var(--warning-soft)", label: "Amber", swatch: "linear-gradient(135deg, #F8B055, #F59622)" },
 ];
 
 function today() {

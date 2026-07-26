@@ -60,7 +60,7 @@ export default async function HomePage() {
       text: r.text,
       mainImage: r.photo_url ?? undefined,
       mainInitials: r.initials || r.name.slice(0, 2).toUpperCase(),
-      mainBg: r.color ?? "#c2410c",
+      mainBg: r.color ?? "#2A5FD0",
     };
   });
   const isPK = region === "PK";
@@ -284,10 +284,10 @@ export default async function HomePage() {
           </header>
           <div className="v2-why-grid reveal reveal-stagger">
             {[
-              { icon: "fa-credit-card", t: paymentFeatureTitle, d: paymentFeatureDescription, bg: "#FF7A1A" },
-              { icon: "fa-bolt", t: "Fast delivery", d: "Most subscriptions go live in under 30 minutes after payment.", bg: "#FF7A1A" },
-              { icon: "fa-rotate", t: "Easy renewals", d: "Get reminders before expiry and quick replacement support if needed.", bg: "#C85B08" },
-              { icon: "fa-whatsapp", t: "Human support", d: "WhatsApp and email support from a real person when you need help.", bg: "#C85B08", brand: true },
+              { icon: "fa-credit-card", t: paymentFeatureTitle, d: paymentFeatureDescription, bg: "#4884FF" },
+              { icon: "fa-bolt", t: "Fast delivery", d: "Most subscriptions go live in under 30 minutes after payment.", bg: "#4884FF" },
+              { icon: "fa-rotate", t: "Easy renewals", d: "Get reminders before expiry and quick replacement support if needed.", bg: "#3471EF" },
+              { icon: "fa-whatsapp", t: "Human support", d: "WhatsApp and email support from a real person when you need help.", bg: "#3471EF", brand: true },
             ].map((w) => (
               <div key={w.t} className="surface-card v2-why-card">
                 <span className="v2-why-icon" style={{ background: w.bg, color: "#ffffff" }}>

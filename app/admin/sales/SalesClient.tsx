@@ -317,7 +317,7 @@ export default function SalesClient({
               {sales.length === 0 ? "No sales yet" : "No sales match your filters"}
             </div>
             <div style={{ fontSize: "0.85rem", marginTop: 4 }}>
-              {sales.length === 0 && canWrite && <>Click <strong style={{ color: "#f97316" }}>New sale</strong> to add your first subscription.</>}
+              {sales.length === 0 && canWrite && <>Click <strong style={{ color: "#4884FF" }}>New sale</strong> to add your first subscription.</>}
               {sales.length > 0 && "Try clearing filters or the search box."}
             </div>
           </div>
@@ -456,10 +456,10 @@ function RowActions({
         <IconBtn icon="fa-paper-plane" title="Mark reminder sent" onClick={onReminderSent} />
       )}
       {!isClosed && canWrite && (
-        <IconBtn icon="fa-arrows-rotate" title="Mark as renewed" color="#f97316" onClick={onRenew} />
+        <IconBtn icon="fa-arrows-rotate" title="Mark as renewed" color="#4884FF" onClick={onRenew} />
       )}
       {canWrite && <IconBtn icon="fa-pen" title="Edit" onClick={onEdit} />}
-      {canDelete && <IconBtn icon="fa-trash" title="Delete" color="#ef4444" onClick={onDelete} />}
+      {canDelete && <IconBtn icon="fa-trash" title="Delete" color="#F54848" onClick={onDelete} />}
     </div>
   );
 }
@@ -489,9 +489,9 @@ function IconBtn({ icon, title, onClick, color }: { icon: string; title: string;
 function StatCard({ icon, label, value, tone }: { icon: string; label: string; value: number; tone: "ok" | "warn" | "danger" | "brand" }) {
   const colors = {
     ok:     { bg: "rgba(34,197,94,0.10)",  fg: "#22c55e" },
-    warn:   { bg: "rgba(245,158,11,0.10)", fg: "#f59e0b" },
-    danger: { bg: "rgba(239,68,68,0.10)",  fg: "#ef4444" },
-    brand:  { bg: "rgba(249,115,22,0.12)", fg: "#f97316" },
+    warn:   { bg: "rgba(245,150,34,0.10)", fg: "#F59622" },
+    danger: { bg: "rgba(245,72,72,0.10)",  fg: "#F54848" },
+    brand:  { bg: "rgba(72,132,255,0.12)", fg: "#4884FF" },
   }[tone];
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px", display: "flex", gap: 12, alignItems: "center" }}>
@@ -510,16 +510,16 @@ function StatCard({ icon, label, value, tone }: { icon: string; label: string; v
 function StatusBadge({ status }: { status: SaleStatus }) {
   const bg = {
     active:      "rgba(34,197,94,0.15)",
-    renewal_due: "rgba(245,158,11,0.15)",
+    renewal_due: "rgba(245,150,34,0.15)",
     renewed:     "rgba(59,130,246,0.15)",
-    expired:     "rgba(239,68,68,0.15)",
+    expired:     "rgba(245,72,72,0.15)",
     cancelled:   "rgba(255,255,255,0.08)",
   }[status];
   const color = {
     active:      "#22c55e",
-    renewal_due: "#f59e0b",
+    renewal_due: "#F59622",
     renewed:     "#3b82f6",
-    expired:     "#ef4444",
+    expired:     "#F54848",
     cancelled:   "var(--text-muted)",
   }[status];
   return (
@@ -838,14 +838,14 @@ function ConfirmModal({
           type="button"
           onClick={async () => { setBusy(true); try { await onConfirm(); } finally { setBusy(false); } }}
           disabled={busy}
-          style={{ ...footerPrimaryStyle(true), background: "#ef4444" }}
+          style={{ ...footerPrimaryStyle(true), background: "#F54848" }}
         >
           {busy ? "WORKING…" : confirmLabel.toUpperCase()}
         </button>
       </>
     }>
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", flexShrink: 0, background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", flexShrink: 0, background: "rgba(245,72,72,0.12)", color: "#F54848" }}>
           <i className="fa-solid fa-triangle-exclamation" />
         </div>
         <div style={{ flex: 1, fontSize: "0.9rem", lineHeight: 1.5 }}>{message}</div>
@@ -904,13 +904,13 @@ function StyledSelect({
         style={{
           width: "100%", textAlign: "left",
           padding: "10px 12px", borderRadius: 10,
-          border: `1px solid ${open ? "rgba(249,115,22,0.5)" : "var(--border)"}`,
+          border: `1px solid ${open ? "rgba(72,132,255,0.5)" : "var(--border)"}`,
           background: "var(--surface-2, rgba(255,255,255,0.03))",
           color: "var(--text)",
           fontSize: "0.9rem",
           display: "flex", alignItems: "center", gap: 10,
           cursor: "pointer",
-          boxShadow: open ? "0 0 0 3px rgba(249,115,22,0.15)" : "none",
+          boxShadow: open ? "0 0 0 3px rgba(72,132,255,0.15)" : "none",
           transition: "border-color 0.15s, box-shadow 0.15s",
         }}
       >
@@ -920,8 +920,8 @@ function StyledSelect({
             style={{
               width: 26, height: 26, borderRadius: 7,
               display: "grid", placeItems: "center", flexShrink: 0,
-              background: selected ? "rgba(249,115,22,0.15)" : "var(--surface-2, rgba(255,255,255,0.05))",
-              color: selected ? "#f97316" : "var(--text-muted)",
+              background: selected ? "rgba(72,132,255,0.15)" : "var(--surface-2, rgba(255,255,255,0.05))",
+              color: selected ? "#4884FF" : "var(--text-muted)",
               fontSize: 11,
             }}
           >
@@ -964,11 +964,11 @@ function StyledSelect({
                 style={{
                   padding: "10px 14px", cursor: "pointer",
                   display: "flex", flexDirection: "column", gap: 2,
-                  background: active ? "rgba(249,115,22,0.08)" : "transparent",
-                  borderLeft: `3px solid ${active ? "#f97316" : "transparent"}`,
+                  background: active ? "rgba(72,132,255,0.08)" : "transparent",
+                  borderLeft: `3px solid ${active ? "#4884FF" : "transparent"}`,
                 }}
               >
-                <span style={{ fontSize: "0.88rem", fontWeight: active ? 600 : 500, color: active ? "#f97316" : "var(--text)" }}>
+                <span style={{ fontSize: "0.88rem", fontWeight: active ? 600 : 500, color: active ? "#4884FF" : "var(--text)" }}>
                   {o.label}
                 </span>
                 {o.hint && <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>{o.hint}</span>}
@@ -1007,9 +1007,9 @@ function Td({ children, style }: { children: React.ReactNode; style?: React.CSSP
 function flashStyle(kind: "ok" | "err"): React.CSSProperties {
   return {
     padding: "10px 14px", borderRadius: 8, fontSize: "0.9rem",
-    background: kind === "ok" ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-    color: kind === "ok" ? "#22c55e" : "#ef4444",
-    border: `1px solid ${kind === "ok" ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)"}`,
+    background: kind === "ok" ? "rgba(34,197,94,0.12)" : "rgba(245,72,72,0.12)",
+    color: kind === "ok" ? "#22c55e" : "#F54848",
+    border: `1px solid ${kind === "ok" ? "rgba(34,197,94,0.35)" : "rgba(245,72,72,0.35)"}`,
   };
 }
 
@@ -1021,7 +1021,7 @@ const footerCancelStyle: React.CSSProperties = {
 
 function footerPrimaryStyle(enabled: boolean): React.CSSProperties {
   return {
-    background: enabled ? "#f97316" : "var(--surface-2, rgba(255,255,255,0.06))",
+    background: enabled ? "#4884FF" : "var(--surface-2, rgba(255,255,255,0.06))",
     color: enabled ? "#fff" : "var(--text-muted)",
     border: "none", borderRadius: 6,
     fontSize: "0.82rem", letterSpacing: "0.08em", fontWeight: 700,

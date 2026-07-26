@@ -55,8 +55,8 @@ export default function DiagnosticsPage() {
       <span
         style={{
           display: "inline-block", width: 10, height: 10, borderRadius: 999,
-          background: ok ? "#22c55e" : "#ef4444",
-          boxShadow: `0 0 0 3px ${ok ? "rgba(34,197,94,0.20)" : "rgba(239,68,68,0.20)"}`,
+          background: ok ? "#22c55e" : "#F54848",
+          boxShadow: `0 0 0 3px ${ok ? "rgba(34,197,94,0.20)" : "rgba(245,72,72,0.20)"}`,
         }}
       />
     );
@@ -89,7 +89,7 @@ export default function DiagnosticsPage() {
         </div>
 
         {err && (
-          <div className="admin-card" style={{ background: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)", color: "#fca5a5", marginBottom: 14 }}>
+          <div className="admin-card" style={{ background: "rgba(245,72,72,0.10)", borderColor: "rgba(245,72,72,0.30)", color: "#fca5a5", marginBottom: 14 }}>
             {err}
           </div>
         )}

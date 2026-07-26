@@ -20,7 +20,7 @@ export default function GlobalError({
     <html lang="en">
       <body style={{
         margin: 0, minHeight: "100vh", display: "grid", placeItems: "center",
-        background: "#0b0b0e", color: "#eaeaef", fontFamily: "system-ui, sans-serif",
+        background: "#0B1019", color: "#E5E7EB", fontFamily: "system-ui, sans-serif",
         padding: 24,
       }}>
         <div style={{ maxWidth: 480, textAlign: "center" }}>
@@ -30,8 +30,8 @@ export default function GlobalError({
               width: 64, height: 64, borderRadius: "50%",
               margin: "0 auto 20px",
               display: "grid", placeItems: "center",
-              background: "rgba(239, 68, 68, 0.12)",
-              color: "#ef4444",
+              background: "rgba(245, 72, 72, 0.12)",
+              color: "#F54848",
               fontSize: 24,
             }}
           >
@@ -51,7 +51,7 @@ export default function GlobalError({
               type="button"
               onClick={reset}
               style={{
-                background: "#f97316", color: "#fff", border: "none",
+                background: "#4884FF", color: "#fff", border: "none",
                 padding: "10px 22px", borderRadius: 8, cursor: "pointer",
                 fontWeight: 600,
               }}
@@ -63,7 +63,7 @@ export default function GlobalError({
               style={{
                 background: "transparent",
                 border: "1px solid rgba(255,255,255,0.15)",
-                color: "#eaeaef",
+                color: "#E5E7EB",
                 padding: "10px 22px", borderRadius: 8, textDecoration: "none",
                 fontWeight: 600,
               }}

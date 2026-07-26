@@ -28,13 +28,13 @@ function Stars({ rating = 5 }: { rating?: number }) {
   // Renders 5 stars total. Whole + half stars supported, defaults to 5.
   const clamped = Math.max(0, Math.min(5, rating));
   return (
-    <div style={{ display: "inline-flex", gap: 2, color: "#f97316", fontSize: 18, lineHeight: 1 }} aria-label={`${clamped} out of 5 stars`}>
+    <div style={{ display: "inline-flex", gap: 2, color: "#4884FF", fontSize: 18, lineHeight: 1 }} aria-label={`${clamped} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((s) => {
         if (clamped >= s) return <span key={s}>★</span>;
         if (clamped >= s - 0.5) return (
           <span key={s} style={{ position: "relative", display: "inline-block" }}>
             <span style={{ color: "rgba(255,255,255,0.2)" }}>★</span>
-            <span style={{ position: "absolute", inset: 0, overflow: "hidden", width: "50%", color: "#f97316" }}>★</span>
+            <span style={{ position: "absolute", inset: 0, overflow: "hidden", width: "50%", color: "#4884FF" }}>★</span>
           </span>
         );
         return <span key={s} style={{ color: "rgba(255,255,255,0.2)" }}>★</span>;
@@ -98,7 +98,7 @@ export default function ReviewFullModal({
           ) : (
             <div style={{
               width: 56, height: 56, borderRadius: 14, flexShrink: 0,
-              background: color || "linear-gradient(135deg, #f97316, #fb923c)",
+              background: color || "linear-gradient(135deg, #4884FF, #8FB4FF)",
               display: "grid", placeItems: "center",
               color: "#fff", fontWeight: 700, fontSize: 18,
             }}>

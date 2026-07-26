@@ -275,7 +275,7 @@ export default function PricesPage() {
         .prices-table th { color: var(--text); font-weight: 600; background: var(--bg-elevated); position: sticky; top: 0; }
         .prices-table th:first-child, .prices-table td:first-child { text-align: left; color: var(--text-soft); }
         .prices-table th.prices-th-featured { color: var(--brand-300); background: var(--brand-soft); }
-        .prices-table td.prices-td-featured { background: rgba(255, 122, 26, 0.04); }
+        .prices-table td.prices-td-featured { background: rgba(72, 132, 255, 0.04); }
         .prices-table .prices-row-group td {
           background: var(--surface-soft);
           color: var(--text-muted); font-weight: 600; font-size: var(--fs-xs);

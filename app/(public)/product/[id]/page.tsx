@@ -115,7 +115,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     text: r.text,
     mainImage: r.photoUrl,
     mainInitials: r.initials || r.name.slice(0, 2).toUpperCase(),
-    mainBg: r.color || "#c2410c",
+    mainBg: r.color || "#2A5FD0",
   }));
 
   // Prefer the admin's hand-picked recommendations (preserve order). If empty,

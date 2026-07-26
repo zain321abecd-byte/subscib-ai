@@ -242,8 +242,8 @@ export function PlanCheckoutButton({
               text-align: left;
             }
             .bundle-tool.is-selected {
-              border-color: rgba(255, 122, 26, 0.65);
-              background: rgba(255, 122, 26, 0.12);
+              border-color: rgba(72, 132, 255, 0.65);
+              background: rgba(72, 132, 255, 0.12);
             }
             .bundle-tool:disabled {
               opacity: 0.45;

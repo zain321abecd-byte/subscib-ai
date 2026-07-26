@@ -33,8 +33,8 @@ export default function ProductError({
             width: 64, height: 64, borderRadius: "50%",
             margin: "0 auto 20px",
             display: "grid", placeItems: "center",
-            background: "rgba(239, 68, 68, 0.12)",
-            color: "#ef4444",
+            background: "rgba(245, 72, 72, 0.12)",
+            color: "#F54848",
           }}
         >
           <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 24 }} />
