@@ -2,15 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProductGallery from "@/components/ProductGallery";
+import FavoriteButton from "@/components/FavoriteButton";
 import BrandIcon from "@/components/BrandIcon";
 import ProductCard from "@/components/ProductCard";
 import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTestimonials";
 import PackageBuy from "./PackageBuy";
 import RichTextRenderer from "@/components/RichTextRenderer";
 import { getAllProducts, getProduct } from "@/lib/products";
+import { getSiteSettings } from "@/lib/site-settings";
 import { getStartingPrice } from "@/lib/pricing";
 import { getRegion } from "@/lib/region";
 import { getAllReviews } from "@/lib/reviews";
+import { formatSoldCount, getUnitsSold } from "@/lib/sold-count";
 import { paymentFeatureTitle } from "@/lib/payment-messaging";
 import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 
@@ -97,16 +100,21 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   // fallback — but keep an additional guard around the batch so a
   // single misbehaving helper (env not set on the deploy target,
   // Supabase timing out, etc.) can't take down the page.
-  const [allProducts, region, dbReviews] = await Promise.all([
+  const [allProducts, region, dbReviews, settings, unitsSold] = await Promise.all([
     getAllProducts().catch((e) => { console.error("[product] getAllProducts failed", e); return []; }),
     getRegion().catch((e) => { console.error("[product] getRegion failed", e); return "OTHER" as const; }),
     getAllReviews().catch((e) => { console.error("[product] getAllReviews failed", e); return []; }),
+    getSiteSettings().catch((e) => { console.error("[product] getSiteSettings failed", e); return {} as Record<string, string>; }),
+    getUnitsSold(product.id).catch((e) => { console.error("[product] getUnitsSold failed", e); return null; }),
   ]);
   const isPK = region === "PK";
+  const waDigits = (settings.whatsapp_number || "").replace(/[^\d]/g, "");
+  const waHref = waDigits ? `https://wa.me/${waDigits}` : "/contact";
   const productById = new Map(allProducts.map((p) => [p.id, p]));
   const reviewPool = dbReviews;
   const matchedReviews = reviewPool.filter((r) => r.product === product.name);
   const otherReviews = reviewPool.filter((r) => r.product !== product.name);
+  const reviewCount = matchedReviews.length > 0 ? matchedReviews.length : reviewPool.length;
   const testimonialSlides: Testimonial[] = [...matchedReviews, ...otherReviews].slice(0, 6).map((r, i) => ({
     id: i + 1,
     name: r.name,
@@ -134,76 +142,101 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <section className="v2-section">
+    <section className="v2-section pl-pd-section">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <div className="v2-container">
-        {/* Refined breadcrumb */}
+        {/* Breadcrumb — plati style with home icon */}
         <nav className="product-detail-breadcrumb" aria-label="Breadcrumb">
-          <Link href="/">Home</Link>
+          <Link href="/"><i className="fa-solid fa-house" aria-hidden></i> Home</Link>
           <i className="fa-solid fa-chevron-right"></i>
           <Link href="/shop">Shop</Link>
           <i className="fa-solid fa-chevron-right"></i>
           <span className="current">{product.name}</span>
         </nav>
 
-        {/* Detail — layout comes from .product-detail-grid in globals.css:
-            image column caps at ~460 px, content column takes the rest.
-            Sticky image on desktop, stacked on mobile. */}
-        <div className="product-detail-grid">
-          <div className="product-detail-media-col">
-            {(() => {
-              const allImages = [
-                ...(product.imageUrl ? [product.imageUrl] : []),
-                ...(product.gallery ?? []),
-              ];
-              if (allImages.length > 0) {
-                return <ProductGallery images={allImages} alt={product.name} />;
-              }
-              // No uploaded image — match the home page's BrandIcon fallback so
-              // products like ChatGPT / Claude / Midjourney show their real
-              // brand logo here too, not a generic Font Awesome glyph.
-              if (product.brand) {
-                return (
-                  <div className="product-detail-brand-media">
-                    <BrandIcon name={product.brand} size={120} />
-                  </div>
-                );
-              }
-              return (
-                <div className={`product-media ${product.mediaClass} surface-card product-detail-icon-media`}>
-                  <i className={product.iconClass}></i>
-                </div>
-              );
-            })()}
-          </div>
+        {/* Plati layout: main content box (image + title + description) on the
+            left, buy/trust/seller sidebar on the right. On mobile the wrappers
+            switch to display:contents and the pieces reflow into plati's
+            mobile order via CSS `order`. */}
+        <div className="pl-pd-layout">
+          <div className="pl-pd-main">
+            <div className="pl-pd-top">
+              <div className="product-detail-media-col">
+                {(() => {
+                  const allImages = [
+                    ...(product.imageUrl ? [product.imageUrl] : []),
+                    ...(product.gallery ?? []),
+                  ];
+                  if (allImages.length > 0) {
+                    return <ProductGallery images={allImages} alt={product.name} />;
+                  }
+                  // No uploaded image — match the home page's BrandIcon fallback so
+                  // products like ChatGPT / Claude / Midjourney show their real
+                  // brand logo here too, not a generic Font Awesome glyph.
+                  if (product.brand) {
+                    return (
+                      <div className="product-detail-brand-media">
+                        <BrandIcon name={product.brand} size={120} />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className={`product-media ${product.mediaClass} surface-card product-detail-icon-media`}>
+                      <i className={product.iconClass}></i>
+                    </div>
+                  );
+                })()}
+              </div>
 
-          <div className="product-detail-content">
-            <div className="product-detail-meta">
-              {(product.tag || "").split(",").map((t) => t.trim()).filter(Boolean).map((t) => (
-                <span key={t} className="badge badge-brand">{t}</span>
-              ))}
-              <span className="stock-pill">In stock · ready to deliver</span>
+              <div className="pl-pd-titleblock">
+                <FavoriteButton productId={product.id} />
+                <h1 className="product-detail-title pl-detail-title">{product.name}</h1>
+                {/* Plati meta row: muted stats separated by dots, blue Reviews
+                    link. Stats with nothing real behind them are omitted
+                    rather than shown as zero. */}
+                <div className="pl-pd-metarow">
+                  {unitsSold != null && unitsSold > 0 && (
+                    <>
+                      <span className="pl-pd-stock">Sold {formatSoldCount(unitsSold)}</span>
+                      <span className="pl-pd-dot" aria-hidden>•</span>
+                    </>
+                  )}
+                  <span className="pl-pd-stock">In stock</span>
+                  <span className="pl-pd-dot" aria-hidden>•</span>
+                  <span className="pl-pd-stock">Instant delivery</span>
+                  {reviewCount > 0 && (
+                    <>
+                      <span className="pl-pd-dot" aria-hidden>•</span>
+                      <a className="pl-pd-reviews-link" href="#reviews">Reviews {reviewCount}</a>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <h1 className="product-detail-title" style={{ marginBottom: "var(--space-3)" }}>
-              {product.name}
-            </h1>
+            {/* Section tabs — plati's Description | Reviews | Related */}
+            <nav className="pl-detail-tabs" aria-label="Product sections">
+              <a href="#description" className="is-active">Description</a>
+              <a href="#reviews">Reviews</a>
+              <a href="#related">Related</a>
+            </nav>
 
             {/* Rich HTML from the admin TipTap editor, sanitised on render. */}
-            <RichTextRenderer
-              className="product-detail-description"
-              content={product.description}
-              fallback={
-                <p className="product-detail-tagline">
-                  Premium AI tool delivered instantly to your inbox after payment.
-                </p>
-              }
-            />
+            <div className="pl-detail-description" id="description">
+              <h2 className="pl-desc-heading">Product description</h2>
+              <RichTextRenderer
+                className="product-detail-description"
+                content={product.description}
+                fallback={
+                  <p className="product-detail-tagline">
+                    Premium AI tool delivered instantly to your inbox after payment.
+                  </p>
+                }
+              />
+            </div>
 
-            <PackageBuy product={product} />
-
-            <ul className="product-features-pro">
+            <ul className="product-features-pro pl-detail-features">
               {(product.features && product.features.length > 0
                 ? product.features
                 : [
@@ -220,20 +253,50 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               ))}
             </ul>
           </div>
+
+          <aside className="pl-pd-side">
+            {/* Price + options + Buy now — plati's right-hand buy box */}
+            <div className="pl-pd-buybox">
+              <PackageBuy product={product} />
+            </div>
+
+            {/* Trust chips — plati's "Secure deal / Instant delivery" box */}
+            <div className="pl-trust-chips pl-pd-sidebox" aria-label="Guarantees">
+              <span className="pl-trust-chip">
+                <i className="fa-solid fa-shield-halved pl-trust-secure"></i> Secure deal
+              </span>
+              <span className="pl-trust-chip">
+                <i className="fa-solid fa-bolt pl-trust-instant"></i> Instant delivery
+              </span>
+            </div>
+
+            {/* Store card — plati's seller box, adapted to SubscribAI */}
+            <div className="pl-pd-seller pl-pd-sidebox">
+              <div className="pl-pd-seller-head">
+                <i className="fa-solid fa-store" aria-hidden></i>
+                <strong>SubscribAI</strong>
+                <span className="pl-pd-verified"><i className="fa-solid fa-circle-check"></i> Verified store</span>
+              </div>
+              <a className="pl-pd-seller-chat" href={waHref} target="_blank" rel="noopener">
+                Write to us <span className="pl-pd-online"><i className="fa-solid fa-circle"></i> Online</span>
+              </a>
+            </div>
+          </aside>
         </div>
 
       </div>
 
       {/* Customer reviews - same premium section as homepage, product-matched first. */}
-      <PremiumTestimonials slides={testimonialSlides} />
+      <div id="reviews">
+        <PremiumTestimonials slides={testimonialSlides} />
+      </div>
 
       {related.length > 0 && (
-        <div className="v2-container" style={{ marginTop: "var(--space-7)", marginBottom: "var(--space-9)" }}>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-2xl)", color: "var(--text)", marginBottom: "var(--space-5)" }}>You may also like</h2>
-          {/* Reuses `.product-grid` (4 columns on desktop, responsive
-              down to 2 / 1 via existing media queries) so the related
-              cards match every other grid on the site. */}
-          <div className="product-grid">
+        <div className="v2-container" id="related" style={{ marginTop: "var(--space-7)", marginBottom: "var(--space-9)" }}>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-2xl)", color: "#fff", fontWeight: 700, marginBottom: "var(--space-5)" }}>You may also like</h2>
+          {/* Same plati card grid as the homepage — 6/4/3 columns on
+              desktop, single-column list cards on mobile. */}
+          <div className="pl-card-grid">
             {related.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}

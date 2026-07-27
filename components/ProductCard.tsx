@@ -9,6 +9,14 @@ import { formatProductPriceLabel, getStartingPrice } from "@/lib/pricing";
 import BrandIcon from "@/components/BrandIcon";
 import type { Product } from "@/lib/products";
 
+/**
+ * Plati.market-style product card:
+ *   [ square media ]
+ *   price (bold)
+ *   title (small, 2-line clamp)
+ *   meta (muted tag/category)
+ *   [   Buy button   ]
+ */
 export default function ProductCard({ product }: { product: Product }) {
   const cart = useCart();
   const { toast } = useToast();
@@ -19,9 +27,8 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Card "add to cart" adds the starting/cheapest variation — matches
-    // the price the user sees on the card. If they want a different
-    // variation they go to the product page and pick one there.
+    // Card "Buy" adds the starting/cheapest variation — matches the price
+    // the user sees on the card. Different variation → product page.
     cart.add({
       id: product.id,
       name: product.name,
@@ -34,82 +41,59 @@ export default function ProductCard({ product }: { product: Product }) {
     window.setTimeout(() => setJustAdded(false), 1600);
   };
 
-  // Resolve which visual takes the main media slot. Admin can force
-  // "image" or "brand" via displaySource; default is auto (image > brand).
-  // When image is main + brand is also set → brand renders as a small corner
-  // badge. Reverse case (brand as main) hides the image entirely — it's a
-  // full-frame photo and would lose meaning shrunk into a tiny badge.
+  // Resolve which visual takes the media slot (admin can force image/brand).
   const effective: "image" | "brand" | "fallback" =
     product.displaySource === "image" ? (product.imageUrl ? "image" : product.brand ? "brand" : "fallback") :
     product.displaySource === "brand" ? (product.brand ? "brand" : product.imageUrl ? "image" : "fallback") :
     product.imageUrl ? "image" : product.brand ? "brand" : "fallback";
 
-  const showBrandBadge = effective === "image" && !!product.brand;
   const priceLabel = formatProductPriceLabel(product, currency, usdToPkr, fxReady, usdToInr);
   const fromMatch = priceLabel.match(/^From\s+(.+)$/i);
-
-  const mediaStyle: React.CSSProperties | undefined =
-    effective === "brand" && product.iconBgColor ? { background: product.iconBgColor } : undefined;
+  const tag = (product.tag || "").split(",").map((s) => s.trim()).filter(Boolean)[0];
 
   return (
-    <article className="product-card" data-product-id={product.id}>
+    <article className="product-card pl-card" data-product-id={product.id}>
       <Link
-        className={`product-media ${effective === "image" ? `${product.mediaClass} has-product-image` : "product-media-plain"}`}
-        style={mediaStyle}
+        className={`pl-card-media ${effective === "image" ? `${product.mediaClass} has-product-image` : ""}`}
         href={`/product/${product.id}`}
         aria-label={`View ${product.name}`}
       >
         {effective === "image" ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={product.imageUrl} alt={product.name} className="product-media-img" loading="lazy" />
-            {showBrandBadge && (
-              <span className="product-media-brand-badge" aria-hidden>
-                <BrandIcon name={product.brand!} size={20} />
-              </span>
-            )}
-          </>
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={product.imageUrl} alt={product.name} loading="lazy" />
         ) : effective === "brand" ? (
-          <span className="product-media-brand"><BrandIcon name={product.brand!} size={84} /></span>
+          <BrandIcon name={product.brand!} size={64} />
         ) : (
           <i className={product.iconClass}></i>
         )}
       </Link>
-      <div className="product-content">
-        {(() => {
-          const first = (product.tag || "").split(",").map((s) => s.trim()).filter(Boolean)[0];
-          return first ? <span className="product-tag">{first}</span> : null;
-        })()}
-        <h3>{product.name}</h3>
-        <div className="product-bottom">
-          <div className="product-card-price">
-            <b>
-              {fromMatch ? (
-                <>
-                  <span className="product-card-price-prefix">From</span>
-                  <span className="product-card-price-value">{fromMatch[1]}</span>
-                </>
-              ) : (
-                <span className="product-card-price-value">{priceLabel}</span>
-              )}
-            </b>
-          </div>
-          <div className="product-actions">
-            <Link className="product-icon-action" href={`/product/${product.id}`} aria-label={`View ${product.name}`} title="View details">
-              <i className="fa-solid fa-eye"></i>
-            </Link>
-            <button
-              className={`product-icon-action ${justAdded ? "is-just-added" : ""} ${inCart ? "is-in-cart" : ""}`}
-              type="button"
-              data-icon-action="cart"
-              aria-label={inCart ? `${product.name} in cart` : `Add ${product.name} to cart`}
-              title={justAdded ? "Added" : inCart ? "Add another" : "Add to cart"}
-              onClick={handleAdd}
-            >
-              <i className={`fa-solid ${justAdded ? "fa-check" : inCart ? "fa-cart-plus" : "fa-cart-shopping"}`}></i>
-            </button>
-          </div>
+
+      <div className="pl-card-body">
+        <div className="pl-card-price">
+          {fromMatch ? (
+            <>
+              <span className="pl-card-price-prefix">From</span> {fromMatch[1]}
+            </>
+          ) : (
+            priceLabel
+          )}
         </div>
+        <Link className="pl-card-title" href={`/product/${product.id}`}>{product.name}</Link>
+        {tag && <div className="pl-card-meta">{tag}</div>}
+        <button
+          className={`pl-card-buy ${justAdded ? "is-just-added" : ""}`}
+          type="button"
+          aria-label={inCart ? `${product.name} in cart — add another` : `Add ${product.name} to cart`}
+          onClick={handleAdd}
+        >
+          {justAdded ? (
+            <><i className="fa-solid fa-check"></i> Added</>
+          ) : inCart ? (
+            <><i className="fa-solid fa-cart-plus"></i> Add more</>
+          ) : (
+            "Buy"
+          )}
+        </button>
       </div>
     </article>
   );

@@ -57,7 +57,7 @@
   --info-soft:       rgba(72, 132, 255, 0.14);
 
   /* 4. TYPOGRAPHY ───────────────────────────────────────────────────────── */
-  --font-heading:    "Poppins", "Inter", system-ui, -apple-system, Segoe UI, sans-serif;
+  --font-heading:    "Inter", system-ui, -apple-system, Segoe UI, sans-serif;
   --font-body:       "Inter", "Open Sans", system-ui, -apple-system, Segoe UI, sans-serif;
 
   --fs-xs:           0.75rem;   /* 12 */
@@ -65,10 +65,10 @@
   --fs-md:           1rem;      /* 16 */
   --fs-lg:           1.125rem;  /* 18 */
   --fs-xl:           1.375rem;  /* 22 */
-  --fs-2xl:          1.75rem;   /* 28 */
-  --fs-3xl:          2.75rem;   /* 44 */
-  --fs-4xl:          4rem;      /* 64 — confident hero headline */
-  --fs-5xl:          5rem;      /* 80 — special editorial sizes */
+  --fs-2xl:          1.5rem;    /* 24 — plati h2 */
+  --fs-3xl:          1.75rem;   /* 28 — plati h1 */
+  --fs-4xl:          2.25rem;   /* 36 — hero headline (plati-compact) */
+  --fs-5xl:          2.75rem;   /* 44 — special editorial sizes */
 
   --lh-tight:        1.15;
   --lh-snug:         1.35;
@@ -78,7 +78,7 @@
   --fw-medium:       500;
   --fw-semibold:     600;
   --fw-bold:         700;
-  --fw-display:      800;
+  --fw-display:      700;
 
   /* 5. SPACING (4px scale) ─────────────────────────────────────────────── */
   --space-1:         4px;
@@ -94,29 +94,18 @@
   /* 6. RADII / SHADOWS / MOTION ─────────────────────────────────────────── */
   --radius-sm:       8px;
   --radius-md:       12px;
-  --radius-lg:       20px;
-  --radius-xl:       28px;
-  --radius-2xl:      36px;
+  --radius-lg:       12px;
+  --radius-xl:       16px;
+  --radius-2xl:      20px;
   --radius-pill:     999px;
 
-  /* Apple-style dark shadows: deeper, paired with subtle inner highlight */
-  --shadow-sm:
-    0 1px 2px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-md:
-    0 4px 12px rgba(0, 0, 0, 0.40),
-    0 12px 28px rgba(0, 0, 0, 0.30),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --shadow-lg:
-    0 8px 20px rgba(0, 0, 0, 0.45),
-    0 24px 60px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-xl:
-    0 12px 32px rgba(0, 0, 0, 0.50),
-    0 40px 80px rgba(0, 0, 0, 0.40),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  --shadow-glow:     0 0 0 1px var(--brand-soft), 0 8px 32px var(--brand-glow);
-  --shadow-inner:    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  /* Plati.market flat shadows: cards are flat; only overlays get depth */
+  --shadow-sm:       none;
+  --shadow-md:       0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg:       0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-xl:       0 16px 40px rgba(0, 0, 0, 0.45);
+  --shadow-glow:     none;
+  --shadow-inner:    none;
 
   --dur-fast:        120ms;
   --dur:             200ms;
@@ -16623,4 +16612,2425 @@ body.admin-body::after {
     grid-template-columns: 1fr;
     align-items: start !important;
   }
+}
+
+/* =============================================================================
+ * PLATI.MARKET DESIGN LANGUAGE — override layer
+ * -----------------------------------------------------------------------------
+ * Flat marketplace aesthetic modeled on plati.market:
+ *   - Solid dark-navy page, no ambient gradients or glow blobs
+ *   - Flat cards: #111927, 12px radius, hairline border, no shadow, no lift
+ *   - Hover = surface lightens to #1F2A37 (no translateY, no glow)
+ *   - Buttons: 8px radius, solid fill, weight 500, no glow
+ *   - Headings: Inter 700, white, compact sizes
+ * Appended last so it wins the cascade over the legacy styles above.
+ * ===========================================================================*/
+
+/* ---- Page: solid navy, kill decorative glows ---- */
+body {
+  background: var(--bg);
+}
+.v2-hero-blob,
+.v2-hero-bg,
+.hero-glow,
+.glow,
+.orb {
+  display: none !important;
+}
+
+/* ---- Typography: Inter everywhere, plati weights ---- */
+h1, h2, h3, h4, h5, h6,
+.v2-section-head h2,
+.section-head h2 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.01em;
+}
+.v2-eyebrow,
+.eyebrow {
+  color: var(--brand-500);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.v2-lede,
+.lede {
+  color: var(--text-muted);
+}
+
+/* ---- Buttons: plati spec — 8px radius, solid, no glow, no lift ---- */
+.btn,
+.btn-large,
+.btn-small,
+button.btn {
+  border-radius: 8px;
+  font-weight: 500;
+  letter-spacing: 0;
+  box-shadow: none;
+}
+.btn:hover,
+.btn-primary:hover,
+.btn-outline:hover {
+  transform: none;
+  box-shadow: none;
+}
+.btn-primary {
+  background: var(--brand-500);
+  box-shadow: none;
+}
+.btn-primary:hover {
+  background: var(--brand-600);
+}
+.btn-outline {
+  background: var(--surface-soft);
+  border-color: var(--surface-strong);
+  color: var(--text);
+}
+.btn-outline:hover {
+  background: var(--surface-strong);
+  border-color: var(--surface-strong);
+}
+
+/* ---- Cards & panels: flat #111927, 12px, hairline border, no shadow ---- */
+.product-card,
+.bundle-card,
+.surface-card,
+.shop-card,
+.blog-card,
+.article-card,
+.pro-blog-card,
+.pro-related-card,
+.pro-sidebar-card,
+.pricing-plan-card,
+.testimonial-grid article,
+.cta-card,
+.contact-card,
+.contact-info-panel,
+.auth-card,
+.account-panel,
+.cart-panel,
+.cart-coupon-box,
+.checkout-summary-card,
+.checkout-success-card,
+.product-access-card,
+.freebie-square-card,
+.rc-card,
+.stats-card,
+.hero-panel,
+.admin-card,
+.admin-login-card,
+.admin-traffic-card,
+.admin-seo-panel,
+.admin-tab-panel,
+.shop-filters-card,
+.shop-hero-card,
+.v2-cat-card,
+.v2-cat-brand-tile,
+.v2-mini-card,
+.v2-why-card,
+.v2-value-item,
+.v2-hero-preview-card,
+.v2-faq details,
+.faq-item,
+.admin-faq-item {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  box-shadow: none;
+  background-image: none;
+}
+
+/* Hover: lighten surface, keep everything in place (no lift / no glow) */
+.product-card:hover,
+.bundle-card:hover,
+.surface-card:hover,
+.shop-card:hover,
+.blog-card:hover,
+.article-card:hover,
+.pro-blog-card:hover,
+.pro-related-card:hover,
+.pricing-plan-card:hover,
+.cta-card:hover,
+.freebie-square-card:hover,
+.rc-card:hover,
+.v2-cat-card:hover,
+.v2-cat-brand-tile:hover,
+.v2-mini-card:hover,
+.v2-why-card:hover,
+.v2-value-item:hover {
+  background: var(--surface-soft);
+  border-color: rgba(255, 255, 255, 0.10);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Card titles hover to link-blue like plati */
+.product-card:hover h3,
+.product-card:hover .product-title,
+.shop-card:hover h3,
+.blog-card:hover h3 {
+  color: var(--brand-500);
+}
+
+/* ---- Sections: flat bands, no decorative gradients ---- */
+.v2-section-elevated,
+.v2-stats-band,
+.v2-value-strip {
+  background: var(--bg-elevated);
+  background-image: none;
+  box-shadow: none;
+}
+
+/* ---- Inputs: plati search-bar style ---- */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+select,
+textarea {
+  background: var(--surface-soft);
+  border: 1px solid var(--surface-strong);
+  border-radius: 8px;
+  color: var(--text);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--brand-500);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+/* ---- Chips / pills / badges: subtle flat surfaces ---- */
+.chip,
+.tag,
+.badge {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+/* ---- Plati layer 2: beat high-specificity legacy rules ---- */
+.v2 .btn,
+.v2 .btn-large,
+.v2 .btn-small,
+.home-page .hero-buttons .btn,
+.cta-card .btn {
+  border-radius: 8px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.v2 .btn-primary,
+.home-page .hero-buttons .btn-primary,
+.cta-card .btn-primary {
+  background: var(--brand-500);
+  box-shadow: none;
+}
+.v2 .btn-primary:hover {
+  background: var(--brand-600);
+  transform: none;
+  box-shadow: none;
+}
+.v2 .btn-primary:active { transform: none; }
+.v2 .btn-outline {
+  background: var(--surface-soft);
+  border-color: var(--surface-strong);
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.v2 .btn-outline:hover {
+  background: var(--surface-strong);
+  border-color: var(--surface-strong);
+  color: var(--text);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Hero headline: plati-compact, plain white, no text gradient */
+.v2-hero-copy h1 {
+  font-size: clamp(1.75rem, 3.2vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  color: #FFFFFF;
+}
+.v2-text-gradient {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  color: var(--brand-500);
+}
+
+/* =============================================================================
+ * PLATI LAYER 3 — marketplace layout (header / tiles / cards / sections)
+ * ===========================================================================*/
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Header ---------------------------------------------------------- */
+.pl-header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: var(--bg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pl-topbar {
+  background: var(--bg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.pl-topbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+}
+.pl-topbar-nav {
+  display: flex;
+  gap: 22px;
+}
+.pl-topbar-nav a {
+  color: var(--text-soft);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.pl-topbar-nav a:hover,
+.pl-topbar-nav a.is-active { color: #fff; }
+.pl-topbar-right { display: flex; align-items: center; gap: 14px; }
+
+.pl-main-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.pl-brand { display: inline-flex; align-items: center; flex-shrink: 0; }
+.pl-brand img { height: 34px; width: auto; }
+
+/* Catalog button — orange rect like plati */
+.pl-catalog-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 10px;
+  background: var(--accent-500);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background var(--dur) var(--ease-out);
+}
+.pl-catalog-btn:hover { background: var(--accent-600); }
+
+/* Search — big white bar */
+.pl-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.pl-search input {
+  width: 100%;
+  height: 48px;
+  padding: 0 48px 0 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: #fff;
+  color: #0B1019;
+  font-size: 1rem;
+}
+.pl-search input::placeholder { color: #667085; }
+.pl-search input:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+  background: #fff;
+  color: #0B1019;
+}
+.pl-search button {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  bottom: 4px;
+  width: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #475467;
+  cursor: pointer;
+  font-size: 1.05rem;
+}
+.pl-search button:hover { color: #0B1019; }
+
+/* Action tiles — Chat / Purchases / Cart */
+.pl-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.pl-action-tile {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 74px;
+  height: 48px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background var(--dur) var(--ease-out);
+}
+.pl-action-tile i { font-size: 0.95rem; }
+.pl-action-tile:hover { background: var(--surface-soft); }
+.pl-cart-badge {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--brand-500);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* Category bar */
+.pl-catnav {
+  background: var(--surface);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+.pl-catnav-row {
+  display: flex;
+  gap: 26px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pl-catnav-row::-webkit-scrollbar { display: none; }
+.pl-catnav-row a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  color: var(--text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.pl-catnav-row a i { color: var(--text-soft); font-size: 0.875rem; }
+.pl-catnav-row a:hover { color: var(--brand-500); }
+.pl-catnav-row a:hover i { color: var(--brand-500); }
+
+/* Mobile header behavior */
+.pl-mobile-actions { display: none; }
+.pl-search-mobile { display: none; }
+@media (max-width: 1023px) {
+  .pl-topbar { display: none; }
+  .pl-catalog-btn span { display: none; }
+  .pl-catalog-btn { padding: 0 14px; }
+  .pl-search:not(.pl-search-mobile) { display: none; }
+  .pl-actions { display: none; }
+  .pl-mobile-actions { display: flex; gap: 4px; margin-left: auto; }
+  .pl-mobile-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+  .pl-search-mobile {
+    display: block;
+    padding-bottom: 12px;
+  }
+}
+
+/* ---- Section boxes ---------------------------------------------------- */
+.pl-home { padding-top: 20px; }
+.pl-section-wrap { padding: 10px 0; }
+.pl-section-wrap-last { padding-bottom: 40px; }
+.pl-section {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 24px;
+}
+.pl-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.pl-section-head h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+/* "All" button — muted gray pill like plati (not blue) */
+.pl-all-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 10px;
+  background: var(--surface-strong);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.pl-all-btn:hover { background: var(--brand-500); }
+
+/* ---- Popular tile grid ------------------------------------------------ */
+.pl-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1200px) { .pl-tile-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (max-width: 900px)  { .pl-tile-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 560px)  { .pl-tile-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; } }
+
+.pl-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  min-width: 0;
+}
+.pl-tile-media {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  overflow: hidden;
+  color: #fff;
+  font-size: 1.8rem;
+  position: relative;
+}
+.pl-tile-media.has-product-image { background: #fff; }
+/* Brand icons render in their official hex (Claude #D97757, Notion #000…),
+   so they need a light tile — on --surface-soft the dark ones disappear. */
+.pl-tile-media.has-brand-icon { background: #fff; }
+.pl-tile-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 10px;
+}
+.pl-tile:hover .pl-tile-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.08);
+}
+.pl-tile-name {
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pl-tile:hover .pl-tile-name { color: var(--brand-500); }
+
+/* ---- Product card grid + plati card ----------------------------------- */
+.pl-card-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+}
+@media (max-width: 1200px) { .pl-card-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 900px)  { .pl-card-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 560px)  { .pl-card-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
+
+.product-card.pl-card {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  background: var(--surface-soft);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  min-width: 0;
+  container-type: normal;
+}
+.product-card.pl-card:hover {
+  background: var(--surface-strong);
+  transform: none;
+  box-shadow: none;
+}
+.pl-card-media {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  margin-bottom: 10px;
+  color: var(--bg);
+  font-size: 2rem;
+}
+.pl-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 10px;
+}
+.pl-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.pl-card-price {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.pl-card-price-prefix {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.pl-card-title {
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-decoration: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.3em;
+}
+.pl-card-title:hover { color: var(--brand-500); }
+.pl-card-meta {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.pl-card-buy {
+  margin-top: auto;
+  width: 100%;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--brand-500);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease-out);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.pl-card-buy:hover { background: var(--brand-600); }
+.pl-card-buy.is-just-added { background: var(--success-500); }
+
+/* ---- Catalog list ------------------------------------------------------ */
+.pl-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 900px) { .pl-cat-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .pl-cat-grid { grid-template-columns: 1fr; } }
+.pl-cat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  text-decoration: none;
+  transition: background var(--dur) var(--ease-out);
+}
+.pl-cat-item:hover { background: var(--surface-strong); }
+.pl-cat-icon {
+  display: grid;
+  place-items: center;
+  width: 40px; height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: var(--brand-500);
+  font-size: 1rem;
+}
+.pl-cat-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-cat-text strong { color: #fff; font-size: 0.9375rem; font-weight: 600; }
+.pl-cat-text small { color: var(--text-muted); font-size: 0.8125rem; }
+.pl-cat-chev { margin-left: auto; color: var(--text-muted); font-size: 0.75rem; }
+
+/* ---- Why strip --------------------------------------------------------- */
+.pl-why-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+@media (max-width: 900px) { .pl-why-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .pl-why-grid { grid-template-columns: 1fr; } }
+.pl-why-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+.pl-why-icon {
+  display: grid;
+  place-items: center;
+  width: 40px; height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--brand-500);
+  color: #fff;
+  font-size: 1rem;
+}
+.pl-why-item strong { display: block; color: #fff; font-size: 0.9375rem; margin-bottom: 3px; }
+.pl-why-item small { color: var(--text-muted); font-size: 0.8125rem; line-height: 1.5; }
+
+/* ---- Final CTA --------------------------------------------------------- */
+.pl-final-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.pl-final-cta h2 { font-size: 1.25rem; margin: 0 0 6px; }
+.pl-final-cta p { color: var(--text-muted); margin: 0; font-size: 0.9375rem; }
+.pl-final-cta-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---- Footer (plati columns) -------------------------------------------- */
+.v2-footer {
+  background: var(--bg);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 20px;
+}
+.v2-footer h4 {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.v2-footer a {
+  color: var(--text-soft);
+  font-size: 0.9375rem;
+  text-decoration: none;
+}
+.v2-footer a:hover { color: #fff; }
+.v2-footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 20px;
+  padding-bottom: 24px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* =============================================================================
+ * PLATI LAYER 4 — mobile layout (bottom tab bar / compact header /
+ * horizontal tile rows / list-style product cards)
+ * ===========================================================================*/
+
+/* ---- Bottom tab bar ---------------------------------------------------- */
+.pl-tabbar { display: none; }
+@media (max-width: 1023px) {
+  .pl-tabbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 300;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: rgba(17, 25, 39, 0.97);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .pl-tabbar a {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 0;
+    color: var(--text-muted);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .pl-tabbar a i { font-size: 1.05rem; }
+  .pl-tabbar a.is-active,
+  .pl-tabbar a:hover { color: #fff; }
+  .pl-tabbar-cart .pl-cart-badge {
+    top: -2px;
+    right: calc(50% - 22px);
+  }
+
+  /* Reserve room so the fixed bar never covers page content */
+  body { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ---- Compact mobile header: [catalog] [logo centered] [search toggle] --- */
+.pl-catalog-mobile { display: none; }
+.pl-search-toggle { display: none; }
+@media (min-width: 1024px) {
+  .pl-catalog-desktop { display: inline-flex; }
+}
+@media (max-width: 1023px) {
+  .pl-catalog-desktop { display: none; }
+  .pl-catalog-mobile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    cursor: pointer;
+    /* DOM order is logo-first (desktop/plati); on mobile the orange
+       square goes back to the far left. */
+    order: -1;
+  }
+  .pl-main-row {
+    gap: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  /* center the logo between the two 44px squares */
+  .pl-brand {
+    margin: 0 auto;
+  }
+  .pl-brand img { height: 30px; }
+  .pl-search-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface);
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  /* search bar hidden until toggled */
+  .pl-search-mobile { display: none; }
+  .pl-search-mobile.is-open { display: block; padding-bottom: 12px; }
+}
+
+/* ---- Popular: horizontal scroll row on mobile (plati style) ------------- */
+@media (max-width: 768px) {
+  .pl-tile-grid {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pl-tile-grid::-webkit-scrollbar { display: none; }
+  .pl-tile { flex: 0 0 100px; }
+  .pl-tile-media { width: 100px; height: 124px; aspect-ratio: auto; }
+}
+
+/* ---- Recommended: vertical list cards on mobile (plati style) ----------- */
+@media (max-width: 768px) {
+  .pl-card-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .product-card.pl-card {
+    /* !important needed: the legacy "product card footer contract" above
+       forces flex-direction: column !important on .product-card. */
+    flex-direction: row !important;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px;
+  }
+  .pl-card-media {
+    width: 104px;
+    height: 104px;
+    aspect-ratio: auto;
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+  .pl-card-body { gap: 3px; }
+  .pl-card-price { font-size: 1.0625rem; }
+  .pl-card-title { font-size: 0.875rem; min-height: 0; }
+  .pl-card-buy {
+    margin-top: 8px;
+    height: 32px;
+    max-width: 160px;
+  }
+}
+
+/* ---- Section boxes: tighter padding on mobile --------------------------- */
+@media (max-width: 768px) {
+  .pl-section { padding: 16px; border-radius: 14px; }
+  .pl-section-head h2 { font-size: 1.25rem; }
+  .pl-section-wrap { padding: 6px 0; }
+  .pl-home { padding-top: 10px; }
+}
+
+/* =============================================================================
+ * PLATI LAYER 5 — mobile homepage polish (match plati mobile app feel)
+ * ===========================================================================*/
+@media (max-width: 768px) {
+  /* No category strip on mobile — categories live behind the orange button */
+  .pl-catnav { display: none; }
+
+  /* Section boxes go nearly edge-to-edge like plati mobile.
+     !important: legacy mobile rules force 18-20px container padding. */
+  .pl-section-wrap .v2-container {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  .pl-section-wrap { padding: 8px 0; }
+  .pl-section {
+    padding: 18px 14px;
+    border-radius: 18px;
+  }
+  .pl-home { padding-top: 8px; }
+
+  /* Bigger, bolder section titles (plati ~24px) */
+  .pl-section-head { margin-bottom: 14px; }
+  .pl-section-head h2 {
+    font-size: 1.375rem;
+    letter-spacing: 0;
+  }
+  .pl-all-btn {
+    height: 32px;
+    padding: 0 14px;
+    font-size: 0.8125rem;
+  }
+
+  /* Popular tiles: larger like plati (about 3 per screen + peek) */
+  .pl-tile { flex: 0 0 112px; }
+  .pl-tile-media {
+    width: 112px;
+    height: 140px;
+    border-radius: 14px;
+  }
+  .pl-tile-name {
+    font-size: 0.8125rem;
+    font-weight: 700;
+  }
+
+  /* Compact header — tighter vertical rhythm */
+  .pl-main-row {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .pl-header { border-bottom: 0; }
+
+  /* Tab bar: solid surface like plati, slightly bigger icons */
+  .pl-tabbar {
+    background: var(--surface);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .pl-tabbar a i { font-size: 1.15rem; }
+  .pl-tabbar a { font-size: 0.65rem; }
+
+  /* List cards: bolder price, roomier text like plati */
+  .pl-card-price { font-size: 1.125rem; }
+  .pl-card-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #fff;
+  }
+  .pl-card-meta { font-size: 0.8125rem; }
+}
+
+/* =============================================================================
+ * PLATI LAYER 6 — product detail page (plati.market mobile anatomy)
+ * ===========================================================================*/
+
+/* ---- Trust chips (all sizes) ------------------------------------------- */
+.pl-trust-chips {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0;
+  flex-wrap: wrap;
+}
+.pl-trust-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.pl-trust-secure { color: var(--success-500); }
+.pl-trust-instant { color: var(--accent-500); }
+
+/* ---- Section tabs — mobile only ---------------------------------------- */
+.pl-detail-tabs { display: none; }
+
+/* ---- Description heading — mobile only --------------------------------- */
+.pl-desc-heading { display: none; }
+
+/* ---- Plati sticky buy bar (replaces old mobile-buy-bar styling) --------- */
+.mobile-buy-bar.pl-buybar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 290;
+  display: none;
+  gap: 10px !important;
+  padding: 10px !important;
+  background: rgba(11, 16, 25, 0.97);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  /* sits directly above the bottom tab bar */
+  bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+}
+.pl-buybar-cart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(72, 132, 255, 0.2);
+  color: var(--brand-500);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color 0.1s, background-color 0.1s, opacity 0.1s ease-in-out;
+}
+.pl-buybar-cart:disabled { opacity: 0.45; cursor: default; }
+.pl-buybar-buy {
+  flex: 1;
+  height: 48px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--brand-500);
+  color: #fff;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: color 0.1s, background-color 0.1s, opacity 0.1s ease-in-out;
+}
+.pl-buybar-buy:hover { background: var(--brand-600); }
+.pl-buybar-buy:disabled {
+  background: var(--surface-strong);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* ---- Mobile product page (plati anatomy) -------------------------------- */
+@media (max-width: 1023px) {
+  .mobile-buy-bar.pl-buybar { display: flex; }
+  /* content needs extra room: buy bar (68px) + tab bar (64px) */
+  body:has(.pl-buybar) { padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
+}
+
+@media (max-width: 768px) {
+  /* Breadcrumb: compact muted row like plati */
+  .product-detail-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .product-detail-breadcrumb a { color: var(--text-soft); text-decoration: none; }
+  .product-detail-breadcrumb i { font-size: 0.6rem; }
+  .product-detail-breadcrumb .current { color: #fff; font-weight: 600; }
+
+  /* Plati order: title → buy (price + options) → chips → tabs → description */
+  .product-detail-content {
+    display: flex;
+    flex-direction: column;
+  }
+  .pl-detail-meta { order: 2; margin: 0 0 4px; }
+  .pl-detail-title { order: 1; }
+  .pl-detail-buy { order: 3; }
+  .pl-trust-chips { order: 4; }
+  .pl-detail-tabs { order: 5; }
+  .pl-detail-description { order: 6; }
+  .pl-detail-features { order: 7; }
+
+  /* Title: large bold white */
+  .pl-detail-title {
+    font-size: 1.375rem;
+    line-height: 1.3;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* Price summary: big dark box like plati's price panel */
+  .package-buy.product-variation-picker {
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+  .package-buy-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+  .package-buy-price {
+    background: var(--surface-soft);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .package-buy-price strong {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .package-buy-price small { color: var(--text-muted); }
+
+  /* Variation options: full-width outlined rows (plati radio-list) */
+  .variation-option-grid,
+  .variation-option-grid.two {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .variation-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--surface-strong);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.9375rem;
+    text-align: left;
+  }
+  .variation-option.is-active {
+    border-color: var(--brand-500);
+    box-shadow: 0 0 0 1px var(--brand-500);
+    background: rgba(72, 132, 255, 0.08);
+    color: #fff;
+  }
+  .variation-option i { color: var(--brand-500); }
+  .variation-group-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  /* Section tabs: pill row like plati */
+  .pl-detail-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 6px 0 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .pl-detail-tabs::-webkit-scrollbar { display: none; }
+  .pl-detail-tabs a {
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    color: var(--text-soft);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .pl-detail-tabs a.is-active {
+    color: var(--brand-500);
+    border-color: rgba(72, 132, 255, 0.5);
+    background: rgba(72, 132, 255, 0.08);
+  }
+
+  /* Description: boxed like plati */
+  .pl-desc-heading {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 12px;
+  }
+  .pl-detail-description {
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .pl-detail-description .product-detail-description {
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+  .pl-detail-description .product-detail-description p {
+    background: var(--surface-soft);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: 0 0 10px;
+  }
+  .pl-detail-description .product-detail-description ul,
+  .pl-detail-description .product-detail-description ol {
+    background: var(--surface-soft);
+    border-radius: 12px;
+    padding: 12px 14px 12px 30px;
+    margin: 0 0 10px;
+  }
+
+  /* Features: boxed checklist */
+  .pl-detail-features {
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 16px !important;
+  }
+  .pl-detail-features li i { color: var(--success-500); }
+
+  /* Gallery / media card: rounded like plati product image */
+  .product-detail-media-col {
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  /* Hide the old in-flow action buttons on mobile — the sticky
+     plati buy bar owns purchase actions there. */
+  .package-buy-actions { display: none; }
+}
+
+/* ---- Plati patch: shop grid uses flat pl-cards -------------------------- */
+/* Extra specificity: tailwind.css loads after this sheet and paints
+   .shop-page .shop-grid .product-card with a legacy gradient skin. */
+.shop-page .shop-grid .product-card.pl-card {
+  background: var(--surface-soft);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+.shop-page .shop-grid .product-card.pl-card:hover {
+  background: var(--surface-strong);
+}
+@media (max-width: 768px) {
+  /* Single-column list cards on mobile, like plati (beats the legacy
+     two-column !important rule above via later order). */
+  .shop-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
+
+/* =============================================================================
+ * PLATI LAYER 7 — desktop product page (main box + buy sidebar + sticky bar)
+ * ===========================================================================*/
+
+/* ---- Plati buy actions (all sizes) -------------------------------------- */
+/* Measured from plati.market's live product page:
+   Buy now  — #4884FF, 48px tall, 8px radius, 16px/400, no border/shadow
+   Basket   — 48×48, rgba(72,132,255,0.2) bg, no border, #4884FF icon */
+.pl-pd-actions {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 10px;
+}
+.pl-pd-cartbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(72, 132, 255, 0.2);
+  color: var(--brand-500);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color 0.1s, background-color 0.1s, opacity 0.1s ease-in-out;
+}
+.pl-pd-cartbtn:hover:not(:disabled) { background: rgba(72, 132, 255, 0.3); }
+.pl-pd-cartbtn:disabled { opacity: 0.45; cursor: default; }
+.pl-pd-buybtn {
+  height: 48px;
+  padding: 12px 24px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--brand-500);
+  color: #fff;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.1s, background-color 0.1s, opacity 0.1s ease-in-out;
+}
+.pl-pd-buybtn:hover:not(:disabled) { background: var(--brand-600); }
+.pl-pd-buybtn:disabled {
+  background: var(--surface-strong);
+  color: var(--text-muted);
+  cursor: default;
+}
+.pl-pd-terms {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.pl-pd-terms a { color: var(--brand-500); text-decoration: none; }
+
+/* ---- Title block / meta row --------------------------------------------- */
+.pl-pd-metarow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.pl-pd-stock { color: var(--text-muted); font-size: 0.9375rem; }
+.pl-pd-dot { color: var(--text-muted); }
+.pl-pd-reviews-link {
+  color: var(--brand-500);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.pl-pd-reviews-link:hover { text-decoration: underline; }
+
+/* ---- Sidebar boxes ------------------------------------------------------- */
+.pl-pd-buybox,
+.pl-pd-sidebox {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 18px;
+}
+.pl-trust-chips.pl-pd-sidebox {
+  display: flex;
+  justify-content: space-around;
+  margin: 0;
+}
+.pl-trust-chips.pl-pd-sidebox .pl-trust-chip {
+  background: transparent;
+  border: 0;
+  padding: 4px 0;
+}
+.pl-pd-seller-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.pl-pd-seller-head i { color: var(--text-soft); }
+.pl-pd-seller-head strong { color: #fff; font-size: 1.0625rem; }
+.pl-pd-verified {
+  margin-left: auto;
+  color: var(--success-500);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.pl-pd-verified i { color: var(--success-500); font-size: 0.8125rem; }
+.pl-pd-seller-chat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  transition: background var(--dur) var(--ease-out);
+}
+.pl-pd-seller-chat:hover { background: var(--surface-strong); }
+.pl-pd-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(48, 209, 88, 0.12);
+  color: var(--success-500);
+  font-size: 0.8125rem;
+}
+.pl-pd-online i { font-size: 0.5rem; }
+
+/* ---- Desktop sticky condensed bar ---------------------------------------- */
+.pl-pd-stickybar {
+  /* Lives INSIDE .pl-header (portal target) and anchors to its bottom
+     edge (top: 100%) — always flush under the header, no gap, no
+     measurement. Fades/slides in place so it never overlaps the header. */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: none;
+  align-items: center;
+  gap: 14px;
+  padding: 10px clamp(16px, 4vw, 32px);
+  background: rgba(11, 16, 25, 0.97);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+}
+.pl-pd-stickybar.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.pl-pd-stickythumb {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  color: var(--bg);
+}
+.pl-pd-stickythumb img { width: 100%; height: 100%; object-fit: contain; }
+.pl-pd-stickytitle {
+  flex: 1;
+  min-width: 0;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-pd-stickyprice {
+  color: #fff;
+  font-size: 1.375rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pl-pd-stickybar .pl-pd-cartbtn { width: 48px; height: 44px; }
+.pl-pd-stickybar .pl-pd-buybtn { height: 44px; padding: 0 28px; }
+
+@media (min-width: 1024px) {
+  .pl-pd-stickybar { display: flex; }
+
+  /* ---- Two-column plati layout ---- */
+  .pl-pd-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 400px;
+    gap: 20px;
+    align-items: start;
+  }
+  .pl-pd-main {
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .pl-pd-top {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+  }
+  .pl-pd-top .product-detail-media-col {
+    width: 300px;
+    flex-shrink: 0;
+    position: static;
+    max-width: none;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .pl-pd-titleblock { flex: 1; min-width: 0; }
+  .pl-pd-titleblock .pl-detail-title {
+    font-size: 1.75rem;
+    line-height: 1.3;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+  }
+
+  .pl-pd-side {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Buy box internals: big price, flat picker */
+  .pl-pd-buybox .package-buy,
+  .pl-pd-buybox .product-variation-picker {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .pl-pd-buybox .package-buy-summary {
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+  .pl-pd-buybox .package-buy-price strong {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .pl-pd-buybox .package-buy-price small { color: var(--text-muted); }
+  .pl-pd-buybox .variation-option-grid,
+  .pl-pd-buybox .variation-option-grid.two {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pl-pd-buybox .variation-option {
+    justify-content: space-between;
+    min-height: 46px;
+    text-align: left;
+    font-weight: 600;
+    border-radius: 12px;
+  }
+  .pl-pd-buybox .variation-group-label {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* Desktop tabs — pill row inside the main box */
+  .pl-detail-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 16px;
+  }
+  .pl-detail-tabs a {
+    padding: 9px 18px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    color: var(--text-soft);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .pl-detail-tabs a.is-active {
+    color: var(--brand-500);
+    border-color: rgba(72, 132, 255, 0.5);
+    background: rgba(72, 132, 255, 0.08);
+  }
+  .pl-detail-tabs a:hover { color: var(--brand-500); }
+
+  /* Desktop description: heading + nested boxes (like plati) */
+  .pl-desc-heading {
+    display: block;
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 14px;
+  }
+  .pl-detail-description {
+    background: var(--bg);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .pl-detail-description .product-detail-description p {
+    background: var(--surface-soft);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 0 0 10px;
+  }
+  .pl-detail-description .product-detail-description ul,
+  .pl-detail-description .product-detail-description ol {
+    background: var(--surface-soft);
+    border-radius: 12px;
+    padding: 14px 16px 14px 32px;
+    margin: 0 0 10px;
+  }
+  .pl-detail-features {
+    background: var(--bg);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 16px;
+    padding: 16px 20px;
+  }
+  .pl-detail-features li i { color: var(--success-500); }
+}
+
+/* ---- Mobile: reflow the new wrappers into plati mobile order ------------- */
+@media (max-width: 1023px) {
+  .pl-pd-layout,
+  .pl-pd-main,
+  .pl-pd-side,
+  .pl-pd-top {
+    display: flex;
+    flex-direction: column;
+  }
+  .pl-pd-main, .pl-pd-side, .pl-pd-top { display: contents; }
+  .pl-pd-layout { gap: 0; }
+
+  .product-detail-media-col { order: 0; }
+  .pl-pd-titleblock { order: 1; margin: 12px 0; }
+  .pl-pd-buybox { order: 2; background: transparent; border: 0; padding: 0; }
+  .pl-trust-chips { order: 3; }
+  .pl-detail-tabs { order: 4; }
+  .pl-detail-description { order: 5; }
+  .pl-detail-features { order: 6; margin-bottom: 12px; }
+  .pl-pd-seller { order: 7; margin-bottom: 4px; }
+
+  .pl-trust-chips.pl-pd-sidebox {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    justify-content: flex-start;
+    gap: 10px;
+    margin: 14px 0;
+  }
+  .pl-trust-chips.pl-pd-sidebox .pl-trust-chip {
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 9px 14px;
+  }
+  /* Sticky bar is desktop-only */
+  .pl-pd-stickybar { display: none !important; }
+}
+
+/* ---- Plati promo code block (buy box) ----------------------------------- */
+.pl-promo { margin: 4px 0 14px; }
+.pl-promo-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+.pl-promo-link:hover { color: var(--brand-500); }
+.pl-promo-row {
+  display: flex;
+  gap: 8px;
+}
+.pl-promo-row input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--surface-strong);
+  background: var(--surface-soft);
+  color: var(--text);
+  font-size: 0.9375rem;
+  text-transform: uppercase;
+}
+.pl-promo-row input::placeholder { text-transform: none; }
+.pl-promo-row button {
+  height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-strong);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pl-promo-row button:hover { background: var(--brand-500); }
+.pl-promo-applied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(48, 209, 88, 0.10);
+  border: 1px solid rgba(48, 209, 88, 0.30);
+  color: var(--success-500);
+  font-size: 0.875rem;
+}
+.pl-promo-applied b { color: #fff; }
+.pl-promo-applied button {
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9375rem;
+}
+.pl-promo-applied button:hover { color: #fff; }
+.pl-promo-error {
+  margin: 8px 0 0;
+  color: var(--danger-500);
+  font-size: 0.8125rem;
+}
+
+/* ---- Product preview image: rounded plati card -------------------------- */
+.product-detail-media-col,
+.product-detail-media-col img,
+.product-detail-brand-media,
+.product-detail-icon-media {
+  border-radius: 20px;
+}
+.product-detail-media-col { overflow: hidden; }
+
+/* Buy-box price panel spacing now that it leads the box */
+.pl-pd-buybox .package-buy-summary { margin-bottom: 16px; }
+.pl-pd-buybox .package-buy-price { margin-bottom: 12px; }
+
+/* ---- Product page: tight gap under the header (plati) -------------------- */
+/* !important: legacy mobile rules force 56px/32px section padding. */
+.pl-pd-section {
+  padding-top: 18px !important;
+  padding-bottom: 40px !important;
+}
+.pl-pd-section .product-detail-breadcrumb { margin-bottom: 14px; }
+
+/* ---- Sticky main bar (plati behavior, zero-jank) --------------------------
+   The header as a whole is NOT sticky. Only .pl-main-bar (logo/search row)
+   sticks; the utility bar and category bar scroll away naturally with the
+   page — native scrolling, no collapse animation, no layout shift. */
+.pl-header {
+  position: static;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.pl-main-bar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: var(--bg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Category bar bottom edge (was on the old .pl-header wrapper) */
+.pl-catnav { border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+
+/* ---- Plati product title block ------------------------------------------- */
+.pl-pd-titleblock { position: relative; }
+
+/* Bookmark ribbon (plati top-right save button) */
+.pl-fav-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 48px;
+  border: 0;
+  border-radius: 0 0 10px 10px;
+  background: var(--surface-soft);
+  color: #fff;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: color 0.1s, background-color 0.1s ease-in-out;
+}
+.pl-fav-btn:hover { background: var(--surface-strong); }
+.pl-fav-btn.is-fav { color: var(--brand-500); }
+
+@media (min-width: 1024px) {
+  /* Big bold plati title (!important: legacy rule forces clamp() size) */
+  .pl-pd-titleblock .pl-detail-title {
+    font-size: 2.125rem !important;
+    line-height: 1.25 !important;
+    letter-spacing: 0;
+    padding-right: 60px; /* keep clear of the bookmark ribbon */
+  }
+  /* Divider between the image+title block and what follows (plati) */
+  .pl-pd-top {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 22px;
+    margin-bottom: 22px;
+  }
+}
+
+/* Meta row: muted stats + dots, matching plati type size */
+.pl-pd-metarow { gap: 12px; }
+.pl-pd-stock { font-size: 1rem; }
+.pl-pd-reviews-link { font-size: 1rem; font-weight: 500; }
+.pl-pd-dot { font-size: 0.6rem; opacity: 0.7; }
+
+/* =============================================================================
+ * CATALOG SHOP PAGE (/shop) — sidebar filters + square brand-tile grid.
+ * Tiles reuse .pl-tile / .pl-tile-media / .pl-tile-name from the homepage
+ * "Popular" rail, so brand-icon backgrounds stay consistent in one place.
+ * ========================================================================== */
+.cat-page { padding: var(--space-5) 0 var(--space-9); }
+
+/* ---- Breadcrumb + title ---- */
+.cat-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+.cat-crumbs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--dur);
+}
+.cat-crumbs a:hover { color: var(--brand-500); }
+.cat-crumbs i.fa-chevron-right { font-size: 0.6rem; opacity: 0.6; }
+.cat-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text);
+  margin: 0 0 var(--space-5);
+}
+
+/* ---- Two-column layout ---- */
+.cat-layout {
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.cat-sidebar {
+  position: sticky;
+  top: 92px;
+  padding: var(--space-5);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.cat-main { min-width: 0; }
+
+/* ---- Sidebar filters ---- */
+.cat-filter-block { padding: var(--space-4) 0; border-top: 1px solid var(--border); }
+.cat-filter-block:first-child { padding-top: 0; border-top: none; }
+.cat-filter-title {
+  font-family: var(--font-heading);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 var(--space-3);
+}
+.cat-filter-search {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  margin-bottom: var(--space-3);
+}
+.cat-filter-search::placeholder { color: var(--text-muted); }
+.cat-filter-search:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  background: rgba(255, 255, 255, 0.06);
+}
+.cat-filter-empty { color: var(--text-muted); font-size: var(--fs-sm); margin: 0; }
+
+/* Radio list — single-select category */
+.cat-radio-list { display: grid; gap: 2px; }
+.cat-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-soft);
+  font-size: var(--fs-sm);
+  transition: background var(--dur), color var(--dur);
+}
+.cat-radio:hover { background: rgba(255, 255, 255, 0.04); color: var(--text); }
+.cat-radio.is-on { color: var(--text); }
+/* Visually hidden but still focusable + exposed to screen readers.
+   A zero-size input cannot receive focus, which would strand keyboard users. */
+.cat-radio input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.cat-radio-dot {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  display: grid;
+  place-items: center;
+  transition: border-color var(--dur);
+}
+.cat-radio-dot::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-500);
+  transform: scale(0);
+  transition: transform var(--dur);
+}
+.cat-radio.is-on .cat-radio-dot { border-color: var(--brand-500); }
+.cat-radio.is-on .cat-radio-dot::after { transform: scale(1); }
+.cat-radio input:focus-visible + .cat-radio-dot {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+.cat-radio-label { min-width: 0; }
+.cat-radio small { margin-left: auto; color: var(--text-muted); font-size: var(--fs-xs); }
+
+.cat-show-all {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-top: var(--space-3);
+  color: #4884ff;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.cat-show-all:hover { text-decoration: underline; }
+
+/* In-stock switch */
+.cat-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+.cat-toggle-row .cat-filter-title { margin: 0; }
+.cat-switch {
+  appearance: none;
+  flex-shrink: 0;
+  width: 46px;
+  height: 26px;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: background var(--dur);
+}
+.cat-switch.is-on { background: var(--brand-500); }
+.cat-switch-knob {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translateX(0);
+  transition: transform var(--dur);
+}
+.cat-switch.is-on .cat-switch-knob { transform: translateX(20px); }
+
+/* Alphabetical index */
+.cat-alpha { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.cat-alpha-btn {
+  appearance: none;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-soft);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur), color var(--dur), border-color var(--dur);
+}
+.cat-alpha-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+.cat-alpha-btn.is-on {
+  background: var(--brand-500);
+  border-color: var(--brand-500);
+  color: #fff;
+}
+.cat-alpha-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.cat-alpha-all { color: var(--brand-500); }
+
+.cat-reset {
+  appearance: none;
+  width: 100%;
+  margin-top: var(--space-4);
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur);
+}
+.cat-reset:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* ---- Result bar ---- */
+.cat-resultbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: var(--space-4);
+}
+.cat-found { color: var(--text-soft); font-size: var(--fs-sm); }
+.cat-found strong { color: var(--text); font-weight: 700; }
+.cat-resultbar-actions { display: flex; align-items: center; gap: var(--space-3); }
+.cat-sort { display: flex; align-items: center; gap: 8px; color: var(--text-soft); }
+.cat-sort i { font-size: 0.8rem; }
+
+/* Icon triggers — mobile only; on desktop the sidebar and sort are visible. */
+.cat-icon-btn { display: none; }
+
+/* ---- Product search ---- */
+.cat-search { position: relative; margin-bottom: var(--space-4); }
+.cat-search > i {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+.cat-search input {
+  width: 100%;
+  height: 48px;
+  padding: 0 44px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--fs-md);
+}
+.cat-search input::placeholder { color: var(--text-muted); }
+.cat-search input:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  background: rgba(255, 255, 255, 0.05);
+}
+.cat-search > button {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.cat-search > button:hover { background: rgba(255, 255, 255, 0.12); color: var(--text); }
+
+/* ---- Tile grid ---- */
+.cat-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 1400px) { .cat-tile-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (max-width: 1200px) { .cat-tile-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* ---- Empty state ---- */
+.cat-empty {
+  padding: var(--space-8) var(--space-5);
+  text-align: center;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.cat-empty-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-3);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+.cat-empty h3 { font-family: var(--font-heading); color: var(--text); margin: 0 0 6px; }
+.cat-empty p { color: var(--text-soft); margin: 0 0 var(--space-4); }
+
+/* ---- Mobile filter sheet ---- */
+.cat-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.cat-sheet-backdrop.is-open { opacity: 1; pointer-events: auto; }
+.cat-sheet {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 81;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.3s ease-out;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.cat-sheet.is-open { transform: translateY(0); }
+.cat-sheet-grabber { display: grid; place-items: center; padding: 12px 0 6px; flex-shrink: 0; }
+.cat-sheet-grabber span { width: 40px; height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.2); }
+.cat-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.cat-sheet-head h3 { font-family: var(--font-heading); font-size: 1.0625rem; color: var(--text); margin: 0; }
+.cat-sheet-head button {
+  appearance: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.cat-sheet-body { flex: 1; overflow-y: auto; padding: var(--space-4) 20px; }
+.cat-sheet-foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.cat-sheet-reset,
+.cat-sheet-apply {
+  appearance: none;
+  height: 48px;
+  border-radius: 10px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.cat-sheet-reset {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+.cat-sheet-apply { border: 0; background: var(--brand-500); color: #fff; }
+/* The sheet reuses the panel, so hide its inner reset — the footer has one. */
+.cat-sheet-body .cat-reset { display: none; }
+
+/* Desktop: the sidebar is always visible, so the sheet must not exist at all.
+   display:none also removes its duplicate filter panel from the a11y tree. */
+@media (min-width: 1024px) {
+  .cat-sheet,
+  .cat-sheet-backdrop { display: none; }
+}
+
+/* ---- Mobile: sidebar collapses into the sheet ---- */
+@media (max-width: 1023px) {
+  .cat-layout { grid-template-columns: minmax(0, 1fr); }
+  .cat-sidebar { display: none; }
+  /* Tighter vertical rhythm — the desktop 16/24px gaps read as dead space on
+     a phone. Bottom padding only needs to clear the fixed .pl-tabbar (59px). */
+  .cat-page {
+    padding-top: var(--space-3);
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+  .cat-crumbs { margin-bottom: 6px; }
+  .cat-title { margin-bottom: var(--space-3); }
+  .cat-resultbar { margin-bottom: var(--space-3); }
+  .cat-search { margin-bottom: var(--space-3); }
+  /* The homepage "Popular" rail pins .pl-tile / .pl-tile-media to a fixed
+     112px for horizontal scrolling. The shop grid shares those classes, so
+     restore fluid sizing or 3 columns overflow a 375px screen. */
+  .cat-tile-grid .pl-tile { flex: initial; width: auto; }
+  .cat-tile-grid .pl-tile-media {
+    width: auto;
+    height: auto;
+    aspect-ratio: 3 / 4;
+    border-radius: 12px;
+  }
+  /* Sort moves into a sheet behind an icon; hide the inline dropdown. */
+  .cat-sort { display: none; }
+  .cat-icon-btn {
+    display: grid;
+    place-items: center;
+    position: relative;
+    appearance: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
+    font-size: 0.9375rem;
+    cursor: pointer;
+  }
+  .cat-icon-btn:active { background: rgba(255, 255, 255, 0.1); }
+  /* Sits on the icon button's corner rather than beside a text label. */
+  .cat-filter-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    display: grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--brand-500);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+  }
+  .cat-tile-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+
+  /* Sort sheet is short — size to content instead of filling the screen. */
+  .cat-sheet-compact { max-height: 70vh; }
+  .cat-sheet-compact .cat-sheet-body { padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 560px) {
+  /* 4 across — ~84px tiles at 375px, ~74px at 320px. */
+  .cat-tile-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .cat-tile-grid .pl-tile { gap: 6px; }
+  .cat-resultbar { padding: 12px 14px; }
+  .cat-title { margin-bottom: var(--space-4); }
+  .cat-alpha { grid-template-columns: repeat(9, 1fr); }
+  /* Smaller tiles need smaller labels and tighter media padding. */
+  .cat-tile-grid .pl-tile-name { font-size: 0.6875rem; line-height: 1.3; }
+  .cat-tile-grid .pl-tile-media { border-radius: 10px; }
+  .cat-tile-grid .pl-tile-media img { padding: 6px; }
+  /* ProductTile passes a fixed iconSize={64}, too big for an ~84px tile.
+     A transform scales both the SVG icons and the monogram <span>s, whose
+     inline width/height a plain width rule could not override. */
+  .cat-tile-grid .pl-tile-media > svg,
+  .cat-tile-grid .pl-tile-media > span { transform: scale(0.7); }
+}
+
+/* =============================================================================
+ * PRODUCT DETAIL (desktop) — square media + sticky buy panel.
+ * ========================================================================== */
+@media (min-width: 1024px) {
+  /* Square product media. Was a fixed 420px against a 300px column (1:1.4
+     portrait); the reference card uses a 1:1 tile, which pulls the title and
+     meta row up and shortens the whole left card. aspect-ratio keeps it
+     square if the column width ever changes. */
+  .pl-pd-top .product-detail-brand-media,
+  .pl-pd-top .product-detail-icon-media,
+  .pl-pd-top .product-gallery-stage {
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+
+  /* Sticky buy panel, so it stays beside the description while scrolling.
+     The panel can be taller than the viewport (buy box + trust chips +
+     seller box ≈ 925px), and a sticky element taller than its viewport slot
+     leaves its bottom permanently unreachable — so cap the height and let it
+     scroll internally. No scrollbar appears when the content fits. */
+  .pl-pd-side {
+    position: sticky;
+    top: 92px;
+    max-height: calc(100vh - 104px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .pl-pd-side::-webkit-scrollbar { width: 6px; }
+  .pl-pd-side::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+  }
+
+  /* The condensed bar that slid under the header existed because the buy box
+     scrolled away. The sticky panel replaces it, and showing both would put
+     two Buy controls on screen at once. */
+  .pl-pd-stickybar { display: none !important; }
+}
+
+/* Product title: uppercase on desktop to match the reference card. Display
+   only — the stored name keeps its own capitalisation everywhere else (cards,
+   cart, emails, metadata), so "Claude Ai" is untouched in the database.
+   Uppercase runs wider and taller, so tighten tracking and leading to keep a
+   long name on two lines. */
+@media (min-width: 1024px) {
+  .pl-pd-titleblock .pl-detail-title {
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    /* !important to beat an earlier `line-height: 1.25 !important` on this
+       same selector — matching how the surrounding overrides are written. */
+    line-height: 1.15 !important;
+  }
+}
+
+/* =============================================================================
+ * CART PAGE — plain "Cart" title, big empty-state card, Recommended row.
+ * .cart-grid / .cart-line-row / .cart-sticky-cta already have styles earlier
+ * in this file (including the mobile single-column collapse); only the new
+ * pieces are defined here.
+ * ========================================================================== */
+.cart-page { padding: var(--space-5) 0 var(--space-9); }
+
+.cart-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0 0 var(--space-4);
+}
+.cart-count-line {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: calc(var(--space-4) * -1 + -4px) 0 var(--space-4);
+}
+
+/* ---- Empty state ---- */
+.cart-empty {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  padding: var(--space-8) var(--space-5);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.cart-empty-icon {
+  font-size: 2.5rem;
+  color: var(--text-soft);
+  margin-bottom: var(--space-4);
+}
+.cart-empty-title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+.cart-empty-text {
+  color: var(--text-soft);
+  font-size: var(--fs-sm);
+  margin: 0 0 var(--space-5);
+  max-width: 46ch;
+}
+.cart-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 24px;
+  border-radius: 10px;
+  background: var(--brand-500);
+  color: #fff;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--dur);
+}
+.cart-empty-btn:hover { background: var(--brand-600); }
+
+/* Keep the summary panel alongside the line items while scrolling. */
+.cart-summary { position: sticky; top: 92px; }
+
+/* ---- Recommended row ---- */
+.cart-reco { margin-top: var(--space-7); }
+.cart-reco-head {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 var(--space-4);
+}
+
+@media (max-width: 880px) {
+  /* Sticky is pointless once the summary stacks under the line items. */
+  .cart-summary { position: static; }
+
+  /* Pre-existing bug: the base `.cart-sticky-cta { display: none }` is
+     declared AFTER the earlier `@media (max-width: 880px) { display: flex }`
+     that is meant to reveal it. Equal specificity, so later source order won
+     and the mobile checkout bar never showed. Re-assert it from here, at the
+     end of the file. */
+  .cart-sticky-cta { display: flex; }
+}
+@media (max-width: 560px) {
+  .cart-page { padding-top: var(--space-3); }
+  .cart-empty { padding: var(--space-7) var(--space-4); }
+  .cart-reco { margin-top: var(--space-5); }
 }

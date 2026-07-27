@@ -68,7 +68,6 @@ export default function ProductForm({
   const [category, setCategory] = useState<CategoryValue>((product?.category as CategoryValue) ?? "ai-subscriptions");
   const [mediaClass, setMediaClass] = useState<MediaValue>((product?.media_class as MediaValue) ?? "media-blue");
   const [brand, setBrand] = useState<string>(product?.brand ?? "");
-  const [iconBgColor, setIconBgColor] = useState<string>(product?.icon_bg_color ?? "");
   const [displaySource, setDisplaySource] = useState<"image" | "brand" | "auto">(
     product?.display_source === "image" || product?.display_source === "brand" ? product.display_source : "auto"
   );
@@ -181,12 +180,10 @@ export default function ProductForm({
             displaySource === "brand" ? (brand ? "brand" : imageUrl ? "image" : "none") :
             imageUrl ? "image" : brand ? "brand" : "none";
           const showBrandTile = effective === "brand";
-          const tileBg = iconBgColor || undefined;
           return (
             <div className="admin-product-preview">
               <div
                 className={`admin-product-preview-media ${effective === "image" ? mediaClass : "admin-product-preview-plain"}`}
-                style={effective === "brand" && tileBg ? { background: tileBg } : undefined}
               >
                 {effective === "image" ? (
                   <>
@@ -332,49 +329,6 @@ export default function ProductForm({
             still works for products that use a custom cover image. The visual
             picker was removed in favour of the unified colour picker below. */}
         <input type="hidden" name="media_class" value={mediaClass} />
-
-        {/* Brand-icon background colour picker. Only relevant when the brand
-            icon (not the image) is the displayed visual. */}
-        <div style={{ marginTop: 18 }}>
-          <label className="admin-label">Icon background colour (brand-icon view)</label>
-          <p className="admin-help" style={{ marginTop: 0, marginBottom: 10 }}>
-            Pick any colour to sit behind the brand icon. Leave blank to use the card surface.
-          </p>
-          <div className="admin-color-row">
-            <button
-              type="button"
-              className={`admin-color-swatch ${iconBgColor === "" ? "is-active" : ""}`}
-              onClick={() => setIconBgColor("")}
-              title="No background (use card surface)"
-              style={{ background: "var(--surface-2)" }}
-            >
-              <i className="fa-solid fa-ban" style={{ color: "var(--text-muted)", fontSize: 14 }}></i>
-            </button>
-            {["#FFFFFF", "#10A37F", "#4796E3", "#D97757", "#7B68EE", "#3471EF", "#0F172A", "#EA4B71"].map((c) => (
-              <button
-                key={c}
-                type="button"
-                className={`admin-color-swatch ${iconBgColor.toLowerCase() === c.toLowerCase() ? "is-active" : ""}`}
-                onClick={() => setIconBgColor(c)}
-                title={c}
-                style={{ background: c }}
-              />
-            ))}
-            <label className="admin-color-custom" title="Pick any colour">
-              <input
-                type="color"
-                value={iconBgColor || "#ffffff"}
-                onChange={(e) => setIconBgColor(e.target.value)}
-              />
-              <i className="fa-solid fa-palette"></i>
-              <span>Custom</span>
-            </label>
-            {iconBgColor && (
-              <span className="admin-color-value">{iconBgColor.toUpperCase()}</span>
-            )}
-          </div>
-          <input type="hidden" name="icon_bg_color" value={iconBgColor} />
-        </div>
 
         {/* Legacy FontAwesome fallback â€” preserved invisibly for existing rows. */}
         <input type="hidden" name="icon_class" value={product?.icon_class ?? "fa-solid fa-cube"} />

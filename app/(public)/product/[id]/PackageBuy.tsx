@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useCart } from "@/lib/cart";
+import { validateCoupon } from "@/lib/coupon-actions";
 import { useFx, formatPriceFromPKR } from "@/lib/fx";
 import { getStartingPrice, hasMultiplePrices } from "@/lib/pricing";
 import type { Product } from "@/lib/products";
@@ -26,7 +27,23 @@ export default function PackageBuy({ product }: { product: Product }) {
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showStickyBar, setShowStickyBar] = useState(false);
+  // Promo code UI — "Have a promo code?" reveals the input (plati style).
+  const [promoOpen, setPromoOpen] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [promoError, setPromoError] = useState("");
+  const [promoPending, startPromo] = useTransition();
   useEffect(() => setMounted(true), []);
+  // Plati-style condensed sticky bar — appears once the in-flow buy box
+  // scrolls out of view (desktop only; CSS hides it below 1024px). The bar
+  // is portaled INTO the sticky header and absolutely anchored to its
+  // bottom edge (top: 100%), so it always sits flush under the header.
+  useEffect(() => {
+    const onScroll = () => setShowStickyBar(window.scrollY > 380);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const selectedPlan = config.plans.find((p) => p.id === selectedPlanId) ?? null;
   const selectedDuration = config.durations.find((d) => d.id === selectedDurationId) ?? null;
@@ -90,9 +107,96 @@ export default function PackageBuy({ product }: { product: Product }) {
     ? startingPriceLabel
     : formatPriceFromPKR(total, currency, usdToPkr, fxReady, usdToInr);
 
+  function applyPromo() {
+    const code = promoInput.trim();
+    if (!code) { setPromoError("Enter a promo code."); return; }
+    startPromo(async () => {
+      const res = await validateCoupon(code);
+      if (res.ok) {
+        cart.applyCoupon({ code: res.coupon.code, discountType: res.coupon.discountType, value: res.coupon.value });
+        setPromoError("");
+        setPromoOpen(false);
+        setPromoInput("");
+      } else {
+        setPromoError(res.error);
+      }
+    });
+  }
+
   return (
     <>
+      {/* Plati buy-box order: price → promo code → buttons → terms → options */}
       <div className="package-buy product-variation-picker">
+        <div className="package-buy-summary">
+          <div className="package-buy-price">
+            <strong>{totalLabel}</strong>
+            <small>
+              {selectedPrice == null
+                ? "Select Plan, Account Type, and Duration"
+                : `${perUnitLabel} each`}
+            </small>
+          </div>
+
+          {/* Promo code — validated against /admin/coupons via server action */}
+          <div className="pl-promo">
+            {cart.coupon ? (
+              <div className="pl-promo-applied">
+                <span>
+                  <i className="fa-solid fa-ticket"></i> <b>{cart.coupon.code}</b> applied
+                  {" — "}
+                  {cart.coupon.discountType === "percent"
+                    ? `${cart.coupon.value}% off`
+                    : `${formatPriceFromPKR(cart.coupon.value, currency, usdToPkr, fxReady, usdToInr)} off`}
+                  {" at checkout"}
+                </span>
+                <button type="button" onClick={() => cart.removeCoupon()} aria-label="Remove promo code">
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            ) : promoOpen ? (
+              <div className="pl-promo-row">
+                <input
+                  type="text"
+                  value={promoInput}
+                  onChange={(e) => { setPromoInput(e.target.value); setPromoError(""); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") applyPromo(); }}
+                  placeholder="Enter promo code"
+                  aria-label="Promo code"
+                  autoFocus
+                />
+                <button type="button" onClick={applyPromo} disabled={promoPending}>
+                  {promoPending ? "…" : "Apply"}
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="pl-promo-link" onClick={() => setPromoOpen(true)}>
+                Have a promo code?
+              </button>
+            )}
+            {promoError && <p className="pl-promo-error">{promoError}</p>}
+          </div>
+
+          {/* Plati actions: square basket button + wide blue "Buy now" */}
+          <div className="package-buy-actions pl-pd-actions">
+            <button
+              type="button"
+              className="pl-pd-cartbtn"
+              onClick={addToCart}
+              disabled={!isComplete}
+              aria-label={added ? "Added to cart" : "Add to cart"}
+              title={added ? "Added to cart" : "Add to cart"}
+            >
+              <i className={`fa-solid ${added ? "fa-check" : "fa-basket-shopping"}`}></i>
+            </button>
+            <button type="button" className="pl-pd-buybtn" onClick={handleBuyNow} disabled={!isComplete}>
+              Buy now
+            </button>
+          </div>
+          <p className="pl-pd-terms">
+            By clicking the button, you agree to our <a href="/terms">terms for buyers</a>
+          </p>
+        </div>
+
         <OptionGroup
           label="Plan"
           options={config.plans}
@@ -133,40 +237,54 @@ export default function PackageBuy({ product }: { product: Product }) {
             <button type="button" onClick={() => setQty((n) => Math.min(99, n + 1))} aria-label="Increase quantity">+</button>
           </div>
         </div>
-
-        <div className="package-buy-summary">
-          <div className="package-buy-price">
-            <strong>{totalLabel}</strong>
-            <small>
-              {selectedPrice == null
-                ? "Select Plan, Account Type, and Duration"
-                : `${perUnitLabel} each`}
-            </small>
-          </div>
-
-          <div className="package-buy-actions">
-            <button type="button" className="btn btn-primary btn-large" onClick={addToCart} disabled={!isComplete}>
-              {added ? <><i className="fa-solid fa-check"></i> Added to cart</> : <><i className="fa-solid fa-cart-shopping"></i> Add to cart</>}
-            </button>
-            <button type="button" className="btn btn-outline btn-large" onClick={handleBuyNow} disabled={!isComplete}>
-              Buy now <i className="fa-solid fa-arrow-right"></i>
-            </button>
-          </div>
-        </div>
       </div>
 
-      {mounted && createPortal(
-        <div className="mobile-buy-bar" role="region" aria-label="Add to cart">
-          <div className="mobile-buy-bar-info">
-            <small>{isComplete ? variationSummary(buildSelection()!) : "Select options"}</small>
-            <strong>{totalLabel}</strong>
-          </div>
-          <button type="button" className="btn btn-primary mobile-buy-bar-cta" onClick={addToCart} disabled={!isComplete}>
-            {added ? (
-              <><i className="fa-solid fa-check"></i> Added</>
+      {mounted && (document.querySelector(".pl-main-bar") || null) && createPortal(
+        /* Desktop sticky condensed bar (plati): thumb + title + price +
+           basket + Buy Now. Lives inside the sticky main bar, anchored to
+           its bottom edge — always flush underneath it. */
+        <div className={`pl-pd-stickybar ${showStickyBar ? "is-visible" : ""}`} role="region" aria-label="Buy this product">
+          <span className="pl-pd-stickythumb" aria-hidden>
+            {product.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={product.imageUrl} alt="" />
             ) : (
-              <><i className="fa-solid fa-cart-shopping"></i> Add</>
+              <i className={product.iconClass}></i>
             )}
+          </span>
+          <strong className="pl-pd-stickytitle">{product.name}</strong>
+          <strong className="pl-pd-stickyprice">{totalLabel}</strong>
+          <button
+            type="button"
+            className="pl-pd-cartbtn"
+            onClick={addToCart}
+            disabled={!isComplete}
+            aria-label={added ? "Added to cart" : "Add to cart"}
+          >
+            <i className={`fa-solid ${added ? "fa-check" : "fa-basket-shopping"}`}></i>
+          </button>
+          <button type="button" className="pl-pd-buybtn" onClick={handleBuyNow} disabled={!isComplete}>
+            Buy Now
+          </button>
+        </div>,
+        document.querySelector(".pl-main-bar")!,
+      )}
+
+      {mounted && createPortal(
+        /* Plati-style sticky buy bar: square cart button + wide blue
+           "Buy now for <price>" button, pinned above the mobile tab bar. */
+        <div className="mobile-buy-bar pl-buybar" role="region" aria-label="Buy this product">
+          <button
+            type="button"
+            className="pl-buybar-cart"
+            onClick={addToCart}
+            disabled={!isComplete}
+            aria-label={added ? "Added to cart" : "Add to cart"}
+          >
+            <i className={`fa-solid ${added ? "fa-check" : "fa-basket-shopping"}`}></i>
+          </button>
+          <button type="button" className="pl-buybar-buy" onClick={handleBuyNow} disabled={!isComplete}>
+            {isComplete ? `Buy now for ${totalLabel}` : "Select options above"}
           </button>
         </div>,
         document.body,

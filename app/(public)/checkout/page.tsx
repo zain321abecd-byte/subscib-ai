@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart";
 import { formatPriceFromPKR, useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
 import { apiUrl, authHeaders } from "@/lib/api-client";
+import { redeemCoupon } from "@/lib/coupon-actions";
 import { paymentFeatureDescription, paymentFeatureTitle } from "@/lib/payment-messaging";
 import type { CartItem } from "@/lib/cart";
 
@@ -84,9 +85,10 @@ export default function CheckoutPage() {
     }
   }, [pendingPost]);
 
-  const pkrTotal = Math.round(cart.subtotal);
+  // Coupon-aware totals — cart.total = subtotal - discount (PKR canonical).
+  const pkrTotal = Math.round(cart.total);
   const pkrFormatted = pkrTotal.toLocaleString("en-PK");
-  const usdTotal = fxReady && usdToPkr > 0 ? cart.subtotal / usdToPkr : 0;
+  const usdTotal = fxReady && usdToPkr > 0 ? cart.total / usdToPkr : 0;
   const usdFormatted = usdTotal.toFixed(2);
   const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
 
@@ -143,6 +145,23 @@ export default function CheckoutPage() {
       setStatus("failed");
       setMessage(err instanceof Error ? err.message : "Could not verify the selected plan price.");
       return;
+    }
+    // Applied promo code → negative-price line item, so the recorded order,
+    // the charged amount, and the admin order view all agree on the discount.
+    if (cart.coupon && cart.discount > 0) {
+      const preDiscount = orderItemsSnapshot.reduce((sum, item) => sum + Number(item.price) * Number(item.qty || 1), 0);
+      const discountAmount = Math.min(
+        Math.round(preDiscount),
+        Math.round(cart.coupon.discountType === "percent" ? (preDiscount * cart.coupon.value) / 100 : cart.coupon.value),
+      );
+      if (discountAmount > 0) {
+        orderItemsSnapshot.push({
+          id: `promo-${cart.coupon.code.toLowerCase()}`,
+          name: `Promo code ${cart.coupon.code}`,
+          price: -discountAmount,
+          qty: 1,
+        });
+      }
     }
     const orderSubtotalSnapshot = orderItemsSnapshot.reduce((sum, item) => sum + Number(item.price) * Number(item.qty || 1), 0);
     const checkoutPkrTotal = Math.round(orderSubtotalSnapshot);
@@ -203,6 +222,11 @@ export default function CheckoutPage() {
       setStatus("failed");
       setMessage(err instanceof Error ? err.message : "Could not create the order. Please try again.");
       return;
+    }
+
+    // Count the promo redemption (best-effort — never blocks payment).
+    if (cart.coupon && cart.discount > 0) {
+      redeemCoupon(cart.coupon.code).catch(() => {});
     }
 
     // Record local snapshot as pending before handing off to PayFast.
@@ -343,6 +367,23 @@ export default function CheckoutPage() {
                 </li>
               ))}
             </ul>
+            {cart.coupon && cart.discount > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10, color: "var(--success-500)", fontSize: "var(--fs-sm)" }}>
+                <span>
+                  <i className="fa-solid fa-ticket" style={{ marginRight: 6 }}></i>
+                  Promo {cart.coupon.code}
+                  <button
+                    type="button"
+                    onClick={() => cart.removeCoupon()}
+                    aria-label="Remove promo code"
+                    style={{ marginLeft: 8, background: "none", border: 0, color: "var(--text-muted)", cursor: "pointer", fontSize: "var(--fs-xs)" }}
+                  >
+                    remove
+                  </button>
+                </span>
+                <span>−{fmtMoney(cart.discount)}</span>
+              </div>
+            )}
             <div style={{ paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "baseline", color: "var(--text)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-lg)" }}>
               <span>Total</span>
               <span style={{ textAlign: "right" }}>

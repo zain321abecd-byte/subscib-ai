@@ -18,8 +18,6 @@ export type Product = {
   showOnHomepage?: boolean;
   /** Cloudinary or external image, set via admin panel. Optional. */
   imageUrl?: string;
-  /** Hex color (e.g. "#10A37F") rendered behind the brand icon. */
-  iconBgColor?: string;
   /** "image" | "brand". Which visual to show as the main media when both
    *  are set. Undefined → auto (image > brand). */
   displaySource?: "image" | "brand";
@@ -60,7 +58,6 @@ function rowToProduct(row: ProductRow): Product {
     featured: row.featured,
     showOnHomepage: row.show_on_homepage ?? false,
     imageUrl: row.image_url ?? undefined,
-    iconBgColor: row.icon_bg_color ?? undefined,
     displaySource: row.display_source === "image" || row.display_source === "brand" ? row.display_source : undefined,
     gallery: Array.isArray(row.gallery) ? row.gallery.filter((u) => typeof u === "string") : undefined,
     inStock: row.in_stock,
@@ -97,7 +94,6 @@ const LOCAL_FALLBACK_PRODUCTS: Product[] = [
     category: "ai-subscriptions",
     featured: true,
     imageUrl: "https://res.cloudinary.com/dumhqo90g/image/upload/v1783246755/subscribai/products/kttbw1w8cbknkwjixede.jpg",
-    iconBgColor: "#FFFFFF",
     inStock: true,
     showInRelated: true,
     relatedProductIds: ["claude-ai"],
@@ -126,7 +122,6 @@ const LOCAL_FALLBACK_PRODUCTS: Product[] = [
     mediaClass: "media-blue",
     category: "ai-subscriptions",
     featured: true,
-    iconBgColor: "#D97757",
     inStock: true,
     showInRelated: true,
     relatedProductIds: ["chatgpt"],
