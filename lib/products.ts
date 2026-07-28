@@ -39,6 +39,8 @@ export type Product = {
   variationConfig?: unknown;
   /** Custom bullet lines shown under the price on the product detail page. */
   features?: string[];
+  /** Last DB write. Used for a truthful sitemap <lastmod>; absent on seed data. */
+  updatedAt?: string;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,6 +76,7 @@ function rowToProduct(row: ProductRow): Product {
     features: Array.isArray(row.features)
       ? row.features.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
       : undefined,
+    updatedAt: row.updated_at || row.created_at || undefined,
   };
 }
 

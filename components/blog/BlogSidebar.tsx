@@ -9,35 +9,13 @@ export default function BlogSidebar({ posts, popularPosts }: { posts: Post[]; po
   const categories = getBlogCategories(posts);
   const tags = getBlogTags(posts).slice(0, 24);
   const archives = getBlogArchives(posts).slice(0, 6);
-  const referenceRecent = [
-    "CapCut Pro Free Trial Method",
-    "Sora AI Viral Prompts",
-    "How to Unlock Perplexity Pro Using Comet",
-    "How to Get 1 Year Google AI Pro for Free",
-    "Save Bulk Unknown WhatsApp Numbers",
-  ];
-  const comments = [
-    "Hasnain on Sora AI Viral Prompts",
-    "Ali Shahbaz on How to Get 1 Year Google AI Pro for Free",
-    "SubscribAI Reader on CapCut Pro Free Trial Method",
-  ];
-  const referenceTags = [
-    "ai tools",
-    "capcut pro",
-    "premium subscription",
-    "video editing",
-    "google ai",
-    "perplexity pro",
-    "whatsapp tools",
-    "digital products",
-    "free trial",
-    "content creation",
-    "canva pro",
-    "chatgpt",
-    "claude",
-    "sora ai",
-    ...tags.map((tag) => tag.toLowerCase()),
-  ].filter((tag, index, arr) => arr.indexOf(tag) === index).slice(0, 28);
+  // Tags come from published posts only. This list used to be padded with a
+  // dozen hardcoded placeholder tags, which advertised topics that had no posts
+  // behind them and sent readers to empty filter pages.
+  const realTags = tags
+    .map((tag) => tag.toLowerCase())
+    .filter((tag, index, arr) => arr.indexOf(tag) === index)
+    .slice(0, 28);
 
   return (
     <aside className="pro-blog-sidebar" aria-label="Blog sidebar">
@@ -51,27 +29,13 @@ export default function BlogSidebar({ posts, popularPosts }: { posts: Post[]; po
         </form>
       </section>
 
-      <section className="pro-sidebar-card">
-        <h3>Recent Posts</h3>
-        <ul className="blog-widget-list">
-          {referenceRecent.map((title) => (
-            <li key={title}>
-              <Link href={title === "CapCut Pro Free Trial Method" ? "/blog/capcut-pro-free-method" : "/blog"}>
-                {title}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="pro-sidebar-card">
-        <h3>Recent Comments</h3>
-        <ul className="blog-widget-list">
-          {comments.map((comment) => (
-            <li key={comment}><Link href="/blog/capcut-pro-free-method">{comment}</Link></li>
-          ))}
-        </ul>
-      </section>
+      {/* "Recent Posts" and "Recent Comments" widgets were removed. Both were
+          hardcoded placeholder data: five post titles that do not exist (four
+          linking to /blog, one to a non-existent /blog/capcut-pro-free-method
+          which returned 404 and wasted crawl budget) and three invented
+          comments attributed to named people. There is no comments feature to
+          populate, and the real post list is already rendered by the "Latest
+          Posts" widget further down. */}
 
       <section className="pro-sidebar-card">
         <h3>Author</h3>
@@ -128,7 +92,7 @@ export default function BlogSidebar({ posts, popularPosts }: { posts: Post[]; po
 
       <section className="pro-sidebar-card">
         <h3>Tag Cloud</h3>
-        <TagCloud tags={referenceTags} />
+        <TagCloud tags={realTags} />
       </section>
 
       <section className="pro-sidebar-card">
