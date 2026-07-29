@@ -1,3 +1,4 @@
+import { getSupabaseAdmin, hasServiceRole } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { createReview, deleteReview, updateReview } from "./actions";
 import DeleteSubmit from "./DeleteSubmit";
@@ -22,7 +23,15 @@ export default async function ReviewsAdminPage({
   searchParams: Promise<Record<string, string>>;
 }) {
   const params = await searchParams;
-  const supabase = await getSupabaseServer();
+  /**
+   * Read with the service role so moderators can see unapproved reviews.
+   * The RLS policy is `approved = true or is_admin()`, and `is_admin()` reads
+   * `auth.uid()` from a Supabase Auth session — which the portal's own JWT
+   * cookie never creates. With the anon client this page silently showed only
+   * already-approved rows, so anything pending moderation was invisible here.
+   */
+  const serviceRole = hasServiceRole();
+  const supabase = serviceRole ? getSupabaseAdmin() : await getSupabaseServer();
   const { data, error } = await supabase
     .from("reviews")
     .select("*")
@@ -44,6 +53,24 @@ export default async function ReviewsAdminPage({
           {params.created && "Review created."}
           {params.updated && "Review updated."}
           {params.deleted && "Review deleted."}
+        </div>
+      )}
+
+      {/* Write failures redirect here with ?error=... . This banner was missing,
+          so a rejected insert looked identical to a successful one: the form
+          submitted, the page came back, and no review appeared. */}
+      {params.error && (
+        <div className="admin-card" style={{ background: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)", color: "#fca5a5", marginBottom: 14 }}>
+          <strong>Could not save.</strong> {params.error}
+        </div>
+      )}
+
+      {!serviceRole && (
+        <div className="admin-card" style={{ background: "rgba(245,158,11,0.10)", borderColor: "rgba(245,158,11,0.30)", color: "#fcd34d", marginBottom: 14 }}>
+          <strong>SUPABASE_SERVICE_ROLE_KEY is not set.</strong> Row-level security
+          will reject new reviews, and any review awaiting approval is hidden from
+          this list. Add the key in Vercel → Settings → Environment Variables
+          (Production) and redeploy.
         </div>
       )}
 
