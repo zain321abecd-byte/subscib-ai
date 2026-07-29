@@ -39,6 +39,22 @@ export default async function ReviewsAdminPage({
     .order("created_at", { ascending: false });
   const reviews = (data ?? []) as ReviewRow[];
 
+  /**
+   * Pre-fill the new-review Sort order with the next free slot. It was a
+   * constant 0, so every review added tied for first place and their real order
+   * fell through to the created_at tiebreaker.
+   *
+   * Taking the max of (highest existing sort_order, row count) is right in both
+   * directions: rows still sitting on the old default of 0 get a sensible
+   * count-based number (7 existing reviews -> 8), and a gap left by a deleted
+   * review can't produce a collision (orders 1,2,3,9 with 4 rows -> 10).
+   */
+  const nextSortOrder =
+    Math.max(
+      reviews.reduce((max, r) => Math.max(max, Number(r.sort_order) || 0), 0),
+      reviews.length
+    ) + 1;
+
   return (
     <>
       <header className="admin-page-head">
@@ -101,7 +117,14 @@ export default async function ReviewsAdminPage({
         <div className="admin-row cols-3">
           <FloatField name="rating" type="number" min={1} max={5} label="Rating (1–5)" icon="fa-star" defaultValue={5} />
           <FloatField name="product_name" label="Product (optional)" icon="fa-box" />
-          <FloatField name="sort_order" type="number" label="Sort order" icon="fa-arrow-down-1-9" defaultValue={0} />
+          <FloatField
+            name="sort_order"
+            type="number"
+            label="Sort order"
+            icon="fa-arrow-down-1-9"
+            defaultValue={nextSortOrder}
+            hint={reviews.length ? `Next slot after ${reviews.length} existing ${reviews.length === 1 ? "review" : "reviews"}` : "First review"}
+          />
         </div>
         <FloatField as="textarea" name="text" label="Review text" icon="fa-quote-left" required />
         <div className="admin-row cols-2">
