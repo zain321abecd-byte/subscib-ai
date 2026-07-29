@@ -14822,8 +14822,14 @@ body.admin-body::after {
 
 .pro-blog-card {
   display: grid;
-  grid-template-columns: minmax(260px, 38%) minmax(0, 1fr);
-  min-height: 292px;
+  /* Image on top, full card width — same as the mobile layout below.
+     This was a side-by-side grid (image column 38%), which made the image cell
+     portrait (~332x402). Blog covers are 16:9, so `cover` cropped ~57% of the
+     width off, and switching to `contain` left 215px of letterbox — 53% of the
+     cell empty. Neither works: a 16:9 image cannot fill a portrait cell.
+     Stacked, the cover renders at the full card width (~724x407 on desktop)
+     with no crop and no letterbox. */
+  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 22px;
@@ -14840,7 +14846,10 @@ body.admin-body::after {
 
 .pro-blog-card-image {
   position: relative;
-  min-height: 100%;
+  /* 16:9 matches the blog covers, so the image fills this box exactly.
+     `min-height: 100%` previously stretched it to the text column's height,
+     which is what forced the crop. */
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   background: var(--surface-soft);
 }
@@ -14855,8 +14864,20 @@ body.admin-body::after {
   object-fit: cover;
 }
 
-.pro-blog-card-image img { transition: transform 420ms ease; }
-.pro-blog-card:hover .pro-blog-card-image img { transform: scale(1.055); }
+/* Show the whole banner instead of cropping it.
+   Blog covers are 16:9 (e.g. 1672x941), but this cell is portrait — roughly
+   275x361 on desktop — so `object-fit: cover` was discarding ~57% of the
+   image's width. `contain` fits the entire image inside the cell and centres
+   it; the letterbox strips sit on the card's own surface colour so they read
+   as deliberate framing.
+   The hover zoom is dropped here on purpose: scaling a contained image pushes
+   its edges past `overflow: hidden` and reintroduces the cropping. */
+.pro-blog-card-image img {
+  object-fit: contain;
+  background: var(--surface-soft);
+  transition: none;
+}
+.pro-blog-card:hover .pro-blog-card-image img { transform: none; }
 
 .pro-blog-category {
   display: inline-flex;
