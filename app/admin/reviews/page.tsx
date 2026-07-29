@@ -60,8 +60,14 @@ export default async function ReviewsAdminPage({
           so a rejected insert looked identical to a successful one: the form
           submitted, the page came back, and no review appeared. */}
       {params.error && (
-        <div className="admin-card" style={{ background: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)", color: "#fca5a5", marginBottom: 14 }}>
-          <strong>Could not save.</strong> {params.error}
+        <div className="admin-card" style={{ background: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)", color: "#fca5a5", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <span><strong>Could not save.</strong> {params.error}</span>
+          {/* The message lives in the query string, so it survives reloads and
+              back-navigation and can outlive the problem it describes. Give an
+              explicit way back to a clean URL. */}
+          <a href="/admin/reviews" style={{ color: "#fca5a5", textDecoration: "underline", whiteSpace: "nowrap", flexShrink: 0 }}>
+            Dismiss
+          </a>
         </div>
       )}
 
