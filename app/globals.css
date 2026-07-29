@@ -17547,15 +17547,27 @@ textarea:focus {
     font-size: 0.8125rem;
   }
 
-  /* Popular tiles: larger like plati (about 3 per screen + peek) */
-  .pl-tile { flex: 0 0 112px; }
+  /* Popular / New items rails: 3–4 tiles per view.
+     Sizing maths at 375px — container leaves ~335px usable, so
+     86*3 + 10*2 = 278px shows three tiles plus ~66% of a fourth. At 320px
+     that lands on three, at 430px on four plus a peek.
+     NOTE: this overrides the earlier `.pl-tile { flex: 0 0 100px }` block in
+     this same 768px breakpoint (same specificity, later in source wins). */
+  .pl-tile-grid { gap: 10px; }
+  .pl-tile { flex: 0 0 86px; gap: 6px; }
   .pl-tile-media {
-    width: 112px;
-    height: 140px;
-    border-radius: 14px;
+    width: 86px;
+    height: 108px;
+    border-radius: 12px;
   }
+  /* ProductTile hardcodes iconSize={48}; a transform keeps the icon at the
+     same ~43% of tile width it had at 112px, and works on the monogram
+     <span>s whose inline width a plain width rule can't override. */
+  .pl-tile-media > svg,
+  .pl-tile-media > span { transform: scale(0.78); }
+  .pl-tile-media img { padding: 7px; }
   .pl-tile-name {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 700;
   }
 
