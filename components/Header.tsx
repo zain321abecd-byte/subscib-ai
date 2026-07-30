@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
 import MobileMenu from "@/components/MobileMenu";
+import SearchSuggest from "@/components/SearchSuggest";
 
 /* Utility-bar links (plati: Buyers / Sellers / Affiliates) */
 const TOP_NAV = [
@@ -84,18 +85,7 @@ export default function Header({ mobileWhatsAppUrl = "" }: { mobileWhatsAppUrl?:
             <i className="fa-solid fa-table-cells-large" aria-hidden></i>
           </button>
 
-          <form className="pl-search" action="/shop" role="search">
-            <input
-              type="search"
-              name="q"
-              placeholder="Product search"
-              aria-label="Product search"
-              autoComplete="off"
-            />
-            <button type="submit" aria-label="Search">
-              <i className="fa-solid fa-magnifying-glass"></i>
-            </button>
-          </form>
+          <SearchSuggest className="pl-search" inputId="pl-search-desktop" />
 
           <div className="pl-actions">
             <a className="pl-action-tile" href={chatHref} target={mobileWhatsAppUrl ? "_blank" : undefined} rel="noopener">
@@ -133,10 +123,11 @@ export default function Header({ mobileWhatsAppUrl = "" }: { mobileWhatsAppUrl?:
         </div>
 
         {/* Mobile search bar (toggled by the magnifier) */}
-        <form className={`pl-search pl-search-mobile v2-container ${searchOpen ? "is-open" : ""}`} action="/shop" role="search">
-          <input type="search" name="q" placeholder="Product search" aria-label="Product search" autoComplete="off" />
-          <button type="submit" aria-label="Search"><i className="fa-solid fa-magnifying-glass"></i></button>
-        </form>
+        <SearchSuggest
+          className={`pl-search pl-search-mobile v2-container ${searchOpen ? "is-open" : ""}`}
+          inputId="pl-search-mobile"
+          onNavigate={() => setSearchOpen(false)}
+        />
         </header>{/* /.pl-main-bar — the product page portals its price bar here */}
 
         {/* ── Row 3: category bar ────────────────────────────────────────── */}

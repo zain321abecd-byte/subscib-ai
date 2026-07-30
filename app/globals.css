@@ -19087,3 +19087,383 @@ textarea:focus {
      to read a full mobile number. */
   .checkout-phone-row { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Header live-search suggestions (plati-style autocomplete dropdown)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pl-suggest {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 300;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(72, 132, 255, 0.35);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--brand-soft), 0 18px 44px rgba(6, 10, 22, 0.55);
+}
+/* `.pl-search button` positions the magnifier absolutely (right: 4px,
+   width: 42px) — that selector also catches every button inside this
+   dropdown, collapsing rows into the corner. Restore normal flow. */
+.pl-search .pl-suggest button {
+  position: static;
+  inset: auto;
+  width: 100%;
+  height: auto;
+}
+.pl-suggest-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: min(420px, 60vh);
+  overflow-y: auto;
+}
+.pl-search .pl-suggest button.pl-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text, #fff);
+  font-size: 1rem;
+}
+.pl-search .pl-suggest button.pl-suggest-item.is-active { background: var(--brand-soft); }
+.pl-suggest-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.92);
+  color: #475467;
+  font-size: 1rem;
+}
+.pl-suggest-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.pl-suggest-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.pl-suggest-name {
+  font-weight: 600;
+  font-size: 0.94rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-suggest-name mark {
+  background: transparent;
+  color: var(--brand-300);
+}
+.pl-suggest-cat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-suggest-oos {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #F97066;
+  background: rgba(240, 68, 56, 0.14);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.pl-suggest-price {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--brand-300);
+  white-space: nowrap;
+}
+.pl-search .pl-suggest button.pl-suggest-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid rgba(72, 132, 255, 0.25);
+  background: rgba(72, 132, 255, 0.10);
+  color: var(--brand-300);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.pl-search .pl-suggest button.pl-suggest-all:hover {
+  background: rgba(72, 132, 255, 0.18);
+  color: #fff;
+}
+.pl-suggest-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 14px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.pl-suggest-spinner {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-top-color: var(--brand-500);
+  animation: pl-suggest-spin 0.7s linear infinite;
+}
+@keyframes pl-suggest-spin { to { transform: rotate(360deg); } }
+
+/* Mobile slide-down search bar: the form is a v2-container, so pull the
+   dropdown in to align with the input, not the container padding. */
+@media (max-width: 1023px) {
+  /* Mobile v2-container padding is forced to 18px further up — match it. */
+  .pl-search-mobile .pl-suggest {
+    left: 18px;
+    right: 18px;
+  }
+  /* The magnifier is positioned against the FORM (right: 4px), but the
+     mobile form is a v2-container with 18px side padding — so the button
+     sat in the padding zone, half outside the white input. Pull it back
+     inside the input's right edge. */
+  .pl-search-mobile > button[type="submit"] {
+    right: 22px;
+  }
+  .pl-suggest-list { max-height: min(340px, 52vh); }
+  .pl-suggest-price { font-size: 0.82rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Product detail skeleton (loading.tsx) — mirrors the pl-pd layout so the
+   real page streams in with zero layout shift, like plati's page loads.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pl-skel-crumbs {
+  display: flex;
+  gap: 10px;
+  margin: 2px 0 18px;
+}
+.pl-skel-crumb { width: 56px; height: 14px; }
+.pl-skel-crumb.wide { width: 120px; }
+
+.pl-skel-media {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+}
+.pl-skel-title { width: 68%; height: 30px; margin-bottom: 12px; }
+.pl-skel-meta  { width: 52%; height: 15px; }
+
+.pl-skel-tabs {
+  display: flex;
+  gap: 18px;
+  margin: 22px 0 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.pl-skel-tab { width: 92px; height: 18px; }
+
+.pl-skel-desc {
+  display: grid;
+  gap: 12px;
+}
+
+.pl-skel-buybox {
+  display: grid;
+  gap: 12px;
+}
+.pl-skel-price  { width: 46%; height: 34px; }
+.pl-skel-option { width: 100%; height: 44px; border-radius: 10px; }
+.pl-skel-buy    { width: 100%; height: 52px; border-radius: 10px; }
+
+.pl-skel-chips {
+  display: flex;
+  gap: 10px;
+}
+.pl-skel-chip { flex: 1; height: 38px; border-radius: 999px; }
+
+.pl-skel-seller {
+  display: grid;
+  gap: 12px;
+}
+
+/* Skeleton fixes: the 4%-white blocks vanish against the lighter surface
+   card, so the left column looked empty (only the sidebar seemed to load).
+   Use the stronger tone inside the product skeleton. */
+.pl-pd-skeleton { pointer-events: none; }
+.pl-pd-skeleton .skeleton-block { background: var(--skeleton-strong); }
+/* A second `.skeleton-block` rule (~line 6897) forces height: 180px on
+   every block — restore text-line proportions inside this skeleton. */
+.pl-pd-skeleton .skeleton-line { height: 13px; }
+
+/* Mobile: the real page reflows via display:contents + `order` — give the
+   skeleton pieces the same order so it mirrors the plati mobile layout
+   (image → title → buy box → chips → tabs → description → seller). */
+@media (max-width: 1023px) {
+  .pl-skel-crumbs { display: none; }
+  .pl-pd-skeleton .pl-skel-media {
+    max-width: 460px;
+    margin: 0 auto;
+    aspect-ratio: 16 / 10;
+  }
+  .pl-skel-buybox { order: 2; display: grid; gap: 12px; }
+  .pl-skel-chips  { order: 3; }
+  .pl-skel-tabs   { order: 4; }
+  .pl-skel-desc   { order: 5; display: grid; gap: 12px; }
+  .pl-skel-seller { order: 7; margin-bottom: 4px; }
+}
+
+/* Mobile header breathing room: on notched phones (and the installed PWA,
+   which draws under the status bar) the sticky main bar sat flush against
+   the system bar. Pad it clear of the safe area, with a small minimum gap
+   so it never looks glued to the top edge in a regular browser either. */
+@media (max-width: 1023px) {
+  .pl-main-bar {
+    padding-top: max(8px, env(safe-area-inset-top, 0px));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Blog index — "Latest Articles" (nexus-style reference design)
+   Centered pill + heading, 3-col card grid on desktop, 1-col on mobile.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.nx-articles {
+  padding: 48px 0 72px;
+}
+.nx-art-head {
+  text-align: center;
+  margin-bottom: 44px;
+}
+.nx-art-pill {
+  display: inline-block;
+  padding: 7px 18px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(245, 150, 34, 0.35);
+  color: var(--accent-500);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.nx-art-head h1 {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+.nx-art-head p {
+  color: var(--text-muted);
+  font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+  max-width: 52ch;
+  margin: 0 auto;
+}
+
+.nx-art-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+@media (max-width: 1023px) {
+  .nx-art-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+}
+@media (max-width: 640px) {
+  .nx-articles { padding: 32px 0 48px; }
+  .nx-art-head { margin-bottom: 28px; }
+  .nx-art-grid { grid-template-columns: 1fr; gap: 18px; }
+}
+
+.nx-art-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+.nx-art-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(245, 150, 34, 0.4);
+  box-shadow: 0 16px 40px rgba(6, 10, 22, 0.5);
+}
+.nx-art-img {
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.nx-art-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+.nx-art-card:hover .nx-art-img img { transform: scale(1.04); }
+
+.nx-art-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 22px 22px 24px;
+}
+.nx-art-body h2 {
+  font-family: var(--font-heading);
+  font-size: 1.22rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 10px;
+}
+.nx-art-body h2 a {
+  color: #fff;
+  text-decoration: none;
+}
+.nx-art-body h2 a:hover { color: var(--accent-300); }
+.nx-art-body p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 18px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.nx-art-read {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  color: var(--accent-500);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+.nx-art-read i { transition: transform 0.2s ease; }
+.nx-art-read:hover { color: var(--accent-300); }
+.nx-art-read:hover i { transform: translateX(4px); }

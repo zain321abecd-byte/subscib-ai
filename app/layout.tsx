@@ -98,6 +98,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  // Required for env(safe-area-inset-*) to report real values on notched
+  // phones — the header pads itself clear of the status bar with them.
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

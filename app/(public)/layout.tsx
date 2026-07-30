@@ -9,7 +9,6 @@ import Footer from "@/components/Footer";
 import PageProgress from "@/components/PageProgress";
 import NavigationProgress from "@/components/NavigationProgress";
 import RevealOnScroll from "@/components/RevealOnScroll";
-import WhatsAppFab from "@/components/WhatsAppFab";
 import TrafficCapture from "@/components/TrafficCapture";
 import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 
@@ -72,7 +71,8 @@ export default async function PublicLayout({ children }: { children: React.React
           <Header mobileWhatsAppUrl={wa ? `https://wa.me/${wa}` : ""} />
           <main>{children}</main>
           <Footer />
-          <WhatsAppFab phone={wa} />
+          {/* WhatsApp FAB intentionally not global — it renders only on
+              the contact page (see contact/page.tsx). */}
         </CartProvider>
        </AuthProvider>
       </ToastProvider>

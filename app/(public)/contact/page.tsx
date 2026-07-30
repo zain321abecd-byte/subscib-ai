@@ -1,6 +1,7 @@
 import { getContactLinks } from "@/lib/contact-links";
 import { getSiteSettings } from "@/lib/site-settings";
 import ContactForm from "./ContactForm";
+import WhatsAppFab from "@/components/WhatsAppFab";
 
 export const metadata = {
   title: "Contact",
@@ -40,6 +41,9 @@ export default async function ContactPage() {
           </ul>
         </aside>
       </div>
+      {/* Floating WhatsApp button — contact page only (removed from the
+          global layout by request). */}
+      <WhatsAppFab phone={whatsappDigits} />
     </section>
   );
 }
