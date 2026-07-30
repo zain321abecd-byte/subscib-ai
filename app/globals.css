@@ -19467,3 +19467,18 @@ textarea:focus {
 .nx-art-read i { transition: transform 0.2s ease; }
 .nx-art-read:hover { color: var(--accent-300); }
 .nx-art-read:hover i { transform: translateX(4px); }
+
+/* Blog post page: .pro-blog-shell reserves a 360px sidebar column, but the
+   detail page renders no sidebar — the article sat pinned to the left with
+   a dead right column. Single centered column instead. */
+.pro-blog-detail-shell { grid-template-columns: minmax(0, 1fr); }
+.v2 .v2-container.pro-blog-detail-shell { max-width: 980px; }
+
+/* Related-post cards: the shared thumbnail rule sets height: 100%, which
+   fought the 16/10 aspect-ratio and stretched the image into a giant
+   banner (worst on mobile's single column). Fixed 16:9 thumb instead. */
+.pro-related-card img {
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
