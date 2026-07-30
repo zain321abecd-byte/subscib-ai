@@ -19067,3 +19067,23 @@ textarea:focus {
   .cart-empty { padding: var(--space-7) var(--space-4); }
   .cart-reco { margin-top: var(--space-5); }
 }
+
+/* ---- Checkout: country dial-code + national number ---------------------- */
+.checkout-phone-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+/* Native select: keep the country name readable but never let a long name
+   ("United States Minor Outlying Islands") blow out the grid column. */
+.checkout-phone-country {
+  min-width: 0;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+@media (max-width: 560px) {
+  /* Stacked on small screens — side by side leaves the number field too narrow
+     to read a full mobile number. */
+  .checkout-phone-row { grid-template-columns: minmax(0, 1fr); }
+}

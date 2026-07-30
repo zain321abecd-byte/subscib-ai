@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { getCountries, getCountryCallingCode, isValidPhoneNumber, type CountryCode } from "libphonenumber-js";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { formatPriceFromPKR, useFx } from "@/lib/fx";
@@ -12,6 +13,35 @@ import { paymentFeatureDescription, paymentFeatureTitle } from "@/lib/payment-me
 import type { CartItem } from "@/lib/cart";
 
 type StatusPill = "idle" | "submitting" | "redirecting" | "failed";
+
+/**
+ * Every country libphonenumber-js knows about (245), sorted by display name.
+ *
+ * Dial codes come from the library rather than a hand-written table — the
+ * awkward ones (+211 South Sudan, +599 Curaçao, +383 Kosovo, the +1 territories)
+ * are exactly where a transcribed list goes wrong. Names come from
+ * Intl.DisplayNames, which is built into the runtime.
+ *
+ * No flag emoji on purpose: Windows renders regional-indicator pairs as bare
+ * letters ("PK") rather than a flag, so it would look broken for a large share
+ * of visitors.
+ */
+const COUNTRY_OPTIONS: { iso: CountryCode; name: string; dial: string }[] = (() => {
+  const names = new Intl.DisplayNames(["en"], { type: "region" });
+  return getCountries()
+    .map((iso) => ({
+      iso,
+      name: (() => {
+        try {
+          return names.of(iso) ?? iso;
+        } catch {
+          return iso;
+        }
+      })(),
+      dial: getCountryCallingCode(iso),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+})();
 
 /** PayFast BASKET_ID must be <= 20 chars, alphanumeric (+ _ -). */
 function newBasketId(): string {
@@ -62,6 +92,10 @@ export default function CheckoutPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  /** ISO country for the dial code. `phone` now holds the national part only. */
+  const [phoneCountry, setPhoneCountry] = useState<CountryCode>("PK");
+  /** Set once the visitor picks a country, so geo detection stops overriding it. */
+  const [countryTouched, setCountryTouched] = useState(false);
 
   const [status, setStatus] = useState<StatusPill>("idle");
   const [message, setMessage] = useState("");
@@ -84,6 +118,37 @@ export default function CheckoutPage() {
       autoSubmitRef.current.submit();
     }
   }, [pendingPost]);
+
+  /**
+   * Pre-select the visitor's country once geo resolves, without fighting a
+   * manual choice: only applies while the number field is still empty.
+   *
+   * Must stay above the empty-cart early return below — a hook after a
+   * conditional return breaks the Rules of Hooks and React throws
+   * "rendered fewer hooks than expected" the moment the cart fills.
+   */
+  useEffect(() => {
+    // Gate on an explicit "touched" flag, not on the number being empty: most
+    // people pick the country first, and keying off `phone` would snap their
+    // choice back to the geo default before they had typed anything.
+    if (countryTouched) return;
+    if (region === "PK") setPhoneCountry("PK");
+    else if (region === "IN") setPhoneCountry("IN");
+    else setPhoneCountry("US");
+  }, [region, countryTouched]);
+
+  const selectedCountry = COUNTRY_OPTIONS.find((c) => c.iso === phoneCountry);
+
+  /**
+   * E.164 for the gateway and the order record — always `+<dial><national>`.
+   * PayFast passes CUSTOMER_MOBILE_NO straight through with only a presence
+   * check, so normalising here is what keeps stored numbers dialable.
+   */
+  const phoneE164 = useMemo(() => {
+    const national = phone.replace(/\D/g, "").replace(/^0+/, "");
+    if (!national || !selectedCountry) return "";
+    return `+${selectedCountry.dial}${national}`;
+  }, [phone, selectedCountry]);
 
   // Coupon-aware totals — cart.total = subtotal - discount (PKR canonical).
   const pkrTotal = Math.round(cart.total);
@@ -113,8 +178,12 @@ export default function CheckoutPage() {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = "Name is required.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Valid email is required.";
-    // PayFast requires CUSTOMER_MOBILE_NO. Accept 03XXXXXXXXX (PK) or +countrycode... formats.
-    if (!/^(\+?\d{7,15}|03\d{9})$/.test(phone.replace(/\s+/g, ""))) e.phone = "Enter a valid mobile number.";
+    // Validate against the chosen country's numbering plan, so a wrong-length
+    // number is caught here rather than becoming an undeliverable order.
+    if (!phone.trim()) e.phone = "Mobile number is required.";
+    else if (!isValidPhoneNumber(phoneE164 || phone, phoneCountry)) {
+      e.phone = `That doesn't look like a valid ${selectedCountry?.name ?? "mobile"} number.`;
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -179,7 +248,7 @@ export default function CheckoutPage() {
     const orderPayload = {
       items: orderItemsSnapshot.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: i.price, variation: i.variation })),
       customer_email: email,
-      customer_phone: phone,
+      customer_phone: phoneE164,
       customer_name: name,
       subtotal_pkr: checkoutPkrTotal,
       subtotal_usd: fxReady && usdToPkr > 0 ? Number((checkoutPkrTotal / usdToPkr).toFixed(2)) : undefined,
@@ -263,7 +332,7 @@ export default function CheckoutPage() {
           amount: txnAmount,
           currency: txnCurrency,
           customerEmail: email,
-          customerMobile: phone.replace(/\s+/g, ""),
+          customerMobile: phoneE164,
           customerName: name,
           description: `SubscribAI order ${basketId}`,
           items: orderItemsSnapshot.slice(0, 10).map((i) => ({
@@ -333,10 +402,43 @@ export default function CheckoutPage() {
                 <span className="field-help">We&apos;ll send your subscription details here.</span>
               </div>
               <div className="field">
-                <label className="field-label">Mobile number</label>
-                <input className={`input ${errors.phone ? "is-invalid" : ""}`} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={isPK ? "03XXXXXXXXX" : "+1XXXXXXXXXX"} />
+                <label className="field-label" htmlFor="checkout-phone">Mobile number</label>
+                <div className="checkout-phone-row">
+                  {/* Native select rather than the custom Select component: 245
+                      options with no search box is painful, and native selects
+                      give free type-ahead ("pak" jumps to Pakistan). */}
+                  <select
+                    className="input checkout-phone-country"
+                    aria-label="Country dialling code"
+                    value={phoneCountry}
+                    onChange={(e) => {
+                      setPhoneCountry(e.target.value as CountryCode);
+                      setCountryTouched(true);
+                    }}
+                  >
+                    {COUNTRY_OPTIONS.map((c) => (
+                      <option key={c.iso} value={c.iso}>
+                        {c.name} (+{c.dial})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    id="checkout-phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    className={`input ${errors.phone ? "is-invalid" : ""}`}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder={phoneCountry === "PK" ? "3001234567" : "Mobile number"}
+                  />
+                </div>
                 {errors.phone && <span className="field-error"><i className="fa-solid fa-circle-exclamation"></i> {errors.phone}</span>}
-                <span className="field-help">Required by PayFast for payment notifications.</span>
+                <span className="field-help">
+                  {phoneE164
+                    ? `Will be sent as ${phoneE164}`
+                    : `Enter the number without the leading 0 or +${selectedCountry?.dial ?? ""}. Required by PayFast for payment notifications.`}
+                </span>
               </div>
             </div>
 
