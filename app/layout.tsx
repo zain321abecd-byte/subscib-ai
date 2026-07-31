@@ -83,7 +83,8 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     icons: {
       icon: [{ url: "/assets/favicon.png", type: "image/png" }],
-      apple: "/assets/favicon.png",
+      // Served by app/apple-icon.tsx — a proper 180×180 render.
+      apple: "/apple-icon",
     },
     manifest: "/manifest.webmanifest",
     formatDetection: { telephone: false, address: false, email: false },

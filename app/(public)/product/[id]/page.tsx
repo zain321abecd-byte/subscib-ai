@@ -46,6 +46,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const desc = product.description
     ? `${product.description} Activated to your email in under 30 minutes.`
     : `${product.name} — activated to your email in under 30 minutes.`;
+  // Defining our own openGraph here replaces the layout's default, so the
+  // image must be re-declared or shared product links get no preview card.
+  const ogImage = product.imageUrl || "/opengraph-image";
   return {
     title,
     description: desc,
@@ -55,11 +58,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       title,
       description: desc,
       url: absoluteUrl(`/product/${product.id}`),
+      images: [{ url: ogImage, alt: product.name }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: desc,
+      images: [ogImage],
     },
   };
 }
