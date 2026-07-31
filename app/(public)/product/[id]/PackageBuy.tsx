@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useCart } from "@/lib/cart";
+import { trackAddToCart, trackViewItem } from "@/lib/analytics";
 import { validateCoupon } from "@/lib/coupon-actions";
 import { useFx, formatPriceFromPKR } from "@/lib/fx";
 import { getStartingPrice, hasMultiplePrices } from "@/lib/pricing";
@@ -34,6 +35,18 @@ export default function PackageBuy({ product }: { product: Product }) {
   const [promoError, setPromoError] = useState("");
   const [promoPending, startPromo] = useTransition();
   useEffect(() => setMounted(true), []);
+
+  // view_item — fires once per product page, using the "from" price since
+  // no variation is selected yet.
+  useEffect(() => {
+    trackViewItem({
+      item_id: product.id,
+      item_name: product.name,
+      price: getStartingPrice(product),
+      quantity: 1,
+      item_category: product.category,
+    });
+  }, [product]);
   // Plati-style condensed sticky bar — appears once the in-flow buy box
   // scrolls out of view (desktop only; CSS hides it below 1024px). The bar
   // is portaled INTO the sticky header and absolutely anchored to its
@@ -117,6 +130,14 @@ export default function PackageBuy({ product }: { product: Product }) {
         duration: selection.duration.label,
         summary,
       },
+    });
+    trackAddToCart({
+      item_id: product.id,
+      item_name: product.name,
+      price: selection.price,
+      quantity: qty,
+      item_variant: summary,
+      item_category: product.category,
     });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);

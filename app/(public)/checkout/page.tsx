@@ -9,6 +9,7 @@ import { formatPriceFromPKR, useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
 import { apiUrl, authHeaders } from "@/lib/api-client";
 import { redeemCoupon } from "@/lib/coupon-actions";
+import { trackBeginCheckout } from "@/lib/analytics";
 import { paymentFeatureDescription, paymentFeatureTitle } from "@/lib/payment-messaging";
 import type { CartItem } from "@/lib/cart";
 
@@ -88,6 +89,24 @@ export default function CheckoutPage() {
   const cart = useCart();
   const { currency, usdToPkr, usdToInr, ready: fxReady, region } = useFx();
   const isPK = region === "PK";
+
+  // begin_checkout — once per visit to this page, after the cart has
+  // hydrated from storage (guard prevents a re-fire on every edit).
+  const beganCheckout = useRef(false);
+  useEffect(() => {
+    if (beganCheckout.current || cart.items.length === 0) return;
+    beganCheckout.current = true;
+    trackBeginCheckout(
+      cart.items.map((i) => ({
+        item_id: i.id,
+        item_name: i.name,
+        price: i.price,
+        quantity: i.qty || 1,
+        item_variant: i.variation?.summary,
+      })),
+      cart.subtotal,
+    );
+  }, [cart.items, cart.subtotal]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
