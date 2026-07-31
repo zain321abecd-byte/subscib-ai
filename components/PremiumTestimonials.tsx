@@ -29,18 +29,12 @@ export type Testimonial = {
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 
-function DiamondContent({ src, alt, initials, bg }: { src?: string; alt: string; initials?: string; bg?: string }) {
-  if (src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt={alt} className="w-full h-full object-cover -rotate-45 scale-150" draggable={false} />
-    );
-  }
-  return (
-    <div className="w-full h-full flex items-center justify-center font-bold text-white" style={{ background: bg ?? "#374151" }}>
-      <span className="-rotate-45 text-sm md:text-base select-none">{initials}</span>
-    </div>
-  );
+/** First letters of the first and last name ("Hamza Siddiqui" → "HS"). */
+function nameInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -154,15 +148,17 @@ function PremiumTestimonialsContent({ data }: { data: Testimonial[] }) {
           style={{ minHeight: "clamp(420px, 55vw, 560px)" }}
         >
 
-          {/* ── LEFT: image cluster (vertically centered) ─────────────── */}
+          {/* ── LEFT: initials avatar (vertically centered) ───────────── */}
           <div className="flex-shrink-0 flex items-center justify-center">
             <div style={clusterAnim} className="flex items-center justify-center">
-
-              {/* Customer diamond */}
-              <div className="relative z-20">
-                <div className="w-[156px] h-[156px] sm:w-[178px] sm:h-[178px] md:w-[204px] md:h-[204px] rotate-45 overflow-hidden rounded-xl border-2 border-orange-500/55 shadow-[0_0_54px_rgba(249,115,22,0.24)]">
-                  <DiamondContent src={t.mainImage} alt={t.name} initials={t.mainInitials} bg={t.mainBg} />
-                </div>
+              <div
+                className="w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[184px] md:h-[184px] rounded-full flex items-center justify-center border-2 border-orange-500/55 shadow-[0_0_54px_rgba(249,115,22,0.24)]"
+                style={{ background: t.mainBg ?? "#374151" }}
+                aria-hidden="true"
+              >
+                <span className="font-bold text-white text-5xl md:text-6xl tracking-wide select-none">
+                  {nameInitials(t.name)}
+                </span>
               </div>
             </div>
           </div>
