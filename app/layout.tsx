@@ -4,8 +4,10 @@ import { Inter, Poppins } from "next/font/google";
 import { getSiteSettings } from "@/lib/site-settings";
 import { SITE_URL } from "@/lib/site-url";
 import RouteLoadingIndicator from "@/components/RouteLoadingIndicator";
+import { Suspense } from "react";
 import { headers } from "next/headers";
 import ConsentBanner from "@/components/ConsentBanner";
+import GaRouteTracker from "@/components/GaRouteTracker";
 import { CONSENT_DEFAULT_SCRIPT, isConsentRequired } from "@/lib/consent";
 import "./globals.css";
 import "./tailwind.css";
@@ -203,6 +205,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </noscript>
         )}
         {children}
+        {/* Suspense: useSearchParams inside GaRouteTracker would otherwise
+            opt every route out of static rendering. */}
+        {ga && (
+          <Suspense fallback={null}>
+            <GaRouteTracker measurementId={ga} />
+          </Suspense>
+        )}
         {needsConsent && <ConsentBanner />}
         <RouteLoadingIndicator />
       </body>
