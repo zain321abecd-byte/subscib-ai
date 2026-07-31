@@ -19931,3 +19931,25 @@ html {
   transition: color 0.15s ease;
 }
 .footer-linklike:hover { color: #fff; }
+
+/* Admin: "Logo fit" radio cards in the product form. */
+.admin-fit-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1 1 220px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.admin-fit-option:hover { border-color: rgba(72, 132, 255, 0.5); }
+.admin-fit-option:has(input:checked) {
+  border-color: var(--brand-500);
+  background: rgba(72, 132, 255, 0.1);
+}
+.admin-fit-option input { margin-top: 3px; accent-color: var(--brand-500); }
+.admin-fit-option strong { display: block; color: var(--text); font-size: 0.875rem; }
+.admin-fit-option small { display: block; color: var(--text-muted); font-size: 0.75rem; margin-top: 2px; line-height: 1.4; }

@@ -29,6 +29,8 @@ export type ProductFormData = {
   featured: boolean;
   show_on_homepage: boolean;
   show_in_related: boolean;
+  hide_shared_plan: boolean;
+  image_fit: string;
   sort_order: number;
 };
 
@@ -93,6 +95,9 @@ function parseForm(formData: FormData): ProductFormData {
     // Default to true unless the checkbox is explicitly omitted (it's `_off`
     // marker absent → checkbox unchecked).
     show_in_related: formData.get("show_in_related") === "on",
+    hide_shared_plan: formData.get("hide_shared_plan") === "on",
+    // Only "contain" and "cover" are valid CSS object-fit values here.
+    image_fit: str(formData.get("image_fit")) === "contain" ? "contain" : "cover",
     sort_order: num(formData.get("sort_order")),
   };
 }

@@ -61,6 +61,10 @@ export default function PackageBuy({ product }: { product: Product }) {
   const selectedPlan = config.plans.find((p) => p.id === selectedPlanId) ?? null;
   const selectedDuration = config.durations.find((d) => d.id === selectedDurationId) ?? null;
   const selectedAccountLabel = ACCOUNT_TYPES.find((a) => a.id === selectedAccount)?.label ?? "";
+  // Admin can hide the Shared tier per product, leaving Private only.
+  const accountTypes = product.hideSharedPlan
+    ? ACCOUNT_TYPES.filter((a) => a.id !== "shared")
+    : ACCOUNT_TYPES;
 
   const fmt = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
 
@@ -76,7 +80,7 @@ export default function PackageBuy({ product }: { product: Product }) {
     }
     return min;
   };
-  const allAccounts = ACCOUNT_TYPES.map((a) => a.id);
+  const allAccounts = accountTypes.map((a) => a.id);
   const allDurations = config.durations.map((d) => d.id);
   const planHint = (opt: VariationOption) => {
     const min = minPrice([opt.id], selectedAccount ? [selectedAccount] : allAccounts, allDurations);
@@ -274,8 +278,8 @@ export default function PackageBuy({ product }: { product: Product }) {
 
         <div className="variation-group">
           <GroupLabel label="Account Type" step={2} done={!!selectedAccount} />
-          <div className="variation-option-grid two">
-            {ACCOUNT_TYPES.map((opt) => (
+          <div className={`variation-option-grid ${accountTypes.length > 1 ? "two" : ""}`}>
+            {accountTypes.map((opt) => (
               <button
                 key={opt.id}
                 type="button"

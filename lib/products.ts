@@ -27,6 +27,10 @@ export type Product = {
   inStock?: boolean;
   /** When false, this product is hidden from "You may also like" sections. */
   showInRelated?: boolean;
+  /** When true, the buy box offers Private only — no "Shared" account type. */
+  hideSharedPlan?: boolean;
+  /** How the image sits in its frame: "cover" fills and crops, "contain" fits whole. */
+  imageFit?: "cover" | "contain";
   /** If non-empty, the admin has hand-picked these specific products to recommend
       on this product's page. Otherwise fall back to category-based suggestions. */
   relatedProductIds?: string[];
@@ -65,6 +69,8 @@ function rowToProduct(row: ProductRow): Product {
     inStock: row.in_stock,
     // Default true if the column hasn't been added yet (graceful before migration).
     showInRelated: row.show_in_related ?? true,
+    hideSharedPlan: row.hide_shared_plan ?? false,
+    imageFit: row.image_fit === "contain" ? "contain" : "cover",
     relatedProductIds: Array.isArray(row.related_product_ids)
       ? row.related_product_ids.filter((id) => typeof id === "string")
       : undefined,

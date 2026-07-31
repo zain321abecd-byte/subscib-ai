@@ -60,7 +60,12 @@ export default function ProductCard({ product }: { product: Product }) {
       >
         {effective === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt={product.name} loading="lazy" />
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            loading="lazy"
+            style={product.imageFit === "contain" ? { objectFit: "contain" } : undefined}
+          />
         ) : effective === "brand" ? (
           <BrandIcon name={product.brand!} size={64} />
         ) : (

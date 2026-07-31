@@ -32,6 +32,10 @@ export type ProductRow = {
   private_description: string | null;
   shared_label: string | null;
   private_label: string | null;
+  /** Hide the "Shared" account type on this product's buy box (private only). */
+  hide_shared_plan: boolean;
+  /** How the product image sits in its container: cover (fill) or contain (fit). */
+  image_fit: string | null;
   /** Plans, durations, and Plan + Account Type + Duration price matrix. */
   variation_config: unknown | null;
   /** Custom bullet lines shown under the price. Empty → fallback defaults. */

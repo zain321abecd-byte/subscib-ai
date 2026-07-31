@@ -7,11 +7,13 @@ type Props = {
   alt: string;
   /** Cross-fade interval. 0 disables auto-rotation. */
   autoMs?: number;
+  /** "contain" shows the whole logo; "cover" (default) fills and crops. */
+  imageFit?: "cover" | "contain";
 };
 
 // Animated product gallery with cross-fade transitions, dot navigation,
 // keyboard arrow keys, and thumbnail strip below.
-export default function ProductGallery({ images, alt, autoMs = 5000 }: Props) {
+export default function ProductGallery({ images, alt, autoMs = 5000, imageFit = "cover" }: Props) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -58,6 +60,7 @@ export default function ProductGallery({ images, alt, autoMs = 5000 }: Props) {
             className={`product-gallery-img ${i === active ? "is-active" : ""}`}
             loading={i === 0 ? "eager" : "lazy"}
             decoding="async"
+            style={imageFit === "contain" ? { objectFit: "contain" } : undefined}
           />
         ))}
 

@@ -55,10 +55,13 @@ export default function ProductForm({
   product,
   availableProducts = [],
   productReviews = [],
+  nextSortOrder = 0,
 }: {
   product?: ProductRow;
   availableProducts?: AvailableProduct[];
   productReviews?: ReviewDraft[];
+  /** Pre-filled sort order for a new product — one step past the last one. */
+  nextSortOrder?: number;
 }) {
   const isEdit = !!product;
   const [isPending, startTransition] = useTransition();
@@ -317,6 +320,34 @@ export default function ProductForm({
             tintBackground={MEDIA_OPTIONS.find((m) => m.value === mediaClass)?.swatch}
           />
           <input type="hidden" name="image_url" value={imageUrl} />
+
+          {/* How the uploaded image sits in its frame. "Fit whole" is what a
+              logo with its own padding needs; "Fill" suits photos. */}
+          <fieldset style={{ border: 0, padding: 0, margin: "16px 0 0" }}>
+            <legend className="admin-label" style={{ padding: 0 }}>Logo fit</legend>
+            <p className="admin-help" style={{ marginTop: 0, marginBottom: 10 }}>
+              How the image sits inside its container on cards and the product page.
+            </p>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {[
+                { value: "cover", title: "Fill container", hint: "Crops edges to fill the frame. Best for photos and wide banners." },
+                { value: "contain", title: "Fit whole logo", hint: "Shows the entire logo without cropping. Best for logos and icons." },
+              ].map((opt) => (
+                <label key={opt.value} className="admin-fit-option">
+                  <input
+                    type="radio"
+                    name="image_fit"
+                    value={opt.value}
+                    defaultChecked={(product?.image_fit ?? "cover") === opt.value}
+                  />
+                  <span>
+                    <strong>{opt.title}</strong>
+                    <small>{opt.hint}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
 
         <div style={{ marginTop: 18 }}>
@@ -430,8 +461,12 @@ export default function ProductForm({
             step="1"
             label="Sort order"
             icon="fa-arrow-down-1-9"
-            defaultValue={product?.sort_order ?? 0}
-            hint="Lower numbers appear first on the shop page."
+            defaultValue={product?.sort_order ?? nextSortOrder}
+            hint={
+              product
+                ? "Lower numbers appear first on the shop page."
+                : `Lower numbers appear first. Pre-filled with ${nextSortOrder} to place this product last — change it to move the product up.`
+            }
           />
           <div className="admin-toggle-stack">
             <label className="admin-toggle">
@@ -464,6 +499,14 @@ export default function ProductForm({
               <span>
                 <strong>Show in &ldquo;You may also like&rdquo;</strong>
                 <small>Recommended on other product pages in the same category.</small>
+              </span>
+            </label>
+            <label className="admin-toggle">
+              <input type="checkbox" name="hide_shared_plan" defaultChecked={product?.hide_shared_plan ?? false} />
+              <span className="admin-toggle-slider" aria-hidden />
+              <span>
+                <strong>Hide &ldquo;Shared&rdquo; plan</strong>
+                <small>Buyers only see the Private account type for this product.</small>
               </span>
             </label>
           </div>
