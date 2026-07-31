@@ -20,6 +20,9 @@ export const CONSENT_REQUIRED_COUNTRIES = [
 /** localStorage key holding the visitor's stored choice. */
 export const CONSENT_STORAGE_KEY = "subscribai_consent_v1";
 
+/** Window event that re-opens the consent banner (fired by the footer link). */
+export const OPEN_CONSENT_EVENT = "subscribai:open-consent";
+
 export function isConsentRequired(country: string | null | undefined): boolean {
   return !!country && CONSENT_REQUIRED_COUNTRIES.includes(country.toUpperCase());
 }

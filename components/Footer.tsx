@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import PaymentLogo from "./PaymentLogo";
+import CookieSettingsLink from "./CookieSettingsLink";
 import { getSiteSettings, normalisePhoneDigits } from "@/lib/site-settings";
 import { getRegion } from "@/lib/region";
 
@@ -64,6 +65,7 @@ export default async function Footer() {
           <Link href="/refund">Refund policy</Link>
           <Link href="/terms">Terms &amp; conditions</Link>
           <Link href="/privacy">Privacy policy</Link>
+          <CookieSettingsLink />
           {wa && <a href={`https://wa.me/${wa}`}><i className="fa-brands fa-whatsapp"></i> WhatsApp</a>}
           {email && <a href={`mailto:${email}`}><i className="fa-solid fa-envelope"></i> Email</a>}
         </div>

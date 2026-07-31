@@ -19911,3 +19911,18 @@ html {
   }
   .consent-banner-actions > .consent-btn { flex: 1 1 0; text-align: center; }
 }
+
+/* Footer "Cookie settings" — a <button> (it opens the consent dialog rather
+   than navigating), styled to sit invisibly among the footer's links. */
+.footer-linklike {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-soft);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.footer-linklike:hover { color: #fff; }

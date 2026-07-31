@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CONSENT_STORAGE_KEY } from "@/lib/consent";
+import { CONSENT_STORAGE_KEY, OPEN_CONSENT_EVENT } from "@/lib/consent";
 
 type ConsentState = {
   ad_storage: "granted" | "denied";
@@ -40,21 +40,30 @@ declare global {
 }
 
 /**
- * Consent Mode v2 banner. Rendered only for visitors in regions where
- * Google requires consent (see lib/consent.ts) — the layout decides that
- * server-side from the Vercel geo header, so shoppers elsewhere never see it.
+ * Consent Mode v2 banner.
+ *
+ * `autoShow` (true only where Google requires consent — the layout decides
+ * that server-side from the Vercel geo header) controls whether the banner
+ * appears by itself on a first visit. It is mounted everywhere regardless,
+ * so the footer's "Cookie settings" link can re-open it for any visitor:
+ * consent has to be as easy to withdraw as it was to give.
  */
-export default function ConsentBanner() {
+export default function ConsentBanner({ autoShow = false }: { autoShow?: boolean }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    try {
-      if (!localStorage.getItem(CONSENT_STORAGE_KEY)) setVisible(true);
-    } catch {
-      // Storage blocked (private mode): show the banner rather than assume consent.
-      setVisible(true);
+    if (autoShow) {
+      try {
+        if (!localStorage.getItem(CONSENT_STORAGE_KEY)) setVisible(true);
+      } catch {
+        // Storage blocked (private mode): show it rather than assume consent.
+        setVisible(true);
+      }
     }
-  }, []);
+    const open = () => setVisible(true);
+    window.addEventListener(OPEN_CONSENT_EVENT, open);
+    return () => window.removeEventListener(OPEN_CONSENT_EVENT, open);
+  }, [autoShow]);
 
   function choose(state: ConsentState) {
     try {

@@ -122,7 +122,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Consent banner is only shown where Google requires it (EEA/UK/CH);
   // elsewhere consent defaults to granted and no banner interrupts the shop.
   const country = (await headers()).get("x-user-country");
-  const needsConsent = (ga || gtm || fbp) && isConsentRequired(country);
+  // Boolean (not `ga && …`): the banner's mount is already gated on analytics
+  // being configured, and `autoShow` needs a real boolean.
+  const needsConsent = isConsentRequired(country);
 
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
@@ -212,7 +214,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <GaRouteTracker measurementId={ga} />
           </Suspense>
         )}
-        {needsConsent && <ConsentBanner />}
+        {/* Mounted for everyone so the footer's "Cookie settings" link can
+            re-open it; it only appears unprompted where consent is required. */}
+        {(ga || gtm || fbp) && <ConsentBanner autoShow={needsConsent} />}
         <RouteLoadingIndicator />
       </body>
     </html>
