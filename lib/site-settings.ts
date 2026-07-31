@@ -66,7 +66,9 @@ const FALLBACKS: Record<string, string> = {
   seo_index_site:           "true",   // "false" → sitewide noindex
 
   // ── Tracking (canonical key names — see aliases below) ──────────
-  google_analytics_id:      "",
+  // GA4 property for subscribai.com. Ships as the default so analytics
+  // work without a DB row; a non-empty admin setting still overrides it.
+  google_analytics_id:      "G-D0LDQ5LPS0",
   google_tag_manager_id:    "",
   google_site_verification: "",
   meta_pixel_id:            "",
