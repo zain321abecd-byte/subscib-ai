@@ -19585,3 +19585,105 @@ html {
 /* tailwind.css renders a corner check badge (<i>) on active
    options — the radio dot replaces it. */
 .variation-option-grid .variation-option i { display: none !important; }
+/* ============================================================
+   Product page: guided option picking + collapsible description
+   ============================================================ */
+
+/* Numbered step chip in each option group label; flips to a brand
+   check once the group has a selection. */
+.variation-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.variation-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface-strong);
+  color: var(--text-soft, #9CA3AF);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.variation-step.is-done {
+  background: var(--brand-500);
+  border-color: var(--brand-500);
+  color: #fff;
+}
+.variation-step i { font-size: 0.5625rem; }
+
+/* Per-option price hint sits between the label and the radio dot. */
+.variation-option .variation-opt-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+.variation-option .variation-opt-price {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-soft, #9CA3AF);
+  white-space: nowrap;
+}
+.variation-option.is-active .variation-opt-price { color: #fff; }
+
+/* Live selection summary chips under the price. */
+.pl-selection-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.pl-sel-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(72, 132, 255, 0.4);
+  background: rgba(72, 132, 255, 0.1);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Collapsible description: gradient fade over the clamped block, and a
+   centered brand toggle. Height animates via max-height inline style. */
+.pl-desc-expander.is-collapsed .pl-desc-expander-body {
+  overflow: hidden;
+  position: relative;
+}
+.pl-desc-expander.is-collapsed .pl-desc-expander-body::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 110px;
+  background: linear-gradient(180deg, transparent, var(--bg));
+  pointer-events: none;
+}
+.pl-desc-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(72, 132, 255, 0.4);
+  background: rgba(72, 132, 255, 0.08);
+  color: var(--brand-500);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pl-desc-toggle:hover {
+  background: rgba(72, 132, 255, 0.16);
+  color: #fff;
+}
+.pl-desc-toggle i { font-size: 0.6875rem; }
