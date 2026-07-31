@@ -18933,22 +18933,16 @@ textarea:focus {
   }
 
   /* Sticky buy panel, so it stays beside the description while scrolling.
-     The panel can be taller than the viewport (buy box + trust chips +
-     seller box ≈ 925px), and a sticky element taller than its viewport slot
-     leaves its bottom permanently unreachable — so cap the height and let it
-     scroll internally. No scrollbar appears when the content fits. */
+     The panel can be taller than the viewport; instead of capping it with
+     an inner scrollbar (which fought the page scroll), it scrolls WITH the
+     page until its bottom is in view and then sticks — SidebarScrollSync
+     lowers `top` (possibly negative) whenever the panel is taller than the
+     viewport slot, so every part of it stays reachable with normal page
+     scrolling. */
   .pl-pd-side {
     position: sticky;
     top: 92px;
-    max-height: calc(100vh - 104px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-  }
-  .pl-pd-side::-webkit-scrollbar { width: 6px; }
-  .pl-pd-side::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.16);
-    border-radius: 999px;
+    align-self: flex-start;
   }
 
   /* The condensed bar that slid under the header existed because the buy box

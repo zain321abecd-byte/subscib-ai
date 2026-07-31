@@ -9,6 +9,7 @@ import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTesti
 import PackageBuy from "./PackageBuy";
 import RichTextRenderer from "@/components/RichTextRenderer";
 import DescriptionExpander from "@/components/DescriptionExpander";
+import SidebarScrollSync from "@/components/SidebarScrollSync";
 import { getAllProducts, getProduct } from "@/lib/products";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getStartingPrice } from "@/lib/pricing";
@@ -258,6 +259,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
 
           <aside className="pl-pd-side">
+            <SidebarScrollSync />
             {/* Price + options + Buy now — plati's right-hand buy box */}
             <div className="pl-pd-buybox">
               <PackageBuy product={product} />
