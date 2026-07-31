@@ -6,6 +6,7 @@
 -- "on conflict (slug) do update".
 --
 -- What it does, in order:
+--   0. 8-homepage-tools.sql  -> products.show_on_homepage column + index
 --   1. 15-coupons.sql        -> creates the coupons table + RLS + redeem_coupon()
 --   2. ChatGPT Plus post     -> 1 blog post (Draft)
 --   3. blog-batch-1.sql      -> 5 blog posts (Draft)
@@ -19,6 +20,21 @@
 -- Requires: schema.sql already applied (this depends on is_admin() and the
 -- blog_posts table).
 -- ============================================================================
+
+
+-- ############################################################################
+-- ## 0 of 5 — HOMEPAGE TOOLS COLUMN
+-- ############################################################################
+-- Without this the admin Products form fails with:
+--   "Could not find the 'show_on_homepage' column of 'products' in the
+--    schema cache"
+alter table products
+  add column if not exists show_on_homepage boolean not null default false;
+
+create index if not exists products_show_on_homepage_idx
+  on products(show_on_homepage, sort_order);
+
+notify pgrst, 'reload schema';
 
 
 -- ############################################################################
