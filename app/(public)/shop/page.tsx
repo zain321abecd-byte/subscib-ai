@@ -1,4 +1,5 @@
 import { getAllProducts } from "@/lib/products";
+import { absoluteUrl } from "@/lib/site-url";
 import ShopClient from "./ShopClient";
 
 export const metadata = {
@@ -14,5 +15,23 @@ export const dynamic = "force-dynamic";
 
 export default async function ShopPage() {
   const products = await getAllProducts();
-  return <ShopClient products={products} />;
+  // ItemList schema so search engines understand this as the catalog page.
+  const itemListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "SubscribAI catalog",
+    numberOfItems: products.length,
+    itemListElement: products.slice(0, 50).map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: p.name,
+      url: absoluteUrl(`/product/${p.id}`),
+    })),
+  };
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} />
+      <ShopClient products={products} />
+    </>
+  );
 }

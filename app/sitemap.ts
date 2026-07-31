@@ -41,6 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Editorial / legal pages: no reliable change date, so send none.
   const undatedStatic: MetadataRoute.Sitemap = [
     { url: absoluteUrl("/faq"),                     changeFrequency: "monthly", priority: 0.6 },
+    { url: absoluteUrl("/about"),                   changeFrequency: "monthly", priority: 0.5 },
     { url: absoluteUrl("/contact"),                 changeFrequency: "monthly", priority: 0.5 },
     { url: absoluteUrl("/custom-pricing"),          changeFrequency: "monthly", priority: 0.5 },
     { url: absoluteUrl("/business-bundle-inquiry"), changeFrequency: "monthly", priority: 0.4 },

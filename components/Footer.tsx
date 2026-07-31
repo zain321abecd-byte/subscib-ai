@@ -51,6 +51,7 @@ export default async function Footer() {
 
         <div>
           <h4>Company</h4>
+          <Link href="/about">About us</Link>
           <Link href="/blog">Blog</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/prices">Pricing</Link>

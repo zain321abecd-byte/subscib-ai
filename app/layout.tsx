@@ -38,7 +38,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = s.seo_site_title?.trim() || `${SITE_NAME} — Premium AI Subscriptions`;
   const description = s.seo_default_description?.trim() || DEFAULT_DESCRIPTION;
   const keywords = (s.seo_default_keywords || "").split(",").map((k) => k.trim()).filter(Boolean);
-  const ogImage = s.seo_og_image?.trim() || "/assets/subscribai-logo-transparent-full.png";
+  // Default to the designed 1200×630 card rendered by app/opengraph-image.tsx;
+  // the admin can still override it with the seo_og_image setting.
+  const ogImage = s.seo_og_image?.trim() || "/opengraph-image";
   const twitterHandle = s.seo_twitter_handle?.trim() || "";
   const indexable = (s.seo_index_site ?? "true") !== "false";
   // Prefer canonical key, fall back to legacy alias (see KEY_ALIASES

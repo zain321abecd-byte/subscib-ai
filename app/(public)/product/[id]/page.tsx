@@ -69,25 +69,6 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const product = await getProduct(id);
   if (!product) notFound();
 
-  // JSON-LD Product schema for rich Google results
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.name,
-    description: product.description || `${product.name} — premium AI subscription, delivered to your inbox in under 30 minutes.`,
-    category: product.category,
-    brand: { "@type": "Brand", name: product.brand || product.name },
-    offers: {
-      // "Starting from" price for rich Google results — matches what
-      // the shopper sees on cards + on the initial state of this page.
-      "@type": "Offer",
-      url: absoluteUrl(`/product/${product.id}`),
-      priceCurrency: "USD",
-      price: getStartingPrice(product),
-      availability: "https://schema.org/InStock",
-      seller: { "@type": "Organization", name: "SubscribAI" },
-    },
-  };
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -117,6 +98,59 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const matchedReviews = reviewPool.filter((r) => r.product === product.name);
   const otherReviews = reviewPool.filter((r) => r.product !== product.name);
   const reviewCount = matchedReviews.length > 0 ? matchedReviews.length : reviewPool.length;
+
+  // JSON-LD Product schema for rich Google results. Prices on this site are
+  // stored and shown in PKR — declaring them as USD would be wildly wrong in
+  // merchant listings. Ratings come from the admin-curated reviews (the ones
+  // rendered further down this page), preferring reviews for this product.
+  const ratingPool = matchedReviews.length > 0 ? matchedReviews : reviewPool;
+  const avgRating = ratingPool.length > 0
+    ? Math.round((ratingPool.reduce((s, r) => s + (r.rating ?? 5), 0) / ratingPool.length) * 10) / 10
+    : null;
+  const priceValidUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description || `${product.name} — premium AI subscription, delivered to your inbox in under 30 minutes.`,
+    category: product.category,
+    ...(product.imageUrl ? { image: product.imageUrl } : {}),
+    brand: { "@type": "Brand", name: product.brand || product.name },
+    ...(avgRating != null && ratingPool.length > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: avgRating,
+            reviewCount: ratingPool.length,
+            bestRating: 5,
+            worstRating: 1,
+          },
+          review: ratingPool.slice(0, 3).map((r) => ({
+            "@type": "Review",
+            author: { "@type": "Person", name: r.name },
+            reviewRating: { "@type": "Rating", ratingValue: r.rating ?? 5, bestRating: 5 },
+            reviewBody: r.text,
+          })),
+        }
+      : {}),
+    offers: {
+      // "Starting from" price for rich Google results — matches what
+      // the shopper sees on cards + on the initial state of this page.
+      "@type": "Offer",
+      url: absoluteUrl(`/product/${product.id}`),
+      priceCurrency: "PKR",
+      price: getStartingPrice(product),
+      priceValidUntil,
+      availability: "https://schema.org/InStock",
+      seller: { "@type": "Organization", name: "SubscribAI" },
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "PK",
+        returnPolicyCategory: "https://schema.org/MerchantReturnUnspecified",
+        merchantReturnLink: absoluteUrl("/refund"),
+      },
+    },
+  };
   const testimonialSlides: Testimonial[] = [...matchedReviews, ...otherReviews].slice(0, 6).map((r, i) => ({
     id: i + 1,
     name: r.name,
