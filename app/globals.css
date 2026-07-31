@@ -37,6 +37,11 @@
   --surface:         #111927; /* cards */
   --surface-soft:    #1F2A37; /* hover */
   --surface-strong:  #384250; /* active */
+  /* Alias for --surface-soft. ~50 rules (admin skeletons, table-row and nav
+     hovers) referenced var(--surface-2) while it was never defined; an
+     undefined var voids the whole declaration, so admin skeletons rendered
+     fully transparent and those hover states did nothing. */
+  --surface-2:       #1F2A37;
 
   --border:          rgba(255, 255, 255, 0.08);
   --border-strong:   rgba(255, 255, 255, 0.14);
