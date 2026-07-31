@@ -19681,3 +19681,71 @@ html {
   color: #fff;
 }
 .pl-desc-toggle i { font-size: 0.6875rem; }
+
+/* ============================================================
+   Homepage Catalog + Why SubscribAI — livelier cards.
+   Each card carries a per-item `--accent` (set inline in page.tsx);
+   these rules override the flat .pl-cat-item / .pl-why-item base.
+   ============================================================ */
+.pl-cat-item {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  transition: background var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+.pl-cat-icon {
+  background: color-mix(in srgb, var(--accent, #4884FF) 16%, transparent);
+  color: var(--accent, #4884FF);
+  transition: transform var(--dur) var(--ease-out);
+}
+/* Oversized faded duplicate of the category icon, bleeding off the
+   corner — pure decoration, revealed a little more on hover. */
+.pl-cat-watermark {
+  position: absolute;
+  right: -14px;
+  bottom: -18px;
+  font-size: 64px;
+  color: var(--accent, #4884FF);
+  opacity: 0.07;
+  transform: rotate(-12deg);
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);
+}
+.pl-cat-item:hover {
+  background: var(--surface-strong);
+  border-color: color-mix(in srgb, var(--accent, #4884FF) 45%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+}
+.pl-cat-item:hover .pl-cat-icon { transform: scale(1.08); }
+.pl-cat-item:hover .pl-cat-watermark { opacity: 0.13; transform: rotate(-6deg); }
+.pl-cat-chev { transition: transform var(--dur) var(--ease-out), color var(--dur) var(--ease-out); }
+.pl-cat-item:hover .pl-cat-chev {
+  color: var(--accent, #4884FF);
+  transform: translateX(3px);
+}
+
+.pl-why-item {
+  border: 1px solid transparent;
+  transition: border-color var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+.pl-why-icon {
+  background: linear-gradient(
+    135deg,
+    var(--accent, #4884FF),
+    color-mix(in srgb, var(--accent, #4884FF) 65%, #000)
+  );
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent, #4884FF) 30%, transparent);
+  transition: transform var(--dur) var(--ease-out);
+}
+.pl-why-item:hover {
+  border-color: color-mix(in srgb, var(--accent, #4884FF) 40%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+}
+.pl-why-item:hover .pl-why-icon { transform: scale(1.08) rotate(-4deg); }

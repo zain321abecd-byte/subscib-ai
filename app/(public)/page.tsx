@@ -147,19 +147,25 @@ export default async function HomePage() {
             </header>
             <div className="pl-cat-grid">
               {[
-                { href: "/shop#ai-subscriptions", icon: "fa-comments", title: "AI Subscriptions", desc: "ChatGPT Plus, Claude Pro, Gemini, Perplexity" },
-                { href: "/shop#design-tools", icon: "fa-palette", title: "Design & Image AI", desc: "Midjourney, Leonardo, Firefly, Canva Pro" },
-                { href: "/shop#productivity", icon: "fa-bolt-lightning", title: "Productivity", desc: "Notion AI, Grammarly, ClickUp AI" },
-                { href: "/shop#automation", icon: "fa-diagram-project", title: "Automation", desc: "Make.com, Zapier, n8n flows" },
-                { href: "/shop#courses", icon: "fa-graduation-cap", title: "Courses", desc: "Self-paced AI courses and templates" },
+                { href: "/shop#ai-subscriptions", icon: "fa-comments", title: "AI Subscriptions", desc: "ChatGPT Plus, Claude Pro, Gemini, Perplexity", accent: "#4884FF" },
+                { href: "/shop#design-tools", icon: "fa-palette", title: "Design & Image AI", desc: "Midjourney, Leonardo, Firefly, Canva Pro", accent: "#A855F7" },
+                { href: "/shop#productivity", icon: "fa-bolt-lightning", title: "Productivity", desc: "Notion AI, Grammarly, ClickUp AI", accent: "#F59E0B" },
+                { href: "/shop#automation", icon: "fa-diagram-project", title: "Automation", desc: "Make.com, Zapier, n8n flows", accent: "#10B981" },
+                { href: "/shop#courses", icon: "fa-graduation-cap", title: "Courses", desc: "Self-paced AI courses and templates", accent: "#EC4899" },
               ].map((cat) => (
-                <Link key={cat.href} href={cat.href} className="pl-cat-item">
+                <Link
+                  key={cat.href}
+                  href={cat.href}
+                  className="pl-cat-item"
+                  style={{ "--accent": cat.accent } as React.CSSProperties}
+                >
                   <span className="pl-cat-icon"><i className={`fa-solid ${cat.icon}`}></i></span>
                   <span className="pl-cat-text">
                     <strong>{cat.title}</strong>
                     <small>{cat.desc}</small>
                   </span>
                   <i className="fa-solid fa-chevron-right pl-cat-chev" aria-hidden></i>
+                  <i className={`fa-solid ${cat.icon} pl-cat-watermark`} aria-hidden></i>
                 </Link>
               ))}
             </div>
@@ -176,12 +182,16 @@ export default async function HomePage() {
             </header>
             <div className="pl-why-grid">
               {[
-                { icon: "fa-credit-card", t: paymentFeatureTitle, d: paymentFeatureDescription },
-                { icon: "fa-bolt", t: "Fast delivery", d: "Most subscriptions go live in under 30 minutes after payment." },
-                { icon: "fa-rotate", t: "Easy renewals", d: "Reminders before expiry and quick replacement support." },
-                { icon: "fa-whatsapp", t: "Human support", d: "WhatsApp and email support from a real person.", brand: true },
+                { icon: "fa-credit-card", t: paymentFeatureTitle, d: paymentFeatureDescription, accent: "#4884FF" },
+                { icon: "fa-bolt", t: "Fast delivery", d: "Most subscriptions go live in under 30 minutes after payment.", accent: "#F59E0B" },
+                { icon: "fa-rotate", t: "Easy renewals", d: "Reminders before expiry and quick replacement support.", accent: "#10B981" },
+                { icon: "fa-whatsapp", t: "Human support", d: "WhatsApp and email support from a real person.", brand: true, accent: "#25D366" },
               ].map((w) => (
-                <div key={w.t} className="pl-why-item">
+                <div
+                  key={w.t}
+                  className="pl-why-item"
+                  style={{ "--accent": w.accent } as React.CSSProperties}
+                >
                   <span className="pl-why-icon"><i className={`${w.brand ? "fa-brands" : "fa-solid"} ${w.icon}`}></i></span>
                   <div>
                     <strong>{w.t}</strong>
