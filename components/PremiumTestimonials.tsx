@@ -6,6 +6,9 @@ import ReviewFullModal from "./ReviewFullModal";
 /** Above this length, the testimonial is clamped and a "Read more" opens the modal. */
 const READ_MORE_THRESHOLD = 200;
 
+/** Max pagination dots shown at once; the window slides with the current slide. */
+const MAX_DOTS = 7;
+
 /* ─────────────────────────────────────────────────────────────────────────────
    TESTIMONIAL DATA
    ─ mainImage : any URL or /public/ path.
@@ -106,6 +109,25 @@ function PremiumTestimonialsContent({ data }: { data: Testimonial[] }) {
 
   const t = data[current] ?? data[0];
 
+  // Windowed dot indices: at most MAX_DOTS dots, sliding to keep the
+  // current slide centered. Windows at either end stay pinned so the
+  // first/last dots don't drift.
+  const windowStart = Math.max(
+    0,
+    Math.min(current - Math.floor(MAX_DOTS / 2), data.length - MAX_DOTS)
+  );
+  const dotWindow = Array.from(
+    { length: Math.min(MAX_DOTS, data.length) },
+    (_, k) => windowStart + k
+  );
+  // Dots at the window's edges shrink to hint that more slides exist
+  // beyond them (unless the window is already touching that end).
+  const isEdgeDot = (i: number) => {
+    if (data.length <= MAX_DOTS) return false;
+    if (i === windowStart && windowStart > 0) return true;
+    return i === windowStart + MAX_DOTS - 1 && windowStart + MAX_DOTS < data.length;
+  };
+
   const contentAnim: React.CSSProperties = {
     opacity: visible ? 1 : 0,
     transform: visible ? "translateX(0px)" : "translateX(16px)",
@@ -201,21 +223,34 @@ function PremiumTestimonialsContent({ data }: { data: Testimonial[] }) {
             {/* ── NAVIGATION — outside the animated div, always fixed here ── */}
             <div className="flex items-center justify-center md:justify-between mt-8 flex-shrink-0">
 
-              {/* Dot indicators */}
-              <div className="hidden md:flex items-center gap-2" aria-label="Slide indicators">
-                {data.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => goTo(i)}
-                    aria-label={`Go to slide ${i + 1}`}
-                    style={{ appearance: "none", WebkitAppearance: "none" }}
-                    className={`border-0 p-0 cursor-pointer rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
-                      i === current
-                        ? "w-5 h-2 bg-orange-500"
-                        : "w-2 h-2 bg-white/25 hover:bg-white/50"
-                    }`}
-                  />
-                ))}
+              {/* Dot indicators — windowed so a large review count doesn't
+                  overflow the row: at most MAX_DOTS dots slide with the
+                  current index (Instagram-style), plus a "n / total" count.
+                  Every review stays reachable via dots, arrows, and autoplay. */}
+              <div className="hidden md:flex items-center gap-3" aria-label="Slide indicators">
+                <div className="flex items-center gap-2">
+                  {dotWindow.map((i) => (
+                    <button
+                      key={i}
+                      onClick={() => goTo(i)}
+                      aria-label={`Go to slide ${i + 1}`}
+                      aria-current={i === current ? "true" : undefined}
+                      style={{ appearance: "none", WebkitAppearance: "none" }}
+                      className={`border-0 p-0 cursor-pointer rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
+                        i === current
+                          ? "w-5 h-2 bg-orange-500"
+                          : isEdgeDot(i)
+                          ? "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
+                          : "w-2 h-2 bg-white/25 hover:bg-white/50"
+                      }`}
+                    />
+                  ))}
+                </div>
+                {data.length > MAX_DOTS && (
+                  <span className="text-gray-500 text-xs font-medium tabular-nums select-none">
+                    {current + 1} / {data.length}
+                  </span>
+                )}
               </div>
 
               {/* Prev / Next arrow buttons */}
