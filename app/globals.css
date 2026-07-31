@@ -19482,3 +19482,99 @@ textarea:focus {
   aspect-ratio: 16 / 9;
   object-fit: cover;
 }
+
+/* ============================================================
+   Themed scrollbars — site-wide. The default Windows scrollbar
+   renders as a wide white track that clashes with the dark navy
+   theme (visible on the sticky buy panel, modals, and the page
+   itself). Slim, rounded, brand-tinted thumb on a transparent
+   track everywhere instead.
+   ============================================================ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(72, 132, 255, 0.35) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(72, 132, 255, 0.35);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(72, 132, 255, 0.55);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* The page-level scrollbar gets a subtle track so it reads against
+   the viewport edge, and a touch more width for easy grabbing. */
+html::-webkit-scrollbar {
+  width: 10px;
+}
+html::-webkit-scrollbar-track {
+  background: #0B1019;
+}
+html {
+  scrollbar-color: rgba(72, 132, 255, 0.35) #0B1019;
+}
+
+/* ============================================================
+   Variation pickers (Plan / Account Type / Duration) — make the
+   options feel clickable and the chosen one unmistakable:
+   pointer cursor, hover lift, smooth transitions, and a radio
+   dot that fills brand-blue on the active option. Selectors are
+   prefixed with .variation-option-grid because tailwind.css
+   loads after this file and carries same-specificity rules for
+   .variation-option that would otherwise win the cascade.
+   ============================================================ */
+.variation-option-grid .variation-option {
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background-color 0.15s ease,
+    box-shadow 0.15s ease, transform 0.15s ease;
+}
+.variation-option-grid .variation-option:hover:not(.is-active) {
+  border-color: rgba(72, 132, 255, 0.55);
+  background: rgba(72, 132, 255, 0.06);
+}
+.variation-option-grid .variation-option:active {
+  transform: scale(0.985);
+}
+.variation-option-grid .variation-option.is-active {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 1px var(--brand-500), 0 6px 18px rgba(72, 132, 255, 0.18);
+  background: linear-gradient(
+    180deg,
+    rgba(72, 132, 255, 0.16),
+    rgba(72, 132, 255, 0.07)
+  );
+  color: #fff;
+}
+/* Radio-style dot: unchosen options show a hollow ring so it's
+   obvious they're selectable; the active one fills brand blue. */
+.variation-option-grid .variation-option::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-left: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--surface-strong);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.variation-option-grid .variation-option:hover::after {
+  border-color: rgba(72, 132, 255, 0.55);
+}
+.variation-option-grid .variation-option.is-active::after {
+  border-color: var(--brand-500);
+  background: radial-gradient(circle, var(--brand-500) 45%, transparent 50%);
+}
+/* tailwind.css renders a corner check badge (<i>) on active
+   options — the radio dot replaces it. */
+.variation-option-grid .variation-option i { display: none !important; }
