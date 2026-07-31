@@ -69,7 +69,7 @@ const FALLBACKS: Record<string, string> = {
   // GA4 property for subscribai.com. Ships as the default so analytics
   // work without a DB row; a non-empty admin setting still overrides it.
   google_analytics_id:      "G-D0LDQ5LPS0",
-  google_tag_manager_id:    "",
+  google_tag_manager_id:    "GTM-KJWWDJZM",
   google_site_verification: "",
   meta_pixel_id:            "",
   facebook_pixel_id:        "",
@@ -159,7 +159,7 @@ const fetchAllSettings = unstable_cache(
   // Vercel's Data Cache survives deployments, so a cached settings map keeps
   // serving old FALLBACKS after a code change. Bump this suffix whenever a
   // FALLBACKS default changes, so the new build starts a fresh cache entry.
-  ["site-settings-all-v2"],
+  ["site-settings-all-v3"],
   { tags: [SETTINGS_TAG] },
 );
 
