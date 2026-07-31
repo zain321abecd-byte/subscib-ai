@@ -4,6 +4,9 @@ import { Inter, Poppins } from "next/font/google";
 import { getSiteSettings } from "@/lib/site-settings";
 import { SITE_URL } from "@/lib/site-url";
 import RouteLoadingIndicator from "@/components/RouteLoadingIndicator";
+import { headers } from "next/headers";
+import ConsentBanner from "@/components/ConsentBanner";
+import { CONSENT_DEFAULT_SCRIPT, isConsentRequired } from "@/lib/consent";
 import "./globals.css";
 import "./tailwind.css";
 
@@ -114,6 +117,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const fbp = (s.meta_pixel_id?.trim()         || s.seo_facebook_pixel?.trim()   || "");
   const gtm = s.google_tag_manager_id?.trim() || "";
 
+  // Consent banner is only shown where Google requires it (EEA/UK/CH);
+  // elsewhere consent defaults to granted and no banner interrupts the shop.
+  const country = (await headers()).get("x-user-country");
+  const needsConsent = (ga || gtm || fbp) && isConsentRequired(country);
+
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
       <head>
@@ -124,6 +132,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
         />
+
+        {/* Google Consent Mode v2 — must execute BEFORE gtag.js so the
+            consent state is on the dataLayer before any hit fires. A plain
+            inline script (not next/script) keeps it in document order. */}
+        {(ga || gtm || fbp) && (
+          <script id="consent-default" dangerouslySetInnerHTML={{ __html: CONSENT_DEFAULT_SCRIPT }} />
+        )}
 
         {/* Google Analytics 4 (only when configured) */}
         {ga && (
@@ -188,6 +203,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </noscript>
         )}
         {children}
+        {needsConsent && <ConsentBanner />}
         <RouteLoadingIndicator />
       </body>
     </html>

@@ -19829,3 +19829,85 @@ html {
 @keyframes route-loading-spin {
   to { transform: rotate(360deg); }
 }
+
+/* ============================================================
+   Consent Mode v2 banner (EEA/UK/CH visitors only).
+   Sits above the mobile tab bar so it never traps the nav.
+   ============================================================ */
+.consent-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 400;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: rgba(11, 16, 25, 0.97);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(72, 132, 255, 0.35);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+}
+.consent-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.consent-banner-text strong {
+  display: block;
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.consent-banner-text p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.consent-banner-text a { color: var(--brand-500); font-weight: 600; }
+.consent-banner-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.consent-btn {
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.consent-btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text);
+}
+.consent-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.consent-btn-primary {
+  background: var(--brand-500);
+  border: 1px solid var(--brand-500);
+  color: #fff;
+}
+.consent-btn-primary:hover { background: var(--brand-600, #3B72E0); }
+
+@media (max-width: 720px) {
+  .consent-banner {
+    /* Clear the fixed mobile tab bar (59px + safe area). */
+    bottom: calc(59px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 14px;
+  }
+  .consent-banner-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .consent-banner-actions > .consent-btn { flex: 1 1 0; text-align: center; }
+}
