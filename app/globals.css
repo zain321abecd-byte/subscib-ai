@@ -19343,6 +19343,13 @@ textarea:focus {
     padding-top: max(8px, env(safe-area-inset-top, 0px));
   }
 }
+/* Desktop got no such padding, so the bar's content sat flush against the
+   viewport edge and the cart count badge was clipped at the top. */
+@media (min-width: 1024px) {
+  .pl-main-bar {
+    padding-top: 10px;
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Blog index — "Latest Articles" (nexus-style reference design)
