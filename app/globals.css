@@ -19749,3 +19749,54 @@ html {
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
 }
 .pl-why-item:hover .pl-why-icon { transform: scale(1.08) rotate(-4deg); }
+/* ============================================================
+   Route loading overlay — brand favicon with a spinning ring,
+   shown by RouteLoadingIndicator while a navigation is in
+   flight. Sits above everything, ignores pointer events so it
+   never blocks the page that's arriving.
+   ============================================================ */
+.route-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: rgba(11, 16, 25, 0.55);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+  animation: route-loading-fade 0.18s ease-out;
+}
+@keyframes route-loading-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.route-loading-badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+}
+.route-loading-badge img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+.route-loading-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 25%,
+    var(--brand-500) 85%,
+    transparent 100%
+  );
+  /* Punch out the middle so only a 4px ring remains. */
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  animation: route-loading-spin 0.9s linear infinite;
+}
+@keyframes route-loading-spin {
+  to { transform: rotate(360deg); }
+}

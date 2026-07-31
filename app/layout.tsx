@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Inter, Poppins } from "next/font/google";
 import { getSiteSettings } from "@/lib/site-settings";
 import { SITE_URL } from "@/lib/site-url";
+import RouteLoadingIndicator from "@/components/RouteLoadingIndicator";
 import "./globals.css";
 import "./tailwind.css";
 
@@ -184,6 +185,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </noscript>
         )}
         {children}
+        <RouteLoadingIndicator />
       </body>
     </html>
   );
