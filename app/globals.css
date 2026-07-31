@@ -11313,28 +11313,48 @@ body.admin-body::after {
   border: 1px solid var(--border-strong);
   border-radius: 12px;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
-  z-index: 60;
+  /* Above the sticky main bar (z-index 200) — the menu opens from the
+     topbar and must not be clipped behind the header row below it. */
+  z-index: 300;
   animation: cs-menu-in 130ms ease-out;
 }
 @keyframes cs-menu-in {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+/* One row per currency: bold code, muted full name, check on the right.
+   (The old two-row grid auto-placed the code next to the check icon,
+   which scrambled the layout.) */
 .currency-switcher-option {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: baseline;
-  gap: 4px 10px;
-  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
   border-radius: 8px;
   cursor: pointer;
   transition: background .12s;
 }
 .currency-switcher-option:hover { background: var(--surface-2); }
 .currency-switcher-option.is-selected { color: var(--brand-300); }
-.currency-switcher-option > span { font-weight: 600; color: inherit; font-size: 0.92rem; }
-.currency-switcher-option > small { color: var(--text-muted); font-size: 0.78rem; grid-column: 1; }
-.currency-switcher-option > i { color: var(--brand-500); justify-self: end; grid-row: 1 / span 2; }
+.currency-switcher-option > span {
+  flex: 0 0 auto;
+  min-width: 38px;
+  font-weight: 600;
+  color: inherit;
+  font-size: 0.92rem;
+}
+.currency-switcher-option > small {
+  flex: 1 1 auto;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.currency-switcher-option > i {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--brand-500);
+  font-size: 0.75rem;
+}
 
 @media (max-width: 720px) {
   .currency-switcher-trigger {
