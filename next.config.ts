@@ -12,7 +12,10 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://cdnjs.cloudflare.com",
-  "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://www.facebook.com https://vitals.vercel-insights.com",
+  // subscribai-api.onrender.com is the Render backend the portal/admin login
+  // fetches (NEXT_PUBLIC_API_URL) — omitting it broke sign-in with
+  // "Failed to fetch".
+  "connect-src 'self' https://subscribai-api.onrender.com https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://www.facebook.com https://vitals.vercel-insights.com",
   "frame-src https://www.googletagmanager.com",
   "object-src 'none'",
   "base-uri 'self'",
