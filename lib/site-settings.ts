@@ -156,7 +156,10 @@ const fetchAllSettings = unstable_cache(
       return { ...FALLBACKS };
     }
   },
-  ["site-settings-all"],
+  // Vercel's Data Cache survives deployments, so a cached settings map keeps
+  // serving old FALLBACKS after a code change. Bump this suffix whenever a
+  // FALLBACKS default changes, so the new build starts a fresh cache entry.
+  ["site-settings-all-v2"],
   { tags: [SETTINGS_TAG] },
 );
 
