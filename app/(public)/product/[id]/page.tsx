@@ -8,6 +8,7 @@ import ProductCard from "@/components/ProductCard";
 import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTestimonials";
 import PackageBuy from "./PackageBuy";
 import RichTextRenderer from "@/components/RichTextRenderer";
+import DescriptionExpander from "@/components/DescriptionExpander";
 import { getAllProducts, getProduct } from "@/lib/products";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getStartingPrice } from "@/lib/pricing";
@@ -225,15 +226,17 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             {/* Rich HTML from the admin TipTap editor, sanitised on render. */}
             <div className="pl-detail-description" id="description">
               <h2 className="pl-desc-heading">Product description</h2>
-              <RichTextRenderer
-                className="product-detail-description"
-                content={product.description}
-                fallback={
-                  <p className="product-detail-tagline">
-                    Premium AI tool delivered instantly to your inbox after payment.
-                  </p>
-                }
-              />
+              <DescriptionExpander>
+                <RichTextRenderer
+                  className="product-detail-description"
+                  content={product.description}
+                  fallback={
+                    <p className="product-detail-tagline">
+                      Premium AI tool delivered instantly to your inbox after payment.
+                    </p>
+                  }
+                />
+              </DescriptionExpander>
             </div>
 
             <ul className="product-features-pro pl-detail-features">

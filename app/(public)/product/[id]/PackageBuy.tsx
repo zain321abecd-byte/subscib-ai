@@ -48,6 +48,39 @@ export default function PackageBuy({ product }: { product: Product }) {
   const selectedPlan = config.plans.find((p) => p.id === selectedPlanId) ?? null;
   const selectedDuration = config.durations.find((d) => d.id === selectedDurationId) ?? null;
   const selectedAccountLabel = ACCOUNT_TYPES.find((a) => a.id === selectedAccount)?.label ?? "";
+
+  const fmt = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
+
+  /* Per-option price hints, so shoppers can compare without clicking
+     through every combination. Plans/accounts show the cheapest price
+     among the still-open choices; durations show the exact price once
+     plan + account are picked. */
+  const minPrice = (planIds: string[], accounts: AccountType[], durationIds: string[]) => {
+    let min: number | null = null;
+    for (const p of planIds) for (const a of accounts) for (const d of durationIds) {
+      const price = findVariationPrice(config, p, a, d);
+      if (price != null && (min == null || price < min)) min = price;
+    }
+    return min;
+  };
+  const allAccounts = ACCOUNT_TYPES.map((a) => a.id);
+  const allDurations = config.durations.map((d) => d.id);
+  const planHint = (opt: VariationOption) => {
+    const min = minPrice([opt.id], selectedAccount ? [selectedAccount] : allAccounts, allDurations);
+    return min == null ? null : `from ${fmt(min)}`;
+  };
+  const accountHint = (accountId: AccountType) => {
+    const min = minPrice(selectedPlan ? [selectedPlan.id] : config.plans.map((p) => p.id), [accountId], allDurations);
+    return min == null ? null : `from ${fmt(min)}`;
+  };
+  const durationHint = (opt: VariationOption) => {
+    if (selectedPlan && selectedAccount) {
+      const price = findVariationPrice(config, selectedPlan.id, selectedAccount, opt.id);
+      return price == null ? null : fmt(price);
+    }
+    const min = minPrice(config.plans.map((p) => p.id), allAccounts, [opt.id]);
+    return min == null ? null : `from ${fmt(min)}`;
+  };
   const selectedPrice =
     selectedPlan && selectedDuration && selectedAccount
       ? findVariationPrice(config, selectedPlan.id, selectedAccount, selectedDuration.id)
@@ -137,6 +170,17 @@ export default function PackageBuy({ product }: { product: Product }) {
             </small>
           </div>
 
+          {/* Live selection summary — mirrors the picks as removable-looking
+              chips so the shopper always sees what they're about to buy. */}
+          {(selectedPlan || selectedAccount || selectedDuration) && (
+            <div className="pl-selection-chips" aria-label="Your selection">
+              {selectedPlan && <span className="pl-sel-chip">{selectedPlan.label}</span>}
+              {selectedAccountLabel && <span className="pl-sel-chip">{selectedAccountLabel}</span>}
+              {selectedDuration && <span className="pl-sel-chip">{selectedDuration.label}</span>}
+              {qty > 1 && <span className="pl-sel-chip">× {qty}</span>}
+            </div>
+          )}
+
           {/* Promo code — validated against /admin/coupons via server action */}
           <div className="pl-promo">
             {cart.coupon ? (
@@ -199,13 +243,16 @@ export default function PackageBuy({ product }: { product: Product }) {
 
         <OptionGroup
           label="Plan"
+          step={1}
+          done={!!selectedPlan}
           options={config.plans}
           value={selectedPlanId}
           onChange={setSelectedPlanId}
+          hint={planHint}
         />
 
         <div className="variation-group">
-          <div className="variation-group-label">Account Type</div>
+          <GroupLabel label="Account Type" step={2} done={!!selectedAccount} />
           <div className="variation-option-grid two">
             {ACCOUNT_TYPES.map((opt) => (
               <button
@@ -215,8 +262,8 @@ export default function PackageBuy({ product }: { product: Product }) {
                 onClick={() => setSelectedAccount(opt.id)}
                 aria-pressed={selectedAccount === opt.id}
               >
-                <span>{opt.label}</span>
-                <i className="fa-solid fa-check"></i>
+                <span className="variation-opt-label">{opt.label}</span>
+                {accountHint(opt.id) && <span className="variation-opt-price">{accountHint(opt.id)}</span>}
               </button>
             ))}
           </div>
@@ -224,9 +271,12 @@ export default function PackageBuy({ product }: { product: Product }) {
 
         <OptionGroup
           label="Duration"
+          step={3}
+          done={!!selectedDuration}
           options={config.durations}
           value={selectedDurationId}
           onChange={setSelectedDurationId}
+          hint={durationHint}
         />
 
         <div className="variation-quantity-row">
@@ -293,33 +343,55 @@ export default function PackageBuy({ product }: { product: Product }) {
   );
 }
 
+/* Numbered step label — the chip turns into a check once that group has a
+   pick, so the shopper always knows how far along they are. */
+function GroupLabel({ label, step, done }: { label: string; step: number; done: boolean }) {
+  return (
+    <div className="variation-group-label">
+      <span className={`variation-step ${done ? "is-done" : ""}`} aria-hidden="true">
+        {done ? <i className="fa-solid fa-check"></i> : step}
+      </span>
+      {label}
+    </div>
+  );
+}
+
 function OptionGroup({
   label,
+  step,
+  done,
   options,
   value,
   onChange,
+  hint,
 }: {
   label: string;
+  step: number;
+  done: boolean;
   options: VariationOption[];
   value: string;
   onChange: (id: string) => void;
+  hint?: (opt: VariationOption) => string | null;
 }) {
   return (
     <div className="variation-group">
-      <div className="variation-group-label">{label}</div>
+      <GroupLabel label={label} step={step} done={done} />
       <div className="variation-option-grid">
-        {options.slice(0, 3).map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            className={`variation-option ${value === opt.id ? "is-active" : ""}`}
-            onClick={() => onChange(opt.id)}
-            aria-pressed={value === opt.id}
-          >
-            <span>{opt.label}</span>
-            <i className="fa-solid fa-check"></i>
-          </button>
-        ))}
+        {options.slice(0, 3).map((opt) => {
+          const price = hint?.(opt) ?? null;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              className={`variation-option ${value === opt.id ? "is-active" : ""}`}
+              onClick={() => onChange(opt.id)}
+              aria-pressed={value === opt.id}
+            >
+              <span className="variation-opt-label">{opt.label}</span>
+              {price && <span className="variation-opt-price">{price}</span>}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
