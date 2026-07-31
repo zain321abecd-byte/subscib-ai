@@ -13852,19 +13852,24 @@ body.admin-body::after {
    PUBLIC — Sticky cart "Proceed to checkout" on mobile
    ============================================================ */
 @media (max-width: 880px) {
-  /* If the cart has a `.cart-sticky-cta` div with a button, float it. */
+  /* If the cart has a `.cart-sticky-cta` div with a button, float it.
+     It must sit ABOVE the fixed mobile tab bar (59px + safe area, z 300):
+     anchored to bottom: 0 with z 55 it hid behind the tab bar, showing
+     only a thin blue sliver of the button above the bar. The tab bar
+     already covers the safe area, so no extra inset padding here. */
   .cart-sticky-cta {
     display: flex;
     position: fixed;
-    left: 0; right: 0; bottom: 0;
-    z-index: 55;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom)) 16px;
+    left: 0; right: 0;
+    bottom: calc(59px + env(safe-area-inset-bottom, 0px));
+    z-index: 290;
+    padding: 10px 16px;
     background: linear-gradient(180deg, rgba(11, 16, 25, 0.55), rgba(11, 16, 25, 0.95));
     backdrop-filter: saturate(180%) blur(14px);
     border-top: 1px solid var(--border);
   }
   .cart-sticky-cta .btn { width: 100%; justify-content: center; }
-  body:has(.cart-sticky-cta) main { padding-bottom: 84px; }
+  body:has(.cart-sticky-cta) main { padding-bottom: 150px; }
 }
 
 /* Hide on desktop */
@@ -14246,9 +14251,11 @@ body.admin-body::after {
   .shop-count { font-size: 0.74rem !important; }
 
   /* ---------- WHATSAPP FAB — push higher when sticky bar is present ---------- */
-  body:has(.mobile-buy-bar) .wa-fab,
-  body:has(.cart-sticky-cta) .wa-fab {
+  body:has(.mobile-buy-bar) .wa-fab {
     bottom: 96px !important; /* clear the sticky bar */
+  }
+  body:has(.cart-sticky-cta) .wa-fab {
+    bottom: 150px !important; /* clear the tab bar + stacked cart CTA */
   }
   .wa-fab {
     width: 48px !important;
@@ -14269,7 +14276,9 @@ body.admin-body::after {
 
   /* Push page content up a bit less since the bar is smaller now */
   body:has(.mobile-buy-bar) main { padding-bottom: 72px !important; }
-  body:has(.cart-sticky-cta) main { padding-bottom: 72px !important; }
+  /* The cart CTA now stacks above the 58px tab bar, so content must clear
+     both bars (58 tab bar + ~68 CTA + breathing room). */
+  body:has(.cart-sticky-cta) main { padding-bottom: 150px !important; }
 }
 
 /* Tiny phones (≤420px) — even smaller, more refined */
