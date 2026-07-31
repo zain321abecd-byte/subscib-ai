@@ -96,8 +96,9 @@ function parseForm(formData: FormData): ProductFormData {
     // marker absent → checkbox unchecked).
     show_in_related: formData.get("show_in_related") === "on",
     hide_shared_plan: formData.get("hide_shared_plan") === "on",
-    // Only "contain" and "cover" are valid CSS object-fit values here.
-    image_fit: str(formData.get("image_fit")) === "contain" ? "contain" : "cover",
+    // Only "contain" and "cover" are valid here; "contain" is the historical
+    // default and stays the fallback.
+    image_fit: str(formData.get("image_fit")) === "cover" ? "cover" : "contain",
     sort_order: num(formData.get("sort_order")),
   };
 }

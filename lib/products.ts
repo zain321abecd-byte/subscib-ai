@@ -70,7 +70,9 @@ function rowToProduct(row: ProductRow): Product {
     // Default true if the column hasn't been added yet (graceful before migration).
     showInRelated: row.show_in_related ?? true,
     hideSharedPlan: row.hide_shared_plan ?? false,
-    imageFit: row.image_fit === "contain" ? "contain" : "cover",
+    // Default "contain": that is what the stylesheet has always done, so
+    // products saved before this option existed keep their current look.
+    imageFit: row.image_fit === "cover" ? "cover" : "contain",
     relatedProductIds: Array.isArray(row.related_product_ids)
       ? row.related_product_ids.filter((id) => typeof id === "string")
       : undefined,

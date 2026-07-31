@@ -13,7 +13,7 @@ type Props = {
 
 // Animated product gallery with cross-fade transitions, dot navigation,
 // keyboard arrow keys, and thumbnail strip below.
-export default function ProductGallery({ images, alt, autoMs = 5000, imageFit = "cover" }: Props) {
+export default function ProductGallery({ images, alt, autoMs = 5000, imageFit = "contain" }: Props) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -60,7 +60,13 @@ export default function ProductGallery({ images, alt, autoMs = 5000, imageFit = 
             className={`product-gallery-img ${i === active ? "is-active" : ""}`}
             loading={i === 0 ? "eager" : "lazy"}
             decoding="async"
-            style={imageFit === "contain" ? { objectFit: "contain" } : undefined}
+            /* .product-gallery-img hard-codes object-fit: contain + padding,
+               so "cover" must override both to actually fill the frame. */
+            style={
+              imageFit === "cover"
+                ? { objectFit: "cover", padding: 0 }
+                : { objectFit: "contain" }
+            }
           />
         ))}
 

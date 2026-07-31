@@ -21,7 +21,7 @@ alter table products
   add column if not exists hide_shared_plan boolean not null default false;
 
 alter table products
-  add column if not exists image_fit text not null default 'cover';
+  add column if not exists image_fit text not null default 'contain';
 
 -- Only the two CSS object-fit values this UI supports.
 do $$

@@ -330,15 +330,15 @@ export default function ProductForm({
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[
-                { value: "cover", title: "Fill container", hint: "Crops edges to fill the frame. Best for photos and wide banners." },
-                { value: "contain", title: "Fit whole logo", hint: "Shows the entire logo without cropping. Best for logos and icons." },
+                { value: "contain", title: "Fit whole logo", hint: "Shows the entire logo without cropping. Default — best for logos and icons." },
+                { value: "cover", title: "Fill container", hint: "Zooms in and crops edges so the image fills the tile. Best for photos, or logos that look too small." },
               ].map((opt) => (
                 <label key={opt.value} className="admin-fit-option">
                   <input
                     type="radio"
                     name="image_fit"
                     value={opt.value}
-                    defaultChecked={(product?.image_fit ?? "cover") === opt.value}
+                    defaultChecked={(product?.image_fit ?? "contain") === opt.value}
                   />
                   <span>
                     <strong>{opt.title}</strong>
