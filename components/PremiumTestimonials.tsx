@@ -41,11 +41,11 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-px" aria-label={`${rating} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((s) => {
-        if (rating >= s) return <span key={s} className="text-orange-500 text-2xl md:text-3xl select-none leading-none">★</span>;
+        if (rating >= s) return <span key={s} className="text-[#4884FF] text-2xl md:text-3xl select-none leading-none">★</span>;
         if (rating >= s - 0.5) return (
           <span key={s} className="relative inline-block text-2xl md:text-3xl select-none leading-none">
             <span className="text-gray-600">★</span>
-            <span className="absolute inset-0 overflow-hidden text-orange-500" style={{ width: "50%" }} aria-hidden="true">★</span>
+            <span className="absolute inset-0 overflow-hidden text-[#4884FF]" style={{ width: "50%" }} aria-hidden="true">★</span>
           </span>
         );
         return <span key={s} className="text-gray-600 text-2xl md:text-3xl select-none leading-none">★</span>;
@@ -58,7 +58,7 @@ function DotGrid() {
   return (
     <div className="absolute -top-2 -right-2 hidden md:grid grid-cols-5 gap-[7px] pointer-events-none" aria-hidden="true">
       {Array.from({ length: 20 }).map((_, i) => (
-        <span key={i} className="block w-1.5 h-1.5 rounded-full bg-orange-500/55" />
+        <span key={i} className="block w-1.5 h-1.5 rounded-full bg-[#4884FF]/55" />
       ))}
     </div>
   );
@@ -134,10 +134,10 @@ function PremiumTestimonialsContent({ data }: { data: Testimonial[] }) {
   };
 
   return (
-    <section className="relative bg-black overflow-hidden py-14 sm:py-18 md:py-20">
+    <section className="relative bg-[#0B1019] overflow-hidden py-14 sm:py-18 md:py-20">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute top-1/2 left-1/3 -translate-y-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-orange-600/5 blur-3xl" />
+        <div className="absolute top-1/2 left-1/3 -translate-y-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[#4884FF]/5 blur-3xl" />
       </div>
 
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 lg:px-12">
@@ -152,7 +152,7 @@ function PremiumTestimonialsContent({ data }: { data: Testimonial[] }) {
           <div className="flex-shrink-0 flex items-center justify-center">
             <div style={clusterAnim} className="flex items-center justify-center">
               <div
-                className="w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[184px] md:h-[184px] rounded-full flex items-center justify-center border-2 border-orange-500/55 shadow-[0_0_54px_rgba(249,115,22,0.24)]"
+                className="w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] md:w-[184px] md:h-[184px] rounded-full flex items-center justify-center border-2 border-[#4884FF]/55 shadow-[0_0_54px_rgba(72,132,255,0.24)]"
                 style={{ background: t.mainBg ?? "#374151" }}
                 aria-hidden="true"
               >
@@ -195,7 +195,7 @@ function PremiumTestimonialsContent({ data }: { data: Testimonial[] }) {
                 <button
                   type="button"
                   onClick={() => setShowFullReview(true)}
-                  className="mt-3 self-start text-orange-500 hover:text-orange-400 font-semibold text-sm inline-flex items-center gap-1.5 transition-colors"
+                  className="mt-3 self-start text-[#4884FF] hover:text-[#6B9CFF] font-semibold text-sm inline-flex items-center gap-1.5 transition-colors"
                 >
                   Read more <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true" />
                 </button>
@@ -210,7 +210,7 @@ function PremiumTestimonialsContent({ data }: { data: Testimonial[] }) {
               <div className="mt-4">
                 <p className="font-bold text-white text-lg md:text-xl">{t.name}</p>
                 <div className="flex items-center gap-3 mt-1.5">
-                  <span className="block w-8 h-px bg-orange-500 flex-shrink-0" aria-hidden="true" />
+                  <span className="block w-8 h-px bg-[#4884FF] flex-shrink-0" aria-hidden="true" />
                   <p className="text-gray-400 text-[11px] md:text-xs uppercase tracking-[0.13em] font-medium">{t.role}</p>
                 </div>
               </div>
@@ -232,9 +232,9 @@ function PremiumTestimonialsContent({ data }: { data: Testimonial[] }) {
                       aria-label={`Go to slide ${i + 1}`}
                       aria-current={i === current ? "true" : undefined}
                       style={{ appearance: "none", WebkitAppearance: "none" }}
-                      className={`border-0 p-0 cursor-pointer rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
+                      className={`border-0 p-0 cursor-pointer rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4884FF] ${
                         i === current
-                          ? "w-5 h-2 bg-orange-500"
+                          ? "w-5 h-2 bg-[#4884FF]"
                           : isEdgeDot(i)
                           ? "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
                           : "w-2 h-2 bg-white/25 hover:bg-white/50"
@@ -254,14 +254,14 @@ function PremiumTestimonialsContent({ data }: { data: Testimonial[] }) {
                 <button
                   onClick={goPrev}
                   aria-label="Previous testimonial"
-                  className="w-12 h-12 bg-white/5 border border-white/20 text-white flex items-center justify-center text-xl hover:bg-orange-500 hover:border-orange-500 hover:text-white active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                  className="w-12 h-12 bg-white/5 border border-white/20 text-white flex items-center justify-center text-xl hover:bg-[#4884FF] hover:border-[#4884FF] hover:text-white active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4884FF]"
                 >
                   &#8592;
                 </button>
                 <button
                   onClick={goNext}
                   aria-label="Next testimonial"
-                  className="w-12 h-12 bg-orange-500 border border-orange-500 text-white flex items-center justify-center text-xl hover:bg-orange-400 hover:border-orange-400 active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                  className="w-12 h-12 bg-[#4884FF] border border-[#4884FF] text-white flex items-center justify-center text-xl hover:bg-[#6B9CFF] hover:border-[#6B9CFF] active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4884FF]"
                 >
                   &#8594;
                 </button>
