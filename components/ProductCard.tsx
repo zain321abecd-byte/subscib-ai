@@ -74,6 +74,10 @@ export default function ProductCard({ product }: { product: Product }) {
       </Link>
 
       <div className="pl-card-body">
+        {/* Title sits directly under the image, ahead of the price. */}
+        <h3 className="pl-card-title-wrap">
+          <Link className="pl-card-title" href={`/product/${product.id}`}>{product.name}</Link>
+        </h3>
         <div className="pl-card-price">
           {fromMatch ? (
             <>
@@ -83,7 +87,6 @@ export default function ProductCard({ product }: { product: Product }) {
             priceLabel
           )}
         </div>
-        <Link className="pl-card-title" href={`/product/${product.id}`}>{product.name}</Link>
         {tag && <div className="pl-card-meta">{tag}</div>}
         <button
           className={`pl-card-buy ${justAdded ? "is-just-added" : ""}`}
