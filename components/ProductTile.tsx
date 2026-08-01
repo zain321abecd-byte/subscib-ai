@@ -1,6 +1,7 @@
 import Link from "next/link";
 import BrandIcon from "@/components/BrandIcon";
 import type { Product } from "@/lib/products";
+import { imageRatioStyle } from "@/lib/image-ratio";
 
 /**
  * Square brand tile + name underneath — no price, no Buy button.
@@ -29,7 +30,14 @@ export default function ProductTile({
       >
         {kind === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt="" loading="lazy" />
+          <img
+            src={product.imageUrl}
+            alt=""
+            loading="lazy"
+            /* Same crop the admin picked, so Popular / shop tiles match the
+               product page and "Best sellers" cards. */
+            style={imageRatioStyle(product.imageRatio)}
+          />
         ) : kind === "brand" ? (
           <BrandIcon name={product.brand!} size={iconSize} />
         ) : (
