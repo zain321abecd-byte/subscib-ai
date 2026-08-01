@@ -9813,7 +9813,12 @@ select.input::-ms-expand { display: none; }
 /* ── Rendered rich text (customer product page + admin preview) ─── */
 .rte-content {
   color: var(--text); font-size: 1rem; line-height: 1.7;
-  word-break: break-word;
+  /* `word-break: break-word` is the legacy alias Chrome treats as
+     `overflow-wrap: anywhere`, which split ordinary words mid-letter
+     ("G / oogle", "stor / age"). `overflow-wrap: break-word` only breaks a
+     word when it genuinely cannot fit on a line of its own. */
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 .rte-content > * + * { margin-top: 0.85em; }
 .rte-content h1, .rte-content h2, .rte-content h3, .rte-content h4, .rte-content h5, .rte-content h6 {
@@ -14779,7 +14784,8 @@ body.admin-body::after {
   line-clamp: 6;
   overflow: hidden;
   text-overflow: ellipsis;
-  word-break: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;
   overflow-wrap: anywhere;
   margin: 0;
 }
