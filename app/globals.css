@@ -17186,8 +17186,11 @@ textarea:focus {
 .pl-tile-media {
   display: grid;
   place-items: center;
-  aspect-ratio: 3 / 4;
-  border-radius: 12px;
+  /* Square, matching .pl-card-media so every product container on the site is
+     the same size — Popular rail, shop grid and the best-seller cards. Tiles
+     stay price-free; only the frame is shared. */
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
   background: var(--surface-soft);
   overflow: hidden;
   color: #fff;
@@ -17528,7 +17531,8 @@ textarea:focus {
   }
   .pl-tile-grid::-webkit-scrollbar { display: none; }
   .pl-tile { flex: 0 0 100px; }
-  .pl-tile-media { width: 100px; height: 124px; aspect-ratio: auto; }
+  /* Square on mobile too, so containers stay uniform site-wide. */
+  .pl-tile-media { width: 100px; height: 100px; aspect-ratio: 1 / 1; }
 }
 
 /* ---- Recommended: vertical list cards on mobile (plati style) ----------- */
@@ -17612,8 +17616,8 @@ textarea:focus {
   .pl-tile { flex: 0 0 86px; gap: 6px; }
   .pl-tile-media {
     width: 86px;
-    height: 108px;
-    border-radius: 12px;
+    height: 86px;
+    border-radius: 10px;
   }
   /* ProductTile hardcodes iconSize={48}; a transform keeps the icon at the
      same ~43% of tile width it had at 112px, and works on the monogram
