@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import ProductTile from "@/components/ProductTile";
+import ProductRail from "@/components/ProductRail";
 import PremiumTestimonials, { type Testimonial } from "@/components/PremiumTestimonials";
 import { getAllReviewRows } from "@/lib/reviews";
 import { getAllProducts, getFeaturedProducts } from "@/lib/products";
@@ -72,15 +73,7 @@ export default async function HomePage() {
       <section className="pl-section-wrap">
         <div className="v2-container">
           <div className="pl-section">
-            <header className="pl-section-head">
-              <h2>Popular</h2>
-              <Link className="pl-all-btn" href="/shop">All</Link>
-            </header>
-            <div className="pl-tile-grid">
-              {popularTiles.map((p) => (
-                <ProductTile key={p.id} product={p} />
-              ))}
-            </div>
+            <ProductRail title="Popular" allHref="/shop" products={popularTiles} />
           </div>
         </div>
       </section>

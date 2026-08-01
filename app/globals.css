@@ -20063,3 +20063,60 @@ html {
     padding-right: 24px;
   }
 }
+
+/* ============================================================
+   Product rail — two rows, six columns in view, scrolls sideways.
+   Used by the homepage "Popular" section (ProductRail.tsx).
+   ============================================================ */
+.pl-rail {
+  display: grid;
+  grid-template-rows: repeat(2, auto);
+  grid-auto-flow: column;
+  /* Six columns fill the visible width; the 5 gaps between them are removed
+     from the total so nothing is clipped at the right edge. */
+  grid-auto-columns: calc((100% - (5 * 6px)) / 6);
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  /* The themed scrollbar is redundant next to the arrow buttons. */
+  scrollbar-width: none;
+}
+.pl-rail::-webkit-scrollbar { display: none; }
+.pl-rail > * { scroll-snap-align: start; }
+
+/* Arrow buttons, sat beside the section's "All" link. */
+.pl-section-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pl-rail-nav { display: flex; gap: 6px; }
+.pl-rail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-soft);
+  color: var(--text);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.pl-rail-btn:hover:not(:disabled) {
+  background: var(--brand-500);
+  border-color: var(--brand-500);
+  color: #fff;
+}
+.pl-rail-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* Fewer columns on smaller screens so tiles stay tappable. */
+@media (max-width: 1024px) {
+  .pl-rail { grid-auto-columns: calc((100% - (3 * 6px)) / 4); }
+}
+@media (max-width: 640px) {
+  .pl-rail { grid-auto-columns: calc((100% - (2 * 6px)) / 3); }
+}
