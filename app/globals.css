@@ -9813,13 +9813,12 @@ select.input::-ms-expand { display: none; }
 /* ── Rendered rich text (customer product page + admin preview) ─── */
 .rte-content {
   color: var(--text); font-size: 1rem; line-height: 1.7;
-  /* Ordinary words were splitting mid-letter ("G / oogle", "stor / age").
-     Measured on the live page: `break-word` still broke 4 words in this
-     layout, `normal` broke none — so prose wraps at spaces only. Trade-off:
-     an unbroken 600px+ string (a bare long URL) can overflow instead of
-     breaking; descriptions are admin-written prose, so that is the better
-     failure mode. */
-  overflow-wrap: normal;
+  /* The mid-word breaks ("G / oogle") came from pasted descriptions built
+     entirely of &nbsp;, which the browser sees as one giant unbreakable word —
+     RichTextRenderer now converts those to ordinary spaces. `break-word` is
+     kept purely as a backstop so a genuine long token (a bare URL) wraps
+     instead of overflowing the column. */
+  overflow-wrap: break-word;
   word-break: normal;
 }
 .rte-content > * + * { margin-top: 0.85em; }

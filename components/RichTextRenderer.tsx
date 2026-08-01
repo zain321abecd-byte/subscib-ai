@@ -68,6 +68,22 @@ const SANITISE_CONFIG: sanitizeHtml.IOptions = {
   allowedStyles: {},
 };
 
+/**
+ * Replace non-breaking spaces with ordinary ones.
+ *
+ * Pasting from Word/Docs/web pages into the editor litters the HTML with
+ * `&nbsp;` — one Gemini description had 81 of them, making the whole 578-char
+ * paragraph a single unbreakable "word". The browser then either forced ugly
+ * mid-letter breaks ("G / oogle") or let the text overflow the column.
+ *
+ * Runs after sanitising, so `&nbsp;` entities are already decoded to U+00A0.
+ * Deliberate NBSP (e.g. "10 GB") is rare in prose and not worth the layout
+ * damage; genuine non-breaking needs can use <span style> if ever required.
+ */
+function normaliseSpaces(html: string): string {
+  return html.replace(/ /g, " ");
+}
+
 export default function RichTextRenderer({
   content, className, fallback,
 }: {
@@ -78,7 +94,7 @@ export default function RichTextRenderer({
   const raw = (content ?? "").toString();
   if (!raw.trim()) return <>{fallback ?? null}</>;
   const wrapped = wrapPlainText(raw);
-  const cleaned = sanitizeHtml(wrapped, SANITISE_CONFIG);
+  const cleaned = normaliseSpaces(sanitizeHtml(wrapped, SANITISE_CONFIG));
   return (
     <div
       className={`rte-content ${className || ""}`.trim()}
