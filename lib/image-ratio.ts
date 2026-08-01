@@ -29,32 +29,23 @@ export function normaliseImageRatio(value: unknown): ImageRatio {
 }
 
 /**
- * Style for the media *container* (the white tile). It takes the chosen
- * shape, so a square selection makes the frame itself square.
+ * Inline style that crops an image to the chosen ratio.
  *
- * "original" returns undefined so the stylesheet keeps full control and
- * products saved before this option existed look exactly as they did.
- */
-export function imageRatioContainerStyle(ratio: unknown): React.CSSProperties | undefined {
-  const entry = IMAGE_RATIOS.find((r) => r.value === normaliseImageRatio(ratio));
-  if (!entry?.css) return undefined;
-  return { aspectRatio: entry.css, height: "auto" };
-}
-
-/**
- * Style for the <img> inside a ratio'd container: fill it edge to edge.
- *
- * The stylesheets set `object-fit: contain` plus padding, which letterboxes
- * the picture and leaves blank bands inside the tile. Cover + zero padding
- * makes the image cover the whole frame.
+ * "original" returns undefined so the existing stylesheet rules keep working
+ * untouched — products saved before this option existed look exactly as they
+ * did. Any real ratio uses object-fit: cover so the image fills the cropped
+ * box instead of letterboxing inside it.
  */
 export function imageRatioStyle(ratio: unknown): React.CSSProperties | undefined {
   const entry = IMAGE_RATIOS.find((r) => r.value === normaliseImageRatio(ratio));
   if (!entry?.css) return undefined;
   return {
+    aspectRatio: entry.css,
     width: "100%",
-    height: "100%",
+    height: "auto",
+    maxHeight: "100%",
     objectFit: "cover",
+    margin: "auto",
     padding: 0,
   };
 }
