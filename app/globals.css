@@ -20078,12 +20078,14 @@ html {
   gap: 6px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
+  /* No scroll-snap: with two rows every item declares its own snap point, and
+     the competing points pinned scrollLeft at 0 — the rail would not move at
+     all, by arrow or by swipe. */
+  scroll-behavior: smooth;
   /* The themed scrollbar is redundant next to the arrow buttons. */
   scrollbar-width: none;
 }
 .pl-rail::-webkit-scrollbar { display: none; }
-.pl-rail > * { scroll-snap-align: start; }
 
 /* Arrow buttons, sat beside the section's "All" link. */
 .pl-section-head-actions {
