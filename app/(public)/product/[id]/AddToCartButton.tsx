@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/lib/cart";
-import { getStartingPrice } from "@/lib/pricing";
+import { getStartingPrice, getStartingPriceUsd } from "@/lib/pricing";
 import type { Product } from "@/lib/products";
 
 export default function AddToCartButton({ product }: { product: Product }) {
@@ -13,7 +13,16 @@ export default function AddToCartButton({ product }: { product: Product }) {
   const handleAdd = () => {
     // Fallback path (no variation selected) — use the starting/cheapest
     // price so this matches what the card advertised.
-    cart.add({ id: product.id, name: product.name, price: getStartingPrice(product), iconClass: product.iconClass, thumbClass: product.mediaClass });
+    const intlPrice = getStartingPriceUsd(product);
+    cart.add({
+      id: product.id,
+      name: product.name,
+      price: getStartingPrice(product),
+      // Fixed international price, so non-Asian buyers are quoted consistently.
+      ...(intlPrice != null ? { priceUsd: intlPrice } : {}),
+      iconClass: product.iconClass,
+      thumbClass: product.mediaClass,
+    });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
   };

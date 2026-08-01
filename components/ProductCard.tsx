@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { useFx } from "@/lib/fx";
-import { formatProductPriceLabel, getStartingPrice } from "@/lib/pricing";
+import { formatProductPriceLabel, getStartingPrice, getStartingPriceUsd } from "@/lib/pricing";
 import BrandIcon from "@/components/BrandIcon";
 import type { Product } from "@/lib/products";
 import { croppedImageUrl } from "@/lib/image-crop";
@@ -34,6 +34,9 @@ export default function ProductCard({ product }: { product: Product }) {
       id: product.id,
       name: product.name,
       price: getStartingPrice(product),
+      // Carry the fixed international price so the cart and checkout quote
+      // the same figure the card showed to non-Asian visitors.
+      ...(getStartingPriceUsd(product) != null ? { priceUsd: getStartingPriceUsd(product)! } : {}),
       iconClass: product.iconClass,
       thumbClass: product.mediaClass,
     });
