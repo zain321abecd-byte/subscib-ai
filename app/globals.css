@@ -20026,3 +20026,22 @@ html {
   accent-color: var(--brand-500);
   cursor: pointer;
 }
+
+/* ============================================================
+   Homepage + shop: use the full desktop width.
+   The site container is capped at --container-max (1180px), which
+   left wide screens with large empty margins on these two
+   product-heavy pages. Scoped to .pl-home / .cat-page so article,
+   blog and checkout pages keep their comfortable reading width.
+   ============================================================ */
+@media (min-width: 1024px) {
+  .pl-home .v2-container,
+  .cat-page .v2-container,
+  .v2 .pl-home .v2-container,
+  .v2 .cat-page .v2-container {
+    max-width: none;
+    /* Keep a small gutter so cards never touch the screen edge. */
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
