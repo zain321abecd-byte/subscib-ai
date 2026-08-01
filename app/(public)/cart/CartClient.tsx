@@ -3,15 +3,29 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import { useCart } from "@/lib/cart";
-import { useFx, formatPriceFromPKR } from "@/lib/fx";
+import { useFx, formatPriceFromPKR, formatUSD } from "@/lib/fx";
 import type { Product } from "@/lib/products";
 
 export default function CartClient({ recommended }: { recommended: Product[] }) {
   const cart = useCart();
-  const { currency, usdToPkr, usdToInr, ready: fxReady } = useFx();
+  const { currency, usdToPkr, usdToInr, ready: fxReady, region } = useFx();
   // Cart prices are stored in PKR (the canonical currency since 2026-05).
   // For non-PK visitors, formatPriceFromPKR converts via the live FX rate.
   const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
+
+  /* Non-Asian buyers pay the admin's fixed USD prices, so quote those rather
+     than a converted rupee figure — the cart must match the product page and
+     what PayFast will charge. */
+  const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
+  const useIntlPricing = region === "OTHER";
+  const itemUsd = (i: { price: number; priceUsd?: number; qty: number }) =>
+    (i.priceUsd != null ? i.priceUsd : i.price / fxRate) * (i.qty || 1);
+  const intlSubtotal = cart.items.reduce((sum, i) => sum + itemUsd(i), 0);
+  const fmtItem = (i: { price: number; priceUsd?: number; qty: number }, unit = false) =>
+    useIntlPricing
+      ? formatUSD(unit ? itemUsd({ ...i, qty: 1 }) : itemUsd(i))
+      : fmtMoney(i.price * (unit ? 1 : i.qty || 1));
+  const fmtSummary = (pkr: number, usd: number) => (useIntlPricing ? formatUSD(usd) : fmtMoney(pkr));
 
   /* Shown under both the empty and the filled cart so shoppers can keep
      adding without navigating away. */
@@ -90,7 +104,7 @@ export default function CartClient({ recommended }: { recommended: Product[] }) 
                     {item.variation?.summary && (
                       <span className="cart-variation-summary">{item.variation.summary}</span>
                     )}
-                    <small style={{ color: "var(--text-muted)", display: "block", marginTop: 2 }}>{fmtMoney(item.price)} each</small>
+                    <small style={{ color: "var(--text-muted)", display: "block", marginTop: 2 }}>{fmtItem(item, true)} each</small>
                   </div>
 
                   {/* Qty controls */}
@@ -101,7 +115,7 @@ export default function CartClient({ recommended }: { recommended: Product[] }) 
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <strong style={{ color: "var(--text)", fontFamily: "var(--font-heading)", fontSize: "var(--fs-lg)" }}>{fmtMoney(item.price * item.qty)}</strong>
+                    <strong style={{ color: "var(--text)", fontFamily: "var(--font-heading)", fontSize: "var(--fs-lg)" }}>{fmtItem(item)}</strong>
                     <button type="button" onClick={() => cart.remove(item.id)} aria-label="Remove" className="product-icon-action" style={{ background: "var(--surface-soft)" }}>
                       <i className="fa-solid fa-trash"></i>
                     </button>
@@ -115,10 +129,10 @@ export default function CartClient({ recommended }: { recommended: Product[] }) 
           <aside className="surface-card cart-summary">
             <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-xl)", color: "var(--text)", marginBottom: "var(--space-4)" }}>Order summary</h3>
             <div style={{ display: "grid", gap: 10, fontSize: "var(--fs-sm)", color: "var(--text-soft)" }}>
-              <div style={summaryRow}><span>Subtotal</span><span>{fmtMoney(cart.subtotal)}</span></div>
+              <div style={summaryRow}><span>Subtotal</span><span>{fmtSummary(cart.subtotal, intlSubtotal)}</span></div>
               <div style={summaryRow}><span>Taxes</span><span>{fmtMoney(tax)}</span></div>
               <div style={{ ...summaryRow, paddingTop: 12, borderTop: "1px solid var(--border)", color: "var(--text)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-lg)" }}>
-                <span>Total</span><span>{fmtMoney(total)}</span>
+                <span>Total</span><span>{fmtSummary(total, intlSubtotal)}</span>
               </div>
             </div>
             <Link href="/checkout" className="btn btn-primary btn-large" style={{ width: "100%", justifyContent: "center", marginTop: "var(--space-5)" }}>
@@ -142,7 +156,7 @@ export default function CartClient({ recommended }: { recommended: Product[] }) 
       {/* Mobile-only sticky checkout bar */}
       <div className="cart-sticky-cta">
         <Link href="/checkout" className="btn btn-primary btn-large">
-          Checkout · {fmtMoney(total)} <i className="fa-solid fa-arrow-right"></i>
+          Checkout · {fmtSummary(total, intlSubtotal)} <i className="fa-solid fa-arrow-right"></i>
         </Link>
       </div>
     </section>

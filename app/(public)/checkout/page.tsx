@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCountries, getCountryCallingCode, isValidPhoneNumber, type CountryCode } from "libphonenumber-js";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
-import { formatPriceFromPKR, useFx } from "@/lib/fx";
+import { formatPriceFromPKR, formatUSD, useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
 import { apiUrl, authHeaders } from "@/lib/api-client";
 import { redeemCoupon } from "@/lib/coupon-actions";
@@ -175,6 +175,20 @@ export default function CheckoutPage() {
   const usdTotal = fxReady && usdToPkr > 0 ? cart.total / usdToPkr : 0;
   const usdFormatted = usdTotal.toFixed(2);
   const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
+
+  /* Non-Asian buyers are charged the admin's fixed USD prices, so the summary
+     has to quote those exact figures — converting the rupee total here would
+     show one number and charge another. */
+  const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
+  const useIntlPricing = region === "OTHER";
+  const lineUsd = (i: CartItem) => (i.priceUsd != null ? i.priceUsd : i.price / fxRate) * (i.qty || 1);
+  const intlSubtotal = cart.items.reduce((sum, i) => sum + lineUsd(i), 0);
+  const intlDiscount = cart.discount > 0 ? cart.discount / fxRate : 0;
+  const intlTotal = Math.max(0, intlSubtotal - intlDiscount);
+  /** Line/total money in the summary, honouring fixed international prices. */
+  const fmtLine = (i: CartItem) => (useIntlPricing ? formatUSD(lineUsd(i)) : fmtMoney(i.price * (i.qty || 1)));
+  const fmtDiscount = () => (useIntlPricing ? formatUSD(intlDiscount) : fmtMoney(cart.discount));
+  const fmtTotal = () => (useIntlPricing ? formatUSD(intlTotal) : fmtMoney(pkrTotal));
 
   if (cart.ready && cart.items.length === 0 && status === "idle") {
     return (
@@ -492,7 +506,7 @@ export default function CheckoutPage() {
                       ? <small className="cart-variation-summary">{String((i.variation as Record<string, unknown>).summary)}</small>
                       : null}
                   </span>
-                  <span>{fmtMoney(i.price * i.qty)}</span>
+                  <span>{fmtLine(i)}</span>
                 </li>
               ))}
             </ul>
@@ -510,7 +524,7 @@ export default function CheckoutPage() {
                     remove
                   </button>
                 </span>
-                <span>−{fmtMoney(cart.discount)}</span>
+                <span>−{fmtDiscount()}</span>
               </div>
             )}
             <div style={{ paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "baseline", color: "var(--text)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-lg)" }}>
@@ -522,7 +536,7 @@ export default function CheckoutPage() {
                     {fxReady && <small style={{ display: "block", color: "var(--text-muted)", fontSize: "var(--fs-xs)", fontWeight: 500, fontFamily: "var(--font-body)", marginTop: 2 }}>≈ ${usdFormatted} USD</small>}
                   </>
                 ) : (
-                  <span>{fmtMoney(pkrTotal)} {currency}</span>
+                  <span>{fmtTotal()} {currency}</span>
                 )}
               </span>
             </div>
@@ -549,7 +563,7 @@ export default function CheckoutPage() {
               style={{ width: "100%", justifyContent: "center", marginTop: "var(--space-5)" }}
               disabled={!fxReady || status === "submitting" || status === "redirecting"}
             >
-              {!fxReady ? "Loading..." : `Pay ${fmtMoney(pkrTotal)} with PayFast`} <i className="fa-solid fa-arrow-right"></i>
+              {!fxReady ? "Loading..." : `Pay ${fmtTotal()} with PayFast`} <i className="fa-solid fa-arrow-right"></i>
             </button>
 
             <ul style={{ listStyle: "none", padding: 0, margin: "var(--space-5) 0 0", color: "var(--text-muted)", fontSize: "var(--fs-xs)", display: "grid", gap: 6 }}>
