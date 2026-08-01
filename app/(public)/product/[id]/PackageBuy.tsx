@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useCart } from "@/lib/cart";
-import { imageRatioStyle } from "@/lib/image-ratio";
 import { trackAddToCart, trackViewItem } from "@/lib/analytics";
 import { validateCoupon } from "@/lib/coupon-actions";
 import { useFx, formatPriceFromPKR } from "@/lib/fx";
@@ -323,7 +322,7 @@ export default function PackageBuy({ product }: { product: Product }) {
           <span className="pl-pd-stickythumb" aria-hidden>
             {product.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.imageUrl} alt="" style={imageRatioStyle(product.imageRatio)} />
+              <img src={product.imageUrl} alt="" />
             ) : (
               <i className={product.iconClass}></i>
             )}
