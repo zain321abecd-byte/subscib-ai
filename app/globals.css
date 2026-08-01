@@ -9813,11 +9813,13 @@ select.input::-ms-expand { display: none; }
 /* ── Rendered rich text (customer product page + admin preview) ─── */
 .rte-content {
   color: var(--text); font-size: 1rem; line-height: 1.7;
-  /* `word-break: break-word` is the legacy alias Chrome treats as
-     `overflow-wrap: anywhere`, which split ordinary words mid-letter
-     ("G / oogle", "stor / age"). `overflow-wrap: break-word` only breaks a
-     word when it genuinely cannot fit on a line of its own. */
-  overflow-wrap: break-word;
+  /* Ordinary words were splitting mid-letter ("G / oogle", "stor / age").
+     Measured on the live page: `break-word` still broke 4 words in this
+     layout, `normal` broke none — so prose wraps at spaces only. Trade-off:
+     an unbroken 600px+ string (a bare long URL) can overflow instead of
+     breaking; descriptions are admin-written prose, so that is the better
+     failure mode. */
+  overflow-wrap: normal;
   word-break: normal;
 }
 .rte-content > * + * { margin-top: 0.85em; }
