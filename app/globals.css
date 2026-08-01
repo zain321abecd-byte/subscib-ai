@@ -17185,8 +17185,11 @@ textarea:focus {
   gap: 8px;
   text-decoration: none;
   min-width: 0;
-  /* Matches .product-card.pl-card's padding so the media box lines up. */
+  /* Matches .product-card.pl-card's box model — same 10px padding and a
+     transparent 1px border standing in for the card's border — so the media
+     box lands on exactly the same width. */
   padding: 10px;
+  border: 1px solid transparent;
 }
 .pl-tile-media {
   display: grid;
