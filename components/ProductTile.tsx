@@ -1,7 +1,7 @@
 import Link from "next/link";
 import BrandIcon from "@/components/BrandIcon";
 import type { Product } from "@/lib/products";
-import { imageRatioStyle } from "@/lib/image-ratio";
+import { imageRatioContainerStyle, imageRatioStyle } from "@/lib/image-ratio";
 
 /**
  * Square brand tile + name underneath — no price, no Buy button.
@@ -27,6 +27,7 @@ export default function ProductTile({
         className={`pl-tile-media ${
           kind === "image" ? "has-product-image" : kind === "brand" ? "has-brand-icon" : ""
         }`}
+        style={kind === "image" ? imageRatioContainerStyle(product.imageRatio) : undefined}
       >
         {kind === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element

@@ -8,7 +8,7 @@ import { useFx } from "@/lib/fx";
 import { formatProductPriceLabel, getStartingPrice } from "@/lib/pricing";
 import BrandIcon from "@/components/BrandIcon";
 import type { Product } from "@/lib/products";
-import { imageRatioStyle } from "@/lib/image-ratio";
+import { imageRatioContainerStyle, imageRatioStyle } from "@/lib/image-ratio";
 
 /**
  * Plati.market-style product card:
@@ -58,6 +58,7 @@ export default function ProductCard({ product }: { product: Product }) {
         className={`pl-card-media ${effective === "image" ? `${product.mediaClass} has-product-image` : ""}`}
         href={`/product/${product.id}`}
         aria-label={`View ${product.name}`}
+        style={effective === "image" ? imageRatioContainerStyle(product.imageRatio) : undefined}
       >
         {effective === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
