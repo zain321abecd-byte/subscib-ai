@@ -76,7 +76,7 @@ export default async function HomePage() {
               <h2>Popular</h2>
               <Link className="pl-all-btn" href="/shop">All</Link>
             </header>
-            <div className="pl-tile-grid is-wide">
+            <div className="pl-tile-grid">
               {popularTiles.map((p) => (
                 <ProductTile key={p.id} product={p} />
               ))}
