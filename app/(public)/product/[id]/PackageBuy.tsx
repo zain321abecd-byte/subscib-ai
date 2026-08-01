@@ -6,7 +6,7 @@ import { useCart } from "@/lib/cart";
 import { croppedImageUrl } from "@/lib/image-crop";
 import { trackAddToCart, trackViewItem } from "@/lib/analytics";
 import { validateCoupon } from "@/lib/coupon-actions";
-import { useFx, formatPriceFromPKR } from "@/lib/fx";
+import { useFx, formatPriceFromPKR, formatVariationPrice } from "@/lib/fx";
 import { getStartingPrice, hasMultiplePrices } from "@/lib/pricing";
 import type { Product } from "@/lib/products";
 import {
@@ -14,6 +14,7 @@ import {
   type AccountType,
   type VariationOption,
   findVariationPrice,
+  findVariationPriceRow,
   getProductVariationConfig,
   variationCartId,
   variationSummary,
@@ -22,7 +23,7 @@ import {
 export default function PackageBuy({ product }: { product: Product }) {
   const cart = useCart();
   const config = useMemo(() => getProductVariationConfig(product), [product]);
-  const { currency, usdToPkr, usdToInr, ready: fxReady } = useFx();
+  const { currency, usdToPkr, usdToInr, ready: fxReady, region } = useFx();
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [selectedAccount, setSelectedAccount] = useState<AccountType | "">("");
   const [selectedDurationId, setSelectedDurationId] = useState<string>("");
@@ -68,6 +69,9 @@ export default function PackageBuy({ product }: { product: Product }) {
     : ACCOUNT_TYPES;
 
   const fmt = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
+  /** Cheapest matching row, formatted with its international price if set. */
+  const fmtRow = (row: { price: number; priceUsd?: number } | null) =>
+    row ? formatVariationPrice(row.price, row.priceUsd, currency, region, usdToPkr, fxReady, usdToInr) : null;
 
   /* Per-option price hints, so shoppers can compare without clicking
      through every combination. Plans/accounts show the cheapest price
@@ -99,10 +103,12 @@ export default function PackageBuy({ product }: { product: Product }) {
     const min = minPrice(config.plans.map((p) => p.id), allAccounts, [opt.id]);
     return min == null ? null : `from ${fmt(min)}`;
   };
-  const selectedPrice =
+  const selectedRow =
     selectedPlan && selectedDuration && selectedAccount
-      ? findVariationPrice(config, selectedPlan.id, selectedAccount, selectedDuration.id)
+      ? findVariationPriceRow(config, selectedPlan.id, selectedAccount, selectedDuration.id)
       : null;
+  const selectedPrice = selectedRow ? selectedRow.price : null;
+  const selectedPriceUsd = selectedRow?.priceUsd;
   const isComplete = Boolean(selectedPlan && selectedDuration && selectedAccount && selectedPrice != null);
   const total = (selectedPrice ?? 0) * qty;
 
@@ -114,6 +120,7 @@ export default function PackageBuy({ product }: { product: Product }) {
       accountLabel: selectedAccountLabel,
       duration: selectedDuration,
       price: selectedPrice,
+      ...(selectedPriceUsd ? { priceUsd: selectedPriceUsd } : {}),
     };
   }
 
@@ -125,6 +132,7 @@ export default function PackageBuy({ product }: { product: Product }) {
       id: variationCartId(product.id, selection),
       name: product.name,
       price: selection.price,
+      ...(selection.priceUsd ? { priceUsd: selection.priceUsd } : {}),
       qty,
       iconClass: product.iconClass,
       thumbClass: product.mediaClass,
@@ -161,10 +169,14 @@ export default function PackageBuy({ product }: { product: Product }) {
   const startingPriceLabel = hasMultiplePrices(product) ? `From ${startingLabel}` : startingLabel;
   const perUnitLabel = selectedPrice == null
     ? startingPriceLabel
-    : formatPriceFromPKR(selectedPrice, currency, usdToPkr, fxReady, usdToInr);
+    : formatVariationPrice(selectedPrice, selectedPriceUsd, currency, region, usdToPkr, fxReady, usdToInr);
   const totalLabel = selectedPrice == null
     ? startingPriceLabel
-    : formatPriceFromPKR(total, currency, usdToPkr, fxReady, usdToInr);
+    : formatVariationPrice(
+        total,
+        selectedPriceUsd != null ? selectedPriceUsd * qty : undefined,
+        currency, region, usdToPkr, fxReady, usdToInr,
+      );
 
   function applyPromo() {
     const code = promoInput.trim();

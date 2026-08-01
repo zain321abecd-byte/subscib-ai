@@ -1,14 +1,31 @@
 import { headers, cookies } from "next/headers";
 
-export type Region = "PK" | "IN" | "OTHER";
+/** "ASIA" = an Asian country other than PK/IN; "OTHER" = the rest of the
+ *  world (UK, US, EU, …), which is where international USD pricing applies. */
+export type Region = "PK" | "IN" | "ASIA" | "OTHER";
 export type Currency = "PKR" | "USD" | "INR";
 export type CurrencyMode = "auto" | "always_pkr" | "always_usd" | "dual";
+
+/** Asian countries beyond PK/IN. Visitors here keep the FX-converted price
+ *  rather than the admin's international USD price. */
+const ASIA_COUNTRIES = new Set([
+  "AF", "AM", "AZ", "BH", "BD", "BT", "BN", "KH", "CN", "CY", "GE", "HK", "ID",
+  "IR", "IQ", "IL", "JP", "JO", "KZ", "KW", "KG", "LA", "LB", "MO", "MY", "MV",
+  "MN", "MM", "NP", "KP", "OM", "PS", "PH", "QA", "SA", "SG", "KR", "LK", "SY",
+  "TW", "TJ", "TH", "TL", "TM", "AE", "UZ", "VN", "YE",
+]);
 
 function countryToRegion(country: string): Region {
   const code = country.toUpperCase();
   if (code === "PK") return "PK";
   if (code === "IN") return "IN";
+  if (ASIA_COUNTRIES.has(code)) return "ASIA";
   return "OTHER";
+}
+
+/** True where the admin's fixed international USD price should be used. */
+export function usesInternationalPricing(region: Region): boolean {
+  return region === "OTHER";
 }
 
 /**

@@ -333,9 +333,17 @@ export default function CheckoutPage() {
     //   Foreigner   → USD amount  + CURRENCY_CODE=USD  (sees "$5.00" on hosted page)
     // The cart subtotal is canonical PKR; we convert to USD via the live FX rate.
     const txnCurrency: "PKR" | "USD" = isPK ? "PKR" : "USD";
-    const usdAmount = fxReady && usdToPkr > 0
-      ? checkoutPkrTotal / usdToPkr
-      : checkoutPkrTotal / 280; // safe fallback FX if rate hasn't loaded
+    /* Non-Asian buyers pay the admin's fixed USD price where one is set, so
+       the gateway charges exactly what the product page quoted. Lines without
+       an international price still convert from PKR at the live rate. */
+    const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
+    const useIntlPricing = region === "OTHER";
+    const usdAmount = useIntlPricing
+      ? orderItemsSnapshot.reduce(
+          (sum, i) => sum + (i.priceUsd != null ? i.priceUsd : i.price / fxRate) * i.qty,
+          0,
+        )
+      : checkoutPkrTotal / fxRate;
     const txnAmount = isPK ? checkoutPkrTotal.toFixed(2) : usdAmount.toFixed(2);
 
     // For non-PK visitors restrict the PayFast hosted page to Card only —

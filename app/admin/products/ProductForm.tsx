@@ -675,13 +675,34 @@ function VariationEditor({
   };
 
   const setPrice = (planId: string, accountType: AccountType, durationId: string, price: number) => {
+    const existing = value.prices.find((p) => p.planId === planId && p.accountType === accountType && p.durationId === durationId);
     const prices = value.prices.filter((p) => !(p.planId === planId && p.accountType === accountType && p.durationId === durationId));
-    prices.push({ planId, accountType, durationId, price: Number.isFinite(price) && price >= 0 ? price : 0 });
+    prices.push({
+      planId, accountType, durationId,
+      price: Number.isFinite(price) && price >= 0 ? price : 0,
+      // Preserve any international price already entered for this combination.
+      ...(existing?.priceUsd ? { priceUsd: existing.priceUsd } : {}),
+    });
+    onChange({ ...value, prices });
+  };
+
+  /** Blank clears the override, so the row falls back to FX conversion. */
+  const setPriceUsd = (planId: string, accountType: AccountType, durationId: string, raw: string) => {
+    const existing = value.prices.find((p) => p.planId === planId && p.accountType === accountType && p.durationId === durationId);
+    const usd = Number(raw);
+    const prices = value.prices.filter((p) => !(p.planId === planId && p.accountType === accountType && p.durationId === durationId));
+    prices.push({
+      planId, accountType, durationId,
+      price: existing?.price ?? 0,
+      ...(raw.trim() !== "" && Number.isFinite(usd) && usd > 0 ? { priceUsd: usd } : {}),
+    });
     onChange({ ...value, prices });
   };
 
   const getPrice = (planId: string, accountType: AccountType, durationId: string) =>
     value.prices.find((p) => p.planId === planId && p.accountType === accountType && p.durationId === durationId)?.price ?? 0;
+  const getPriceUsd = (planId: string, accountType: AccountType, durationId: string) =>
+    value.prices.find((p) => p.planId === planId && p.accountType === accountType && p.durationId === durationId)?.priceUsd ?? "";
 
   return (
     <div className="admin-variation-editor">
@@ -706,7 +727,11 @@ function VariationEditor({
 
       <div className="admin-variation-matrix">
         <label className="admin-label">Combination pricing</label>
-        <p className="admin-help">Prices are in PKR. Account Type is fixed as Private and Shared.</p>
+        <p className="admin-help">
+          Rs is the price everyone in Pakistan and Asia pays. $ is the fixed price
+          charged to UK, US and all other non-Asian visitors — leave it blank to
+          convert the rupee price at the live exchange rate instead.
+        </p>
         {value.plans.map((plan) => (
           <div key={plan.id} className="admin-variation-plan-block">
             <h4>{plan.label}</h4>
@@ -715,15 +740,29 @@ function VariationEditor({
                 ACCOUNT_TYPES.map((account) => (
                   <label key={`${plan.id}-${account.id}-${duration.id}`} className="admin-variation-price-cell">
                     <span>{account.label} + {duration.label}</span>
-                    <div className="admin-input-prefix">
-                      <span>Rs</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={getPrice(plan.id, account.id, duration.id)}
-                        onChange={(e) => setPrice(plan.id, account.id, duration.id, Number(e.target.value))}
-                      />
+                    <div className="admin-variation-price-inputs">
+                      <div className="admin-input-prefix">
+                        <span>Rs</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={getPrice(plan.id, account.id, duration.id)}
+                          onChange={(e) => setPrice(plan.id, account.id, duration.id, Number(e.target.value))}
+                        />
+                      </div>
+                      <div className="admin-input-prefix">
+                        <span>$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="auto"
+                          title="Fixed price for UK, US and other non-Asian visitors"
+                          value={getPriceUsd(plan.id, account.id, duration.id)}
+                          onChange={(e) => setPriceUsd(plan.id, account.id, duration.id, e.target.value)}
+                        />
+                      </div>
                     </div>
                   </label>
                 ))

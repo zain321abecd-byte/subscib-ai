@@ -11,7 +11,11 @@ export type VariationPrice = {
   planId: string;
   accountType: AccountType;
   durationId: string;
+  /** Canonical price in PKR. */
   price: number;
+  /** Fixed USD price for non-Asian visitors. Undefined → convert `price`
+   *  with the live FX rate, which is what every region did before. */
+  priceUsd?: number;
 };
 
 export type ProductVariationConfig = {
@@ -26,6 +30,7 @@ export type SelectedVariation = {
   accountLabel: string;
   duration: VariationOption;
   price: number;
+  priceUsd?: number;
 };
 
 export const ACCOUNT_TYPES: Array<{ id: AccountType; label: string }> = [
@@ -72,7 +77,10 @@ export function normalizeVariationConfig(raw: unknown, fallbackPrice: number): P
       const accountType = row?.accountType === "shared" ? "shared" : row?.accountType === "private" ? "private" : null;
       const price = Number(row?.price);
       if (!planId || !durationId || !accountType || !Number.isFinite(price) || price < 0) continue;
-      prices.push({ planId, accountType, durationId, price });
+      // 0 / blank means "no international price" — fall back to FX conversion.
+      const rawUsd = Number(row?.priceUsd);
+      const priceUsd = Number.isFinite(rawUsd) && rawUsd > 0 ? rawUsd : undefined;
+      prices.push({ planId, accountType, durationId, price, ...(priceUsd ? { priceUsd } : {}) });
     }
   }
 
@@ -117,6 +125,20 @@ export function findVariationPrice(
     (p) => p.planId === planId && p.accountType === accountType && p.durationId === durationId,
   );
   return found ? found.price : null;
+}
+
+/** The whole price row, so callers can read the international USD price too. */
+export function findVariationPriceRow(
+  config: ProductVariationConfig,
+  planId: string,
+  accountType: AccountType,
+  durationId: string,
+): VariationPrice | null {
+  return (
+    config.prices.find(
+      (p) => p.planId === planId && p.accountType === accountType && p.durationId === durationId,
+    ) ?? null
+  );
 }
 
 export function variationCartId(productId: string, selection: SelectedVariation): string {

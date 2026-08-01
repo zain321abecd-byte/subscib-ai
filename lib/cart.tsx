@@ -6,6 +6,8 @@ export type CartItem = {
   id: string;
   name: string;
   price: number;
+  /** Fixed USD price for non-Asian buyers; absent → convert `price` via FX. */
+  priceUsd?: number;
   qty: number;
   thumbClass?: string;
   iconClass?: string;

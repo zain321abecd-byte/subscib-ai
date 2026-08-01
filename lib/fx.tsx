@@ -5,7 +5,9 @@ import { apiBaseUrlSafe } from "@/lib/api-client";
 
 export type Currency = "PKR" | "USD" | "INR";
 export type CurrencyMode = "auto" | "always_pkr" | "always_usd" | "dual";
-export type Region = "PK" | "IN" | "OTHER";
+/** Mirrors lib/region.ts. "OTHER" (non-Asian) is where the admin's fixed
+ *  international USD prices apply. */
+export type Region = "PK" | "IN" | "ASIA" | "OTHER";
 
 type FxState = {
   /** Live or admin-overridden USD to PKR rate. */
@@ -113,6 +115,29 @@ export function formatUSD(n: number) {
 
 export function formatINR(n: number) {
   return `₹${Math.round(n).toLocaleString("en-IN")}`;
+}
+
+/**
+ * Format a variation price, preferring the admin's fixed international USD
+ * price when the visitor is outside Asia.
+ *
+ * `priceUsd` is an exact figure the admin typed (e.g. $18), so it is shown
+ * verbatim rather than derived from the rupee price — no FX drift, no odd
+ * amounts like $17.94.
+ */
+export function formatVariationPrice(
+  pkr: number,
+  priceUsd: number | undefined,
+  currency: Currency,
+  region: Region,
+  usdToPkr: number,
+  ready: boolean,
+  usdToInr = 83,
+): string {
+  if (currency === "USD" && region === "OTHER" && priceUsd != null && priceUsd > 0) {
+    return formatUSD(priceUsd);
+  }
+  return formatPriceFromPKR(pkr, currency, usdToPkr, ready, usdToInr);
 }
 
 export function formatPriceFromPKR(

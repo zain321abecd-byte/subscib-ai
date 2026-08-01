@@ -20129,3 +20129,10 @@ html {
 @media (max-width: 640px) {
   .pl-rail { grid-auto-columns: calc((100% - (2 * 6px)) / 3); }
 }
+
+/* Admin: PKR + international USD price side by side in the variation matrix. */
+.admin-variation-price-inputs {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 6px;
+}
