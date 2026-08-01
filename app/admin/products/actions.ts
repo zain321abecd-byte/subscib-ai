@@ -1,5 +1,7 @@
 "use server";
 
+import { normaliseImageRatio } from "@/lib/image-ratio";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -31,6 +33,7 @@ export type ProductFormData = {
   show_in_related: boolean;
   hide_shared_plan: boolean;
   image_fit: string;
+  image_ratio: string;
   sort_order: number;
 };
 
@@ -99,6 +102,7 @@ function parseForm(formData: FormData): ProductFormData {
     // Only "contain" and "cover" are valid here; "contain" is the historical
     // default and stays the fallback.
     image_fit: str(formData.get("image_fit")) === "cover" ? "cover" : "contain",
+    image_ratio: normaliseImageRatio(str(formData.get("image_ratio"))),
     sort_order: num(formData.get("sort_order")),
   };
 }

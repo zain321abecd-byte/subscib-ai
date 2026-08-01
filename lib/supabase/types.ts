@@ -36,6 +36,9 @@ export type ProductRow = {
   hide_shared_plan: boolean;
   /** How the product image sits in its container: cover (fill) or contain (fit). */
   image_fit: string | null;
+  /** Crop ratio applied to the product image everywhere it appears:
+   *  "original" | "1:1" | "4:3" | "16:9" | "3:4". */
+  image_ratio: string | null;
   /** Plans, durations, and Plan + Account Type + Duration price matrix. */
   variation_config: unknown | null;
   /** Custom bullet lines shown under the price. Empty → fallback defaults. */

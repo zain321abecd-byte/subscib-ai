@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import ImagePicker from "../ImagePicker";
 import MultiImagePicker from "../MultiImagePicker";
+import { IMAGE_RATIOS } from "@/lib/image-ratio";
 import Select from "@/components/Select";
 import TagInput from "../TagInput";
 import FeaturesInput from "../FeaturesInput";
@@ -321,33 +322,34 @@ export default function ProductForm({
           />
           <input type="hidden" name="image_url" value={imageUrl} />
 
-          {/* How the uploaded image sits in its frame. "Fit whole" is what a
-              logo with its own padding needs; "Fill" suits photos. */}
+          {/* Crop ratio for this picture. Applied everywhere the product
+              appears — homepage sections, shop grid, related products and the
+              product page — so the framing you pick here is what buyers see. */}
           <fieldset style={{ border: 0, padding: 0, margin: "16px 0 0" }}>
-            <legend className="admin-label" style={{ padding: 0 }}>Logo fit</legend>
+            <legend className="admin-label" style={{ padding: 0 }}>Image ratio</legend>
             <p className="admin-help" style={{ marginTop: 0, marginBottom: 10 }}>
-              How the image sits inside its container on cards and the product page.
+              Crops this picture to the shape you choose. Used on the homepage, shop, and product page.
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {[
-                { value: "contain", title: "Fit whole logo", hint: "Shows the entire logo without cropping. Default — best for logos and icons." },
-                { value: "cover", title: "Fill container", hint: "Zooms in and crops edges so the image fills the tile. Best for photos, or logos that look too small." },
-              ].map((opt) => (
+              {IMAGE_RATIOS.map((opt) => (
                 <label key={opt.value} className="admin-fit-option">
                   <input
                     type="radio"
-                    name="image_fit"
+                    name="image_ratio"
                     value={opt.value}
-                    defaultChecked={(product?.image_fit ?? "contain") === opt.value}
+                    defaultChecked={(product?.image_ratio ?? "original") === opt.value}
                   />
                   <span>
-                    <strong>{opt.title}</strong>
+                    <strong>{opt.label}</strong>
                     <small>{opt.hint}</small>
                   </span>
                 </label>
               ))}
             </div>
           </fieldset>
+          {/* image_fit is superseded by image_ratio; keep the stored value so
+              nothing regresses for products saved before the switch. */}
+          <input type="hidden" name="image_fit" value={product?.image_fit ?? "contain"} />
         </div>
 
         <div style={{ marginTop: 18 }}>

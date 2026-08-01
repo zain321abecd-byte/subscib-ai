@@ -31,6 +31,8 @@ export type Product = {
   hideSharedPlan?: boolean;
   /** How the image sits in its frame: "cover" fills and crops, "contain" fits whole. */
   imageFit?: "cover" | "contain";
+  /** Crop ratio applied to this product's image everywhere it appears. */
+  imageRatio?: string;
   /** If non-empty, the admin has hand-picked these specific products to recommend
       on this product's page. Otherwise fall back to category-based suggestions. */
   relatedProductIds?: string[];
@@ -73,6 +75,7 @@ function rowToProduct(row: ProductRow): Product {
     // Default "contain": that is what the stylesheet has always done, so
     // products saved before this option existed keep their current look.
     imageFit: row.image_fit === "cover" ? "cover" : "contain",
+    imageRatio: row.image_ratio ?? "original",
     relatedProductIds: Array.isArray(row.related_product_ids)
       ? row.related_product_ids.filter((id) => typeof id === "string")
       : undefined,

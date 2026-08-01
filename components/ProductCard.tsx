@@ -8,6 +8,7 @@ import { useFx } from "@/lib/fx";
 import { formatProductPriceLabel, getStartingPrice } from "@/lib/pricing";
 import BrandIcon from "@/components/BrandIcon";
 import type { Product } from "@/lib/products";
+import { imageRatioStyle } from "@/lib/image-ratio";
 
 /**
  * Plati.market-style product card:
@@ -67,12 +68,14 @@ export default function ProductCard({ product }: { product: Product }) {
             /* Always set explicitly: .pl-card-media img hard-codes
                object-fit: contain, so omitting this for "cover" left the
                admin's "Fill container" choice with no effect. */
-            style={{
-              objectFit: product.imageFit === "cover" ? "cover" : "contain",
-              // Cover fills the tile, so the stylesheet's breathing-room
-              // padding has to go with it.
-              padding: product.imageFit === "cover" ? 0 : undefined,
-            }}
+            // A chosen ratio crops the picture to that shape; "original"
+            // falls through to the stylesheet's existing behaviour.
+            style={
+              imageRatioStyle(product.imageRatio) ?? {
+                objectFit: product.imageFit === "cover" ? "cover" : "contain",
+                padding: product.imageFit === "cover" ? 0 : undefined,
+              }
+            }
           />
         ) : effective === "brand" ? (
           <BrandIcon name={product.brand!} size={64} />

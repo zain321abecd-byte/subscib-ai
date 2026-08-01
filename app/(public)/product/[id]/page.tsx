@@ -210,7 +210,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                     ...(product.gallery ?? []),
                   ];
                   if (allImages.length > 0) {
-                    return <ProductGallery images={allImages} alt={product.name} imageFit={product.imageFit} />;
+                    return <ProductGallery images={allImages} alt={product.name} imageFit={product.imageFit} imageRatio={product.imageRatio} />;
                   }
                   // No uploaded image — match the home page's BrandIcon fallback so
                   // products like ChatGPT / Claude / Midjourney show their real
