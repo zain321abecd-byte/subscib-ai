@@ -20045,3 +20045,17 @@ html {
     padding-right: 24px;
   }
 }
+
+/* Header rows span the full desktop width too, with the same 24px gutter as
+   the homepage/shop containers — otherwise the logo and cart sit indented
+   from the content below them. */
+@media (min-width: 1024px) {
+  .v2 .pl-topbar-row.v2-container,
+  .v2 .pl-main-row.v2-container,
+  .pl-topbar-row.v2-container,
+  .pl-main-row.v2-container {
+    max-width: none;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
