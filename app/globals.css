@@ -17179,6 +17179,14 @@ textarea:focus {
 @media (max-width: 900px)  { .pl-tile-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 560px)  { .pl-tile-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
 
+/* Popular rail packs more per row than the other sections. Tiles are smaller
+   here as a result — everywhere else stays on the 6-column rhythm that
+   matches the best-seller cards. */
+.pl-tile-grid.is-wide { grid-template-columns: repeat(8, 1fr); }
+@media (max-width: 1200px) { .pl-tile-grid.is-wide { grid-template-columns: repeat(6, 1fr); } }
+@media (max-width: 900px)  { .pl-tile-grid.is-wide { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 560px)  { .pl-tile-grid.is-wide { grid-template-columns: repeat(3, 1fr); } }
+
 .pl-tile {
   display: flex;
   flex-direction: column;
