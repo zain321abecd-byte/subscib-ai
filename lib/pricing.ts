@@ -98,6 +98,20 @@ export function extractPricesFromVariationConfig(variationConfig: unknown): numb
  * can treat as "price not set". In practice every catalog row has a
  * valid `price`, so this is effectively always a positive number.
  */
+/**
+ * Lowest fixed international USD price across a product's variations, or null
+ * when the admin has not set any. Used for the "From $X" label shown to
+ * non-Asian visitors before they pick a specific combination.
+ */
+export function getStartingPriceUsd(product: Product): number | null {
+  const cfg = product.variationConfig as { prices?: Array<{ priceUsd?: unknown }> } | undefined;
+  if (!cfg || !Array.isArray(cfg.prices)) return null;
+  const usd = cfg.prices
+    .map((p) => Number(p?.priceUsd))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  return usd.length ? Math.min(...usd) : null;
+}
+
 export function getStartingPrice(product: Product): number {
   const candidates: number[] = [];
   const base = toPrice(product.price);
@@ -178,9 +192,15 @@ export function formatProductPriceLabel(
   usdToPkr: number,
   fxReady: boolean,
   usdToInr = 83,
+  /** "OTHER" (non-Asian) visitors get the admin's fixed USD price. */
+  region?: string,
 ): string {
   const start = getStartingPrice(product);
   const prefix = hasMultiplePrices(product) ? "From " : "";
+  if (currency === "USD" && region === "OTHER") {
+    const intl = getStartingPriceUsd(product);
+    if (intl != null) return `${prefix}${formatUSD(intl)}`;
+  }
   // If we're on PKR (native), just format directly — no FX round-trip.
   if (currency === "PKR") return `${prefix}${formatPKR(start)}`;
   if (!fxReady || !usdToPkr) return "—";

@@ -7,7 +7,7 @@ import { croppedImageUrl } from "@/lib/image-crop";
 import { trackAddToCart, trackViewItem } from "@/lib/analytics";
 import { validateCoupon } from "@/lib/coupon-actions";
 import { useFx, formatPriceFromPKR, formatVariationPrice } from "@/lib/fx";
-import { getStartingPrice, hasMultiplePrices } from "@/lib/pricing";
+import { getStartingPrice, getStartingPriceUsd, hasMultiplePrices } from "@/lib/pricing";
 import type { Product } from "@/lib/products";
 import {
   ACCOUNT_TYPES,
@@ -78,30 +78,30 @@ export default function PackageBuy({ product }: { product: Product }) {
      among the still-open choices; durations show the exact price once
      plan + account are picked. */
   const minPrice = (planIds: string[], accounts: AccountType[], durationIds: string[]) => {
-    let min: number | null = null;
+    let best: { price: number; priceUsd?: number } | null = null;
     for (const p of planIds) for (const a of accounts) for (const d of durationIds) {
-      const price = findVariationPrice(config, p, a, d);
-      if (price != null && (min == null || price < min)) min = price;
+      const row = findVariationPriceRow(config, p, a, d);
+      if (row && (best == null || row.price < best.price)) best = row;
     }
-    return min;
+    return best;
   };
   const allAccounts = accountTypes.map((a) => a.id);
   const allDurations = config.durations.map((d) => d.id);
   const planHint = (opt: VariationOption) => {
     const min = minPrice([opt.id], selectedAccount ? [selectedAccount] : allAccounts, allDurations);
-    return min == null ? null : `from ${fmt(min)}`;
+    return min == null ? null : `from ${fmtRow(min)}`;
   };
   const accountHint = (accountId: AccountType) => {
     const min = minPrice(selectedPlan ? [selectedPlan.id] : config.plans.map((p) => p.id), [accountId], allDurations);
-    return min == null ? null : `from ${fmt(min)}`;
+    return min == null ? null : `from ${fmtRow(min)}`;
   };
   const durationHint = (opt: VariationOption) => {
     if (selectedPlan && selectedAccount) {
-      const price = findVariationPrice(config, selectedPlan.id, selectedAccount, opt.id);
-      return price == null ? null : fmt(price);
+      const row = findVariationPriceRow(config, selectedPlan.id, selectedAccount, opt.id);
+      return row == null ? null : fmtRow(row);
     }
     const min = minPrice(config.plans.map((p) => p.id), allAccounts, [opt.id]);
-    return min == null ? null : `from ${fmt(min)}`;
+    return min == null ? null : `from ${fmtRow(min)}`;
   };
   const selectedRow =
     selectedPlan && selectedDuration && selectedAccount
@@ -165,7 +165,10 @@ export default function PackageBuy({ product }: { product: Product }) {
   // plan+account+duration triple. Once selectedPrice is set (isComplete),
   // we swap over to the exact per-unit price.
   const startingPrice = getStartingPrice(product);
-  const startingLabel = formatPriceFromPKR(startingPrice, currency, usdToPkr, fxReady, usdToInr);
+  const startingLabel = formatVariationPrice(
+    startingPrice, getStartingPriceUsd(product) ?? undefined,
+    currency, region, usdToPkr, fxReady, usdToInr,
+  );
   const startingPriceLabel = hasMultiplePrices(product) ? `From ${startingLabel}` : startingLabel;
   const perUnitLabel = selectedPrice == null
     ? startingPriceLabel

@@ -21,7 +21,7 @@ import { croppedImageUrl } from "@/lib/image-crop";
 export default function ProductCard({ product }: { product: Product }) {
   const cart = useCart();
   const { toast } = useToast();
-  const { currency, usdToPkr, usdToInr, ready: fxReady } = useFx();
+  const { currency, usdToPkr, usdToInr, ready: fxReady, region } = useFx();
   const [justAdded, setJustAdded] = useState(false);
   const inCart = cart.items.some((i) => i.id === product.id);
 
@@ -48,7 +48,7 @@ export default function ProductCard({ product }: { product: Product }) {
     product.displaySource === "brand" ? (product.brand ? "brand" : product.imageUrl ? "image" : "fallback") :
     product.imageUrl ? "image" : product.brand ? "brand" : "fallback";
 
-  const priceLabel = formatProductPriceLabel(product, currency, usdToPkr, fxReady, usdToInr);
+  const priceLabel = formatProductPriceLabel(product, currency, usdToPkr, fxReady, usdToInr, region);
   const fromMatch = priceLabel.match(/^From\s+(.+)$/i);
   const tag = (product.tag || "").split(",").map((s) => s.trim()).filter(Boolean)[0];
 
