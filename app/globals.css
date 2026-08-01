@@ -17167,14 +17167,17 @@ textarea:focus {
 .pl-all-btn:hover { background: var(--brand-500); }
 
 /* ---- Popular tile grid ------------------------------------------------ */
+/* Column counts and gaps mirror .pl-card-grid, and .pl-tile carries the same
+   10px inset as .product-card.pl-card, so the white media box in the Popular
+   rail comes out exactly the size of the one on a best-seller card. */
 .pl-tile-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
 }
-@media (max-width: 1200px) { .pl-tile-grid { grid-template-columns: repeat(6, 1fr); } }
-@media (max-width: 900px)  { .pl-tile-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 560px)  { .pl-tile-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; } }
+@media (max-width: 1200px) { .pl-tile-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 900px)  { .pl-tile-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 560px)  { .pl-tile-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
 
 .pl-tile {
   display: flex;
@@ -17182,6 +17185,8 @@ textarea:focus {
   gap: 8px;
   text-decoration: none;
   min-width: 0;
+  /* Matches .product-card.pl-card's padding so the media box lines up. */
+  padding: 10px;
 }
 .pl-tile-media {
   display: grid;
@@ -17531,8 +17536,8 @@ textarea:focus {
   }
   .pl-tile-grid::-webkit-scrollbar { display: none; }
   .pl-tile { flex: 0 0 100px; }
-  /* Square on mobile too, so containers stay uniform site-wide. */
-  .pl-tile-media { width: 100px; height: 100px; aspect-ratio: 1 / 1; }
+  /* Width comes from the shared grid; keep it square. */
+  .pl-tile-media { width: auto; height: auto; aspect-ratio: 1 / 1; }
 }
 
 /* ---- Recommended: vertical list cards on mobile (plati style) ----------- */
@@ -17615,8 +17620,9 @@ textarea:focus {
   .pl-tile-grid { gap: 10px; }
   .pl-tile { flex: 0 0 86px; gap: 6px; }
   .pl-tile-media {
-    width: 86px;
-    height: 86px;
+    width: auto;
+    height: auto;
+    aspect-ratio: 1 / 1;
     border-radius: 10px;
   }
   /* ProductTile hardcodes iconSize={48}; a transform keeps the icon at the
