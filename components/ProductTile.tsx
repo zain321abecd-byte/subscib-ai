@@ -1,6 +1,7 @@
 import Link from "next/link";
 import BrandIcon from "@/components/BrandIcon";
 import type { Product } from "@/lib/products";
+import { croppedImageUrl } from "@/lib/image-crop";
 
 /**
  * Square brand tile + name underneath — no price, no Buy button.
@@ -29,7 +30,7 @@ export default function ProductTile({
       >
         {kind === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imageUrl} alt="" loading="lazy" />
+          <img src={croppedImageUrl(product.imageUrl, product.imageCrop)} alt="" loading="lazy" />
         ) : kind === "brand" ? (
           <BrandIcon name={product.brand!} size={iconSize} />
         ) : (

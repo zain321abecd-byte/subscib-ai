@@ -39,6 +39,8 @@ export type ProductRow = {
   /** Crop ratio applied to the product image everywhere it appears:
    *  "original" | "1:1" | "4:3" | "16:9" | "3:4". */
   image_ratio: string | null;
+  /** Square crop chosen in the admin cropper: "x,y,w,h" in source pixels. */
+  image_crop: string | null;
   /** Plans, durations, and Plan + Account Type + Duration price matrix. */
   variation_config: unknown | null;
   /** Custom bullet lines shown under the price. Empty → fallback defaults. */

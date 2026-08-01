@@ -5,6 +5,7 @@ import Link from "next/link";
 import ImagePicker from "../ImagePicker";
 import MultiImagePicker from "../MultiImagePicker";
 import { IMAGE_RATIOS } from "@/lib/image-ratio";
+import ImageCropper from "@/components/admin/ImageCropper";
 import Select from "@/components/Select";
 import TagInput from "../TagInput";
 import FeaturesInput from "../FeaturesInput";
@@ -68,6 +69,7 @@ export default function ProductForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string>(product?.image_url ?? "");
+  const [imageCrop, setImageCrop] = useState<string>(product?.image_crop ?? "");
   const [gallery, setGallery] = useState<string[]>(Array.isArray(product?.gallery) ? product!.gallery! : []);
   const [category, setCategory] = useState<CategoryValue>((product?.category as CategoryValue) ?? "ai-subscriptions");
   const [mediaClass, setMediaClass] = useState<MediaValue>((product?.media_class as MediaValue) ?? "media-blue");
@@ -321,6 +323,16 @@ export default function ProductForm({
             tintBackground={MEDIA_OPTIONS.find((m) => m.value === mediaClass)?.swatch}
           />
           <input type="hidden" name="image_url" value={imageUrl} />
+
+          {/* Square crop editor — pick exactly which part of the picture shows
+              as the logo. The frame matches the product container shape. */}
+          {imageUrl && (
+            <div style={{ marginTop: 16 }}>
+              <label className="admin-label">Crop</label>
+              <ImageCropper src={imageUrl} value={imageCrop} onChange={setImageCrop} />
+            </div>
+          )}
+          <input type="hidden" name="image_crop" value={imageCrop} />
 
           {/* Crop ratio for this picture. Applied everywhere the product
               appears — homepage sections, shop grid, related products and the

@@ -19957,3 +19957,49 @@ html {
 .admin-fit-option input { margin-top: 3px; accent-color: var(--brand-500); }
 .admin-fit-option strong { display: block; color: var(--text); font-size: 0.875rem; }
 .admin-fit-option small { display: block; color: var(--text-muted); font-size: 0.75rem; margin-top: 2px; line-height: 1.4; }
+
+/* ---- Admin: square image cropper ---------------------------------------- */
+.admin-cropper { margin-top: 8px; }
+.admin-cropper-view {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.admin-cropper-view:active { cursor: grabbing; }
+/* Rule-of-thirds guides so the logo can be centred by eye. */
+.admin-cropper-view::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, transparent 33.33%, rgba(0,0,0,0.12) 33.33%, rgba(0,0,0,0.12) 33.53%, transparent 33.53%,
+                    transparent 66.66%, rgba(0,0,0,0.12) 66.66%, rgba(0,0,0,0.12) 66.86%, transparent 66.86%),
+    linear-gradient(to bottom, transparent 33.33%, rgba(0,0,0,0.12) 33.33%, rgba(0,0,0,0.12) 33.53%, transparent 33.53%,
+                    transparent 66.66%, rgba(0,0,0,0.12) 66.66%, rgba(0,0,0,0.12) 66.86%, transparent 66.86%);
+}
+.admin-cropper-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  max-width: 300px;
+}
+.admin-cropper-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.admin-cropper-zoom input[type="range"] {
+  flex: 1;
+  accent-color: var(--brand-500);
+  cursor: pointer;
+}

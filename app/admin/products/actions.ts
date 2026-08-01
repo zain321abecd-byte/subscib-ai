@@ -1,6 +1,7 @@
 "use server";
 
 import { normaliseImageRatio } from "@/lib/image-ratio";
+import { parseCrop, serializeCrop } from "@/lib/image-crop";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -34,6 +35,7 @@ export type ProductFormData = {
   hide_shared_plan: boolean;
   image_fit: string;
   image_ratio: string;
+  image_crop: string | null;
   sort_order: number;
 };
 
@@ -103,6 +105,7 @@ function parseForm(formData: FormData): ProductFormData {
     // default and stays the fallback.
     image_fit: str(formData.get("image_fit")) === "cover" ? "cover" : "contain",
     image_ratio: normaliseImageRatio(str(formData.get("image_ratio"))),
+    image_crop: serializeCrop(parseCrop(str(formData.get("image_crop")))) || null,
     sort_order: num(formData.get("sort_order")),
   };
 }

@@ -13,6 +13,7 @@ import SidebarScrollSync from "@/components/SidebarScrollSync";
 import { getAllProducts, getProduct } from "@/lib/products";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getStartingPrice } from "@/lib/pricing";
+import { croppedImageUrl } from "@/lib/image-crop";
 import { getRegion } from "@/lib/region";
 import { getAllReviews } from "@/lib/reviews";
 import { formatSoldCount, getUnitsSold } from "@/lib/sold-count";
@@ -206,7 +207,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               <div className="product-detail-media-col">
                 {(() => {
                   const allImages = [
-                    ...(product.imageUrl ? [product.imageUrl] : []),
+                    // Cover image honours the admin's crop; gallery extras are shown as uploaded.
+                    ...(product.imageUrl ? [croppedImageUrl(product.imageUrl, product.imageCrop)!] : []),
                     ...(product.gallery ?? []),
                   ];
                   if (allImages.length > 0) {

@@ -33,6 +33,8 @@ export type Product = {
   imageFit?: "cover" | "contain";
   /** Crop ratio applied to this product's image everywhere it appears. */
   imageRatio?: string;
+  /** Square crop region chosen in the admin ("x,y,w,h" in source pixels). */
+  imageCrop?: string;
   /** If non-empty, the admin has hand-picked these specific products to recommend
       on this product's page. Otherwise fall back to category-based suggestions. */
   relatedProductIds?: string[];
@@ -76,6 +78,7 @@ function rowToProduct(row: ProductRow): Product {
     // products saved before this option existed keep their current look.
     imageFit: row.image_fit === "cover" ? "cover" : "contain",
     imageRatio: row.image_ratio ?? "original",
+    imageCrop: row.image_crop ?? undefined,
     relatedProductIds: Array.isArray(row.related_product_ids)
       ? row.related_product_ids.filter((id) => typeof id === "string")
       : undefined,

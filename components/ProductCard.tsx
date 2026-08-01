@@ -9,6 +9,7 @@ import { formatProductPriceLabel, getStartingPrice } from "@/lib/pricing";
 import BrandIcon from "@/components/BrandIcon";
 import type { Product } from "@/lib/products";
 import { imageRatioStyle } from "@/lib/image-ratio";
+import { croppedImageUrl } from "@/lib/image-crop";
 
 /**
  * Plati.market-style product card:
@@ -62,7 +63,7 @@ export default function ProductCard({ product }: { product: Product }) {
         {effective === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.imageUrl}
+            src={croppedImageUrl(product.imageUrl, product.imageCrop)}
             alt={product.name}
             loading="lazy"
             /* Always set explicitly: .pl-card-media img hard-codes
