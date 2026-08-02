@@ -352,13 +352,25 @@ export default function CheckoutPage() {
        an international price still convert from PKR at the live rate. */
     const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
     const useIntlPricing = region === "OTHER";
-    const usdAmount = useIntlPricing
-      ? orderItemsSnapshot.reduce(
-          (sum, i) => sum + (i.priceUsd != null ? i.priceUsd : i.price / fxRate) * i.qty,
-          0,
-        )
-      : checkoutPkrTotal / fxRate;
+    const convertedUsd = checkoutPkrTotal / fxRate;
+    const intlUsd = orderItemsSnapshot.reduce((sum, i) => {
+      // Coerce everything: a NaN here produced an empty TXNAMT and PayFast
+      // rejected the request, so non-Asian checkouts never redirected.
+      const qty = Number(i.qty) > 0 ? Number(i.qty) : 1;
+      const unit = Number(i.priceUsd) > 0 ? Number(i.priceUsd) : Number(i.price) / fxRate;
+      return sum + (Number.isFinite(unit) ? unit * qty : 0);
+    }, 0);
+    const usdAmount = useIntlPricing && Number.isFinite(intlUsd) && intlUsd > 0
+      ? intlUsd
+      : convertedUsd;
     const txnAmount = isPK ? checkoutPkrTotal.toFixed(2) : usdAmount.toFixed(2);
+
+    // Never hand PayFast a zero/NaN amount — it fails with a generic error.
+    if (!Number.isFinite(Number(txnAmount)) || Number(txnAmount) <= 0) {
+      setStatus("failed");
+      setMessage("Could not work out the payment amount. Please refresh and try again.");
+      return;
+    }
 
     // For non-PK visitors restrict the PayFast hosted page to Card only —
     // JazzCash / Easypaisa wallets are PK-only, bank direct-debit needs a
