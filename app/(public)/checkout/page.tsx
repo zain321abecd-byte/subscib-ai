@@ -121,6 +121,12 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const autoSubmitRef = useRef<HTMLFormElement | null>(null);
+  /* Field refs so a failed validation can take the buyer straight to the
+     problem. A red outline alone is easy to miss — especially on a phone,
+     where the offending field is often scrolled off screen. */
+  const nameRef = useRef<HTMLInputElement | null>(null);
+  const emailRef = useRef<HTMLInputElement | null>(null);
+  const phoneRef = useRef<HTMLInputElement | null>(null);
   const [pendingPost, setPendingPost] = useState<{ action: string; fields: InitFields } | null>(null);
   const [redirectStalled, setRedirectStalled] = useState(false);
 
@@ -224,6 +230,16 @@ export default function CheckoutPage() {
       e.phone = `That doesn't look like a valid ${selectedCountry?.name ?? "mobile"} number.`;
     }
     setErrors(e);
+
+    // Jump to the first problem field, in the order they appear on screen.
+    const firstInvalid = e.name ? nameRef.current : e.email ? emailRef.current : e.phone ? phoneRef.current : null;
+    if (firstInvalid) {
+      /* `block: "center"` keeps the field clear of the sticky header and the
+         mobile buy bar. Focus after the scroll so the on-screen keyboard does
+         not fight the animation on iOS/Android. */
+      firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(() => firstInvalid.focus({ preventScroll: true }), 350);
+    }
     return Object.keys(e).length === 0;
   };
 
@@ -451,13 +467,30 @@ export default function CheckoutPage() {
               </div>
               <div className="field">
                 <label className="field-label">Full name</label>
-                <input className={`input ${errors.name ? "is-invalid" : ""}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
-                {errors.name && <span className="field-error"><i className="fa-solid fa-circle-exclamation"></i> {errors.name}</span>}
+                <input
+                  ref={nameRef}
+                  className={`input ${errors.name ? "is-invalid" : ""}`}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? "checkout-name-error" : undefined}
+                />
+                {errors.name && <span className="field-error" id="checkout-name-error" role="alert"><i className="fa-solid fa-circle-exclamation"></i> {errors.name}</span>}
               </div>
               <div className="field">
                 <label className="field-label">Email</label>
-                <input type="email" className={`input ${errors.email ? "is-invalid" : ""}`} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-                {errors.email && <span className="field-error"><i className="fa-solid fa-circle-exclamation"></i> {errors.email}</span>}
+                <input
+                  ref={emailRef}
+                  type="email"
+                  className={`input ${errors.email ? "is-invalid" : ""}`}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "checkout-email-error" : undefined}
+                />
+                {errors.email && <span className="field-error" id="checkout-email-error" role="alert"><i className="fa-solid fa-circle-exclamation"></i> {errors.email}</span>}
                 <span className="field-help">We&apos;ll send your subscription details here.</span>
               </div>
               <div className="field">
@@ -486,13 +519,16 @@ export default function CheckoutPage() {
                     type="tel"
                     inputMode="tel"
                     autoComplete="tel-national"
+                    ref={phoneRef}
                     className={`input ${errors.phone ? "is-invalid" : ""}`}
+                    aria-invalid={!!errors.phone}
+                    aria-describedby={errors.phone ? "checkout-phone-error" : undefined}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder={phoneCountry === "PK" ? "3001234567" : "Mobile number"}
                   />
                 </div>
-                {errors.phone && <span className="field-error"><i className="fa-solid fa-circle-exclamation"></i> {errors.phone}</span>}
+                {errors.phone && <span className="field-error" id="checkout-phone-error" role="alert"><i className="fa-solid fa-circle-exclamation"></i> {errors.phone}</span>}
                 <span className="field-help">
                   {phoneE164
                     ? `Will be sent as ${phoneE164}`
