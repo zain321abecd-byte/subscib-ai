@@ -23,7 +23,10 @@ const CSP = [
   // gateway's hosted page (ipg.apps.net.pk prod / ipguat.apps.net.pk UAT).
   // 'self' alone silently blocks that submit and strands the customer after
   // the order is created.
-  "form-action 'self' https://ipg.apps.net.pk https://ipguat.apps.net.pk",
+  // Wildcard rather than the two known hosts: a CSP form-action block is
+  // silent (console-only), which is indistinguishable from "stuck on
+  // Redirecting…". Covers any PayFast host the gateway hands back.
+  "form-action 'self' https://*.apps.net.pk https://apps.net.pk",
   "frame-ancestors 'self'",
   "upgrade-insecure-requests",
 ].join("; ");

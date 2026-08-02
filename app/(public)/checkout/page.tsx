@@ -122,6 +122,7 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const autoSubmitRef = useRef<HTMLFormElement | null>(null);
   const [pendingPost, setPendingPost] = useState<{ action: string; fields: InitFields } | null>(null);
+  const [redirectStalled, setRedirectStalled] = useState(false);
 
   // Prefill name + email from the authenticated user so the checkout form is
   // pre-populated for logged-in customers while guests can still continue.
@@ -133,9 +134,14 @@ export default function CheckoutPage() {
 
   // Submit the hidden form to PayFast as soon as it's mounted with fields.
   useEffect(() => {
-    if (pendingPost && autoSubmitRef.current) {
-      autoSubmitRef.current.submit();
-    }
+    if (!pendingPost || !autoSubmitRef.current) return;
+    autoSubmitRef.current.submit();
+    /* A blocked or failed submit leaves the browser sitting here with no
+       error of any kind (a CSP form-action block only logs to the console),
+       which reads as a frozen "Redirecting…". If we are still on this page a
+       few seconds later, surface a manual continue button. */
+    const t = window.setTimeout(() => setRedirectStalled(true), 6000);
+    return () => window.clearTimeout(t);
   }, [pendingPost]);
 
   /**
@@ -589,10 +595,26 @@ export default function CheckoutPage() {
             React mounts the inputs, then the useEffect calls .submit(), which
             navigates the browser straight to PayFast's hosted checkout page. */}
         {pendingPost && (
-          <form ref={autoSubmitRef} action={pendingPost.action} method="POST" style={{ display: "none" }} aria-hidden>
+          <form
+            ref={autoSubmitRef}
+            action={pendingPost.action}
+            method="POST"
+            style={redirectStalled ? undefined : { display: "none" }}
+            aria-hidden={!redirectStalled}
+          >
             {Object.entries(pendingPost.fields).map(([k, v]) => (
               <input key={k} type="hidden" name={k} value={String(v)} />
             ))}
+            {redirectStalled && (
+              <div className="surface-card" style={{ marginTop: 16, textAlign: "center" }}>
+                <p style={{ marginBottom: 12 }}>
+                  The automatic redirect did not start. Your order is saved — continue to pay:
+                </p>
+                <button type="submit" className="btn btn-primary btn-large">
+                  Continue to PayFast <i className="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            )}
           </form>
         )}
       </div>
