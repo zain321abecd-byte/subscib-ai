@@ -201,6 +201,9 @@ export default function CheckoutPage() {
   const fmtLine = (i: CartItem) => (useIntlPricing ? formatUSD(lineUsd(i)) : fmtMoney(i.price * (i.qty || 1)));
   const fmtDiscount = () => (useIntlPricing ? formatUSD(intlDiscount) : fmtMoney(cart.discount));
   const fmtTotal = () => (useIntlPricing ? formatUSD(intlTotal) : fmtMoney(pkrTotal));
+  /** Aliases used by the summary note below. */
+  const useIntlPricingDisplay = useIntlPricing;
+  const fxRateDisplay = fxRate;
 
   if (cart.ready && cart.items.length === 0 && status === "idle") {
     return (
@@ -388,8 +391,23 @@ export default function CheckoutPage() {
     //   PK visitor  → PKR amount  + CURRENCY_CODE=PKR  (sees "Rs 1,400" on hosted page)
     //   Foreigner   → USD amount  + CURRENCY_CODE=USD  (sees "$5.00" on hosted page)
     // The cart subtotal is canonical PKR; we convert to USD via the live FX rate.
-    const txnCurrency: "PKR" | "USD" = isPK ? "PKR" : "USD";
-    const txnAmount = isPK ? checkoutPkrTotal.toFixed(2) : usdAmount.toFixed(2);
+    /* Settle everything in PKR.
+     *
+     * USD transactions consistently failed at PayFast's card step with
+     * "Error in processing Inquiry request", while PKR ones have always
+     * succeeded — and PayFast confirmed multi-currency settlement is NOT
+     * enabled on this merchant. Charging in PKR uses the proven rail; the
+     * customer's card issuer converts, so a buyer quoted $18 is billed the
+     * rupee equivalent and sees ≈$18 on their statement.
+     *
+     * The quoted price is still the admin's fixed international one — only
+     * the currency handed to the gateway changes. */
+    const txnCurrency: "PKR" | "USD" = "PKR";
+    /* Rupee amount actually charged. For an international buyer this is the
+       fixed USD price converted at the live rate, so the charge matches the
+       $ figure they were quoted rather than the rupee list price. */
+    const intlPkrTotal = useIntlPricing ? usdAmount * fxRate : checkoutPkrTotal;
+    const txnAmount = intlPkrTotal.toFixed(2);
 
     // Never hand PayFast a zero/NaN amount — it fails with a generic error.
     if (!Number.isFinite(Number(txnAmount)) || Number(txnAmount) <= 0) {
@@ -430,14 +448,12 @@ export default function CheckoutPage() {
           items: orderItemsSnapshot.slice(0, 10).map((i) => {
             const qty = Number(i.qty) > 0 ? Number(i.qty) : 1;
             const unitPkr = Number(i.price) || 0;
-            const unit = txnCurrency === "PKR"
-              ? Math.round(unitPkr)
-              : Number(
-                  (useIntlPricing && Number(i.priceUsd) > 0
-                    ? Number(i.priceUsd)
-                    : unitPkr / fxRate
-                  ).toFixed(2),
-                );
+            // Everything settles in PKR, so line prices are rupees too. An
+            // international line uses its fixed USD price converted, keeping
+            // the basket consistent with TXNAMT.
+            const unit = useIntlPricing && Number(i.priceUsd) > 0
+              ? Math.round(Number(i.priceUsd) * fxRate)
+              : Math.round(unitPkr);
             return { sku: i.id, name: i.name, price: unit, qty };
           }),
           ...(restrictTo ? { restrictTo } : {}),
@@ -625,6 +641,12 @@ export default function CheckoutPage() {
               <p style={{ marginTop: 10, fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
                 <i className="fa-solid fa-circle-info" style={{ marginRight: 6 }}></i>
                 Charged securely via PayFast checkout.
+                {useIntlPricingDisplay && (
+                  <>
+                    {" "}Billed in PKR (≈ Rs {Math.round(intlSubtotal * fxRateDisplay).toLocaleString("en-PK")});
+                    your bank converts at its own rate.
+                  </>
+                )}
               </p>
             )}
 
