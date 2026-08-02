@@ -300,13 +300,33 @@ export default function CheckoutPage() {
     }
     const package_tier = tiers.size === 1 ? [...tiers][0] : tiers.size > 1 ? "mixed" : null;
 
+    /* Non-Asian buyers pay the admin's fixed USD price where one is set, so
+       the gateway charges exactly what the product page quoted. Lines without
+       an international price still convert from PKR at the live rate. */
+    const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
+    const useIntlPricing = region === "OTHER";
+    const convertedUsd = checkoutPkrTotal / fxRate;
+    const intlUsd = orderItemsSnapshot.reduce((sum, i) => {
+      // Coerce everything: a NaN here produced an empty TXNAMT and PayFast
+      // rejected the request, so non-Asian checkouts never redirected.
+      const qty = Number(i.qty) > 0 ? Number(i.qty) : 1;
+      const unit = Number(i.priceUsd) > 0 ? Number(i.priceUsd) : Number(i.price) / fxRate;
+      return sum + (Number.isFinite(unit) ? unit * qty : 0);
+    }, 0);
+    const usdAmount = useIntlPricing && Number.isFinite(intlUsd) && intlUsd > 0
+      ? intlUsd
+      : convertedUsd;
+
     const orderPayload = {
       items: orderItemsSnapshot.map((i) => ({ id: i.id, name: i.name, qty: i.qty, price: i.price, variation: i.variation })),
       customer_email: email,
       customer_phone: phoneE164,
       customer_name: name,
       subtotal_pkr: checkoutPkrTotal,
-      subtotal_usd: fxReady && usdToPkr > 0 ? Number((checkoutPkrTotal / usdToPkr).toFixed(2)) : undefined,
+      // Never undefined: the column is NOT NULL, and sending nothing when the
+      // FX rate had not loaded made order creation fail with a 500. Uses the
+      // same figure the gateway is charged, so the record matches the payment.
+      subtotal_usd: Number(usdAmount.toFixed(2)),
       payment_method: "payfast",
       transaction_id: basketId,
       utm_source: attribution.utm_source ?? null,
@@ -369,22 +389,6 @@ export default function CheckoutPage() {
     //   Foreigner   → USD amount  + CURRENCY_CODE=USD  (sees "$5.00" on hosted page)
     // The cart subtotal is canonical PKR; we convert to USD via the live FX rate.
     const txnCurrency: "PKR" | "USD" = isPK ? "PKR" : "USD";
-    /* Non-Asian buyers pay the admin's fixed USD price where one is set, so
-       the gateway charges exactly what the product page quoted. Lines without
-       an international price still convert from PKR at the live rate. */
-    const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
-    const useIntlPricing = region === "OTHER";
-    const convertedUsd = checkoutPkrTotal / fxRate;
-    const intlUsd = orderItemsSnapshot.reduce((sum, i) => {
-      // Coerce everything: a NaN here produced an empty TXNAMT and PayFast
-      // rejected the request, so non-Asian checkouts never redirected.
-      const qty = Number(i.qty) > 0 ? Number(i.qty) : 1;
-      const unit = Number(i.priceUsd) > 0 ? Number(i.priceUsd) : Number(i.price) / fxRate;
-      return sum + (Number.isFinite(unit) ? unit * qty : 0);
-    }, 0);
-    const usdAmount = useIntlPricing && Number.isFinite(intlUsd) && intlUsd > 0
-      ? intlUsd
-      : convertedUsd;
     const txnAmount = isPK ? checkoutPkrTotal.toFixed(2) : usdAmount.toFixed(2);
 
     // Never hand PayFast a zero/NaN amount — it fails with a generic error.
