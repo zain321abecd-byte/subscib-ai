@@ -421,9 +421,25 @@ export default function CheckoutPage() {
           customerMobile: phoneE164,
           customerName: name,
           description: `SubscribAI order ${basketId}`,
-          items: orderItemsSnapshot.slice(0, 10).map((i) => ({
-            sku: i.id, name: i.name, price: Math.round(i.price), qty: i.qty,
-          })),
+          /* Line prices must be in the SAME currency as TXNAMT. We were
+             sending PKR figures (1499) alongside a USD total (18.00), which
+             agreed for Pakistani orders but not international ones — PayFast
+             validates the items against the transaction and failed the
+             inquiry step. Now each line is converted to the currency being
+             charged. */
+          items: orderItemsSnapshot.slice(0, 10).map((i) => {
+            const qty = Number(i.qty) > 0 ? Number(i.qty) : 1;
+            const unitPkr = Number(i.price) || 0;
+            const unit = txnCurrency === "PKR"
+              ? Math.round(unitPkr)
+              : Number(
+                  (useIntlPricing && Number(i.priceUsd) > 0
+                    ? Number(i.priceUsd)
+                    : unitPkr / fxRate
+                  ).toFixed(2),
+                );
+            return { sku: i.id, name: i.name, price: unit, qty };
+          }),
           ...(restrictTo ? { restrictTo } : {}),
         }),
       });
