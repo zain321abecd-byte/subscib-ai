@@ -394,10 +394,17 @@ export default function CheckoutPage() {
       return;
     }
 
-    // For non-PK visitors restrict the PayFast hosted page to Card only —
-    // JazzCash / Easypaisa wallets are PK-only, bank direct-debit needs a
-    // Pakistani CNIC, and Raast is a PK-only payment rail.
-    const restrictTo = isPK ? undefined : "card";
+    /* Payment-instrument lock.
+     *
+     * We used to force Transaction_Instrument=3 (card) for every non-PK
+     * visitor. That is a domestic instrument code, and pinning it on a
+     * global-payments transaction made PayFast fail at the card step with
+     * "Error in processing Inquiry request" — the merchant is enabled for
+     * global payments and USD settlement, so the currency was never the
+     * problem. Leaving the instrument unset lets PayFast route the payment
+     * itself and show only the methods it can actually process; local
+     * wallets are not offered to foreign cards anyway. */
+    const restrictTo = undefined;
     try {
       const res = await fetch(apiUrl("/payments/init"), {
         method: "POST",
