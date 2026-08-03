@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useCart } from "@/lib/cart";
 import { trackPurchase } from "@/lib/analytics";
 
@@ -39,10 +39,18 @@ export default function ClearCartOnSuccess({
   orderId: string;
 }) {
   const cart = useCart();
+  /* Run once per order. `cart` is a context object rebuilt on every render,
+     so listing it as a dependency re-ran this effect after each of its own
+     state updates — updateOrderStatus → re-render → new cart → effect →
+     updateOrderStatus … an endless loop that pegged React and stopped
+     router navigations, so every link on the thank-you page did nothing. */
+  const handled = useRef<string | null>(null);
 
   useEffect(() => {
     if (!cart.ready) return;
     if (status !== "paid") return;
+    if (handled.current === orderId) return;
+    handled.current = orderId;
 
     // GA4 purchase — read the cart BEFORE clearing it below, and only once
     // per order id so refreshes don't inflate reported revenue.
@@ -63,7 +71,10 @@ export default function ClearCartOnSuccess({
 
     if (orderId) cart.updateOrderStatus(orderId, "paid");
     if (cart.items.length > 0) cart.clear();
-  }, [cart, status, orderId]);
+    // `cart` deliberately omitted: it changes identity every render, and the
+    // ref guard above already makes this run exactly once per order.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.ready, status, orderId]);
 
   return null;
 }
