@@ -178,7 +178,12 @@ export class PaymentsService {
       currency,
     });
 
-    this.logger.log(`payfast init basket=${basketId} amount=${amount} token=${token.slice(0, 8)}…`);
+    /* host + merchant in the line: tokens are issued happily by the UAT
+       sandbox too, so "token succeeded" does not prove we are talking to
+       production. This makes the environment verifiable from the logs. */
+    this.logger.log(
+      `payfast init basket=${basketId} amount=${amount} currency=${currency} host=${config.baseUrl} merchant=${config.merchantId} token=${token.slice(0, 8)}…`,
+    );
     /* Full field dump (no secrets — the token is truncated and SECURED_KEY is
        never part of these fields). The card-step failure happens on PayFast's
        hosted page, so no return/IPN ever reaches us; this is the only record
