@@ -179,6 +179,17 @@ export class PaymentsService {
     });
 
     this.logger.log(`payfast init basket=${basketId} amount=${amount} token=${token.slice(0, 8)}…`);
+    /* Full field dump (no secrets — the token is truncated and SECURED_KEY is
+       never part of these fields). The card-step failure happens on PayFast's
+       hosted page, so no return/IPN ever reaches us; this is the only record
+       of exactly what they were sent, which is what their support needs to
+       identify a rejected parameter. */
+    this.logger.log(
+      `payfast fields basket=${basketId} ${JSON.stringify({
+        ...fields,
+        TOKEN: `${String(fields.TOKEN || "").slice(0, 8)}…`,
+      })}`,
+    );
 
     return {
       status: 200,
