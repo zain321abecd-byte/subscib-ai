@@ -98,7 +98,14 @@ export class PaymentsService {
     const basketId = String(input.basketId || input.basket_id || input.orderId || input.order_id || "").trim();
     const amount = normalizeAmount(input.amount);
     const customerEmail = String(input.customerEmail || input.customer_email || "").trim();
-    const customerMobile = String(input.customerMobile || input.customer_mobile || "").trim();
+    /* Digits only. We used to forward E.164 straight through ("+12548417961"),
+       but PayFast's CUSTOMER_MOBILE_NO is a domestic field — a leading "+" and
+       a foreign country code are a likely cause of "Error in processing
+       Inquiry request" on international orders, which is where PayFast pointed
+       us. Pakistani numbers are unaffected in practice ("+923…" → "923…"). */
+    const customerMobile = String(input.customerMobile || input.customer_mobile || "")
+      .replace(/\D/g, "")
+      .trim();
     const customerName = String(input.customerName || input.customer_name || "").trim();
     const customerIp = String(input.customerIp || "").trim();
     const description = String(input.description || "SubscribAI order").slice(0, 80);
