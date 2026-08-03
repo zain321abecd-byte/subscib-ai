@@ -267,12 +267,20 @@ export class PaymentsService {
     if (!basketId) return { status: 400, body: { success: false, message: "basketId is required." } };
 
     try {
-      const { data, error } = await this.supabase
+      /* `id` is a uuid column, so including `id.eq.<order number>` made
+         Postgres reject the whole OR with "invalid input syntax for type
+         uuid" — every status poll failed, and the thank-you page could never
+         resolve pending → paid. Only match on id when the value really is a
+         uuid; otherwise look the order up by its number alone. */
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(basketId);
+      const base = this.supabase
         .admin()
         .from("orders")
-        .select("id, order_number, status, transaction_id, subtotal_pkr, payment_method")
-        .or(`order_number.eq.${basketId},id.eq.${basketId}`)
-        .maybeSingle();
+        .select("id, order_number, status, transaction_id, subtotal_pkr, payment_method");
+      const { data, error } = await (isUuid
+        ? base.or(`order_number.eq.${basketId},id.eq.${basketId}`)
+        : base.eq("order_number", basketId)
+      ).maybeSingle();
 
       if (error) {
         return { status: 500, body: { success: false, message: error.message } };
