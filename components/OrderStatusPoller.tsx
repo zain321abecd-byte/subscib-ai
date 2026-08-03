@@ -37,12 +37,21 @@ export default function OrderStatusPoller({ orderId }: { orderId: string }) {
         const data = (await res.json()) as PollResp;
         if (data?.status && data.status !== "pending") {
           stopped.current = true;
-          // Reload so the server component re-evaluates the status pill.
-          // We pass the new status in the URL so it renders correctly even
-          // if the URL the user has been on still said status=pending.
           const url = new URL(window.location.href);
           url.searchParams.set("status", data.status);
-          window.location.replace(url.toString());
+          /* Clear hashOk. The redirect sets hashOk=0 when PayFast's
+             validation hash does not verify, and the page then refuses to
+             show "paid" no matter what — so it re-rendered as pending, the
+             poller confirmed paid again, reloaded, and looped forever. This
+             status came from our own database via the API, which is more
+             authoritative than a hash on a query string. */
+          url.searchParams.delete("hashOk");
+
+          // Only reload if the URL actually changes, otherwise the reload
+          // itself would retrigger this same branch.
+          if (url.toString() !== window.location.href) {
+            window.location.replace(url.toString());
+          }
           return;
         }
       } catch {

@@ -53,9 +53,16 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
   const errCode = (sp.code || "").trim();
   const hashOk = sp.hashOk !== "0"; // /payments/return sets this to "0" only on mismatch
 
-  const isPaid = status === "paid" && hashOk;
-  const isFailed = status === "failed" && hashOk;
-  const isPending = !isPaid && !isFailed; // hash mismatch OR no status → treat as pending and let the poller resolve it
+  /* A "paid" that came back without hashOk=0 is trusted directly. When the
+     hash did not verify, the poller re-checks our own database and strips
+     hashOk before reloading — so a status that arrives with no hashOk flag
+     at all is database-confirmed and equally trustworthy. Requiring the hash
+     unconditionally meant a genuinely paid order rendered as pending for
+     ever, because PayFast's return hash currently never verifies. */
+  const dbConfirmed = sp.hashOk === undefined;
+  const isPaid = status === "paid" && (hashOk || dbConfirmed);
+  const isFailed = status === "failed" && (hashOk || dbConfirmed);
+  const isPending = !isPaid && !isFailed;
 
   const heroBadge = isPaid ? (
     <span className="badge badge-success" style={{ marginBottom: "var(--space-4)" }}>
