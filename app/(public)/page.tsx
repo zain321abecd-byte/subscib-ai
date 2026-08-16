@@ -8,9 +8,9 @@ import { getAllProducts, getFeaturedProducts } from "@/lib/products";
 import { getSiteSettings } from "@/lib/site-settings";
 import { getRegion } from "@/lib/region";
 import {
-  paymentFeatureDescription,
-  paymentFeatureTitle,
-  paymentMethodFaqAnswer,
+  paymentFeatureDescriptionFor,
+  paymentFeatureTitleFor,
+  paymentMethodFaqAnswerFor,
 } from "@/lib/payment-messaging";
 
 /**
@@ -22,13 +22,15 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [featured, allProducts, settings, , reviewRows] = await Promise.all([
+  const [featured, allProducts, settings, region, reviewRows] = await Promise.all([
     getFeaturedProducts(8),
     getAllProducts(),
     getSiteSettings(),
     getRegion(),
     getAllReviewRows(),
   ]);
+  // Payment copy differs outside Pakistan: card-only, charged in USD.
+  const isPK = region === "PK";
   const featuredIds = new Set(featured.map((product) => product.id));
   const popularTiles = [
     ...featured,
@@ -175,7 +177,7 @@ export default async function HomePage() {
             </header>
             <div className="pl-why-grid">
               {[
-                { icon: "fa-credit-card", t: paymentFeatureTitle, d: paymentFeatureDescription, accent: "#4884FF" },
+                { icon: "fa-credit-card", t: paymentFeatureTitleFor(isPK), d: paymentFeatureDescriptionFor(isPK), accent: "#4884FF" },
                 { icon: "fa-bolt", t: "Fast delivery", d: "Most subscriptions go live in under 30 minutes after payment.", accent: "#F59E0B" },
                 { icon: "fa-rotate", t: "Easy renewals", d: "Reminders before expiry and quick replacement support.", accent: "#10B981" },
                 { icon: "fa-whatsapp", t: "Human support", d: "WhatsApp and email support from a real person.", brand: true, accent: "#25D366" },
@@ -210,7 +212,7 @@ export default async function HomePage() {
             <div className="v2-faq">
               {[
                 ["How fast do I get my subscription after paying?", "Most AI subscription accounts are activated within 30 minutes during business hours, and within a few hours overnight. You'll receive your login by email and a WhatsApp confirmation."],
-                ["What payment methods do you accept?", paymentMethodFaqAnswer],
+                ["What payment methods do you accept?", paymentMethodFaqAnswerFor(isPK)],
                 ["Are these legitimate accounts?", "Yes — every subscription is from an authorized reseller channel, family-plan slot, or our own bulk-purchase pool. We don't sell cracked or shared logins from sketchy sources."],
                 ["What if my account stops working?", "Tell us on WhatsApp or email and we'll replace it within 24 hours. Subscriptions come with full-period replacement guarantees."],
                 ["Can I cancel a bundle anytime?", "Yes — bundle subscriptions are month-to-month with no contracts. Cancel anytime before your renewal date and you won't be charged again."],

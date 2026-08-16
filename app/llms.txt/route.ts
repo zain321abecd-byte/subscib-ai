@@ -29,12 +29,13 @@ export async function GET() {
 
   const body = `# SubscribAI
 
-> SubscribAI (${absoluteUrl("/")}) is a Pakistan-based store for premium AI subscriptions and digital tools. Customers pay in local currency (PKR; USD and INR prices are also shown) and receive working subscription access by email — most orders are activated in under 30 minutes during business hours.
+> SubscribAI (${absoluteUrl("/")}) is a Pakistan-based store for premium AI subscriptions and digital tools. Customers in Pakistan pay in PKR; customers everywhere else are priced and charged in USD by card. Orders are delivered as working subscription access by email — most are activated in under 30 minutes during business hours.
 
 Key facts:
 
 - Sells subscriptions such as ChatGPT Plus, Claude Pro, Midjourney, Canva Pro, Notion AI, plus automation flows and self-paced AI courses.
-- Payment: local payment methods (cards, local wallets) — see [Prices](${absoluteUrl("/prices")}).
+- Payment: cards and local wallets inside Pakistan; Visa/Mastercard only outside Pakistan — see [Prices](${absoluteUrl("/prices")}).
+- Currency: PKR inside Pakistan, USD everywhere else (fixed USD price, not a live conversion).
 - Delivery: by email, typically under 30 minutes after payment confirmation.
 - Support: WhatsApp and email support from a real person; replacement guarantee for the subscription period — see [Refund policy](${absoluteUrl("/refund")}).
 - Reviews: admin-verified customer reviews are shown on the homepage and product pages.

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiBaseUrl } from "@/lib/api-client";
-import { paymentFeatureDescription, paymentFeatureTitle } from "@/lib/payment-messaging";
+import { paymentFeatureDescriptionFor, paymentFeatureTitleFor } from "@/lib/payment-messaging";
+import { useFx } from "@/lib/fx";
 
 type Status = "verifying" | "success" | "already" | "error";
 
@@ -19,6 +20,9 @@ export default function VerifyClient({
   /** Fully-built `https://wa.me/…` URL from dynamic site_settings. */
   whatsappUrl: string;
 }) {
+  // Payment copy differs outside Pakistan: card-only, charged in USD.
+  const { region } = useFx();
+  const isPK = region === "PK";
   const [status, setStatus] = useState<Status>("verifying");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [verifiedEmail, setVerifiedEmail] = useState<string>(email);
@@ -132,7 +136,7 @@ export default function VerifyClient({
           {[
             { n: 1, t: "Sign in", d: "Use the same email and password you signed up with." },
             { n: 2, t: "Browse the shop", d: "Pick from premium AI subscriptions, courses & automation packs." },
-            { n: 3, t: paymentFeatureTitle, d: paymentFeatureDescription },
+            { n: 3, t: paymentFeatureTitleFor(isPK), d: paymentFeatureDescriptionFor(isPK) },
           ].map((s) => (
             <li
               key={s.n}

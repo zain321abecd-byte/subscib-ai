@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getRegion } from "@/lib/region";
 import { getContactLinks } from "@/lib/contact-links";
-import { paymentMethodFaqAnswer } from "@/lib/payment-messaging";
+import { paymentMethodFaqAnswerFor } from "@/lib/payment-messaging";
 import { speakable } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -21,10 +21,15 @@ function buildQuestions(isPK: boolean, supportEmail: string): { q: string; a: st
   { category: "Delivery", q: "Can I get my account on a different email later?", a: "Yes — message us on WhatsApp with your order ID and the new email. We'll re-issue the credentials." },
 
   // Payment
-  { category: "Payment", q: "Which payment methods do you accept?", a: paymentMethodFaqAnswer },
-  { category: "Payment", q: "Is there a fee for paying by card vs wallet?", a: "No — the price you see is the price you pay. We absorb the gateway fee on our end." },
+  { category: "Payment", q: "Which payment methods do you accept?", a: paymentMethodFaqAnswerFor(isPK) },
+  // The card-vs-wallet comparison only makes sense where wallets are offered.
+  ...(isPK
+    ? [{ category: "Payment", q: "Is there a fee for paying by card vs wallet?", a: "No — the price you see is the price you pay. We absorb the gateway fee on our end." }]
+    : [{ category: "Payment", q: "Is there a card fee?", a: "No — the price you see is the price you pay. We absorb the gateway fee on our end." }]),
   { category: "Payment", q: "I got charged but my order didn't go through?", a: `Forward the gateway confirmation SMS or email to ${supportChannel}. We'll either complete the order or refund within 24 hours.` },
-  { category: "Payment", q: "How does local currency pricing work?", a: "Prices are shown in your selected local currency where supported, using the live exchange rate at checkout. What you see on the Pay button is what the gateway receives." },
+  ...(isPK
+    ? [{ category: "Payment", q: "How does local currency pricing work?", a: "Prices are shown in your selected local currency where supported, using the live exchange rate at checkout. What you see on the Pay button is what the gateway receives." }]
+    : [{ category: "Payment", q: "Which currency am I charged in?", a: "Orders outside Pakistan are priced and charged in USD. The dollar figure shown on the product page is the amount your card is billed — it is a fixed price, not a live currency conversion." }]),
 
   // Trust
   { category: "Trust", q: "Are these legitimate accounts?", a: "Yes. Every subscription is from an authorized reseller channel, family-plan slot, or our own bulk-purchase pool. We don't sell cracked or shared logins from sketchy sources." },

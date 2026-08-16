@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { BusinessInquiryButton, PlanCheckoutButton } from "./BundlePicker";
+import { useFx } from "@/lib/fx";
 import type { PricingPlanRow } from "@/lib/supabase/types";
 
 type BillingCycle = "monthly" | "yearly";
@@ -97,7 +98,8 @@ const COMPARE: { group: string; rows: FeatureRow[] }[] = [
   {
     group: "Billing",
     rows: [
-      { label: "Wallet & local payment options", values: [true, true, true] },
+      // Local wallets are a Pakistan-only rail; outside PK the only method is card.
+      { label: "Wallet & local payment options", values: [true, true, true], pkOnly: true },
       { label: "Major credit / debit cards", values: [true, true, true] },
       { label: "Invoice billing & POs", values: [false, false, true] },
       { label: "Cancel anytime", values: [true, true, true] },
@@ -122,6 +124,9 @@ function planIcon(slug: string) {
 }
 
 export default function PricesPage() {
+  // Local wallet rows are hidden outside Pakistan — card is the only method there.
+  const { region } = useFx();
+  const isPK = region === "PK";
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [plans, setPlans] = useState<PricingPlanRow[]>(FALLBACK_PLANS);
   const [loading, setLoading] = useState(true);
@@ -241,7 +246,7 @@ export default function PricesPage() {
                     <tr className="prices-row-group">
                       <td colSpan={4}>{group.group}</td>
                     </tr>
-                    {group.rows.map((row) => (
+                    {group.rows.filter((row) => !row.pkOnly || isPK).map((row) => (
                       <tr key={row.label}>
                         <td data-label="Feature">{row.label}</td>
                         {row.values.map((value, index) => {

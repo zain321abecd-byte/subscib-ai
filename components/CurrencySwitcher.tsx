@@ -10,9 +10,15 @@ const CURRENCIES: Array<{ code: Currency; label: string }> = [
 ];
 
 export default function CurrencySwitcher() {
-  const { currency, setCurrency } = useFx();
+  const { currency, setCurrency, region } = useFx();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  /* Outside Pakistan everything is priced and charged in USD, so there is no
+     currency to choose. Rendering a picker that can't change anything (the
+     server forces USD in resolveCurrency regardless of the cookie) would just
+     look broken, so show a plain, non-interactive USD badge instead. */
+  const canChooseCurrency = region === "PK";
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -21,6 +27,17 @@ export default function CurrencySwitcher() {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
+
+  if (!canChooseCurrency) {
+    return (
+      <div className="currency-switcher">
+        <span className="currency-switcher-trigger is-static" aria-label={`Currency: ${currency}`}>
+          <i className="fa-solid fa-coins"></i>
+          <span>{currency}</span>
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div ref={ref} className="currency-switcher">

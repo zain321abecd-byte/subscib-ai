@@ -192,12 +192,12 @@ export function formatProductPriceLabel(
   usdToPkr: number,
   fxReady: boolean,
   usdToInr = 83,
-  /** "OTHER" (non-Asian) visitors get the admin's fixed USD price. */
+  /** Every visitor outside Pakistan gets the admin's fixed USD price. */
   region?: string,
 ): string {
   const start = getStartingPrice(product);
   const prefix = hasMultiplePrices(product) ? "From " : "";
-  if (currency === "USD" && region === "OTHER") {
+  if (currency === "USD" && region && region !== "PK") {
     const intl = getStartingPriceUsd(product);
     if (intl != null) return `${prefix}${formatUSD(intl)}`;
   }

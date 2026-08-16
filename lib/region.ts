@@ -23,9 +23,22 @@ function countryToRegion(country: string): Region {
   return "OTHER";
 }
 
-/** True where the admin's fixed international USD price should be used. */
+/**
+ * True where the admin's fixed international USD price should be used.
+ *
+ * The rule is now simply "not Pakistan". This previously returned true only
+ * for OTHER, which meant Indian and other Asian visitors were quoted an
+ * FX-converted rupee price while everyone else got the admin's fixed USD
+ * figure. There is one international price, and everyone outside Pakistan
+ * pays it.
+ */
 export function usesInternationalPricing(region: Region): boolean {
-  return region === "OTHER";
+  return region !== "PK";
+}
+
+/** Local wallets (JazzCash / Easypaisa) are Pakistan-only; everywhere else is card. */
+export function usesLocalPaymentMethods(region: Region): boolean {
+  return region === "PK";
 }
 
 /**
@@ -55,17 +68,22 @@ export async function getRegion(): Promise<Region> {
 /**
  * Resolve the active currency.
  *
- * Rule: Pakistani visitors → PKR, everyone else → USD.
- * The user's explicit cookie override (set via the currency switcher) wins
- * over the auto-default. INR is still accepted as a manual override, but it
- * is no longer auto-selected — Indian visitors land on USD by default.
+ * Rule: Pakistani visitors → PKR, everyone else → USD, with no opt-out.
+ *
+ * Outside Pakistan the cookie is deliberately ignored. It used to win
+ * unconditionally, so a visitor who had once picked PKR (or arrived with a
+ * stale cookie) kept seeing rupee prices abroad while being charged the
+ * international amount. Only Pakistani visitors get a currency choice now,
+ * which is also why the switcher renders read-only elsewhere.
  */
 export async function resolveCurrency(_mode: CurrencyMode): Promise<Currency> {
-  // Currency cookie takes precedence over location defaults.
+  const region = await getRegion();
+  if (region !== "PK") return "USD";
+
+  // Inside Pakistan the explicit cookie override still wins.
   const c = await cookies();
   const pref = c.get("currency")?.value;
   if (pref === "PKR" || pref === "USD" || pref === "INR") return pref;
 
-  const region = await getRegion();
-  return region === "PK" ? "PKR" : "USD";
+  return "PKR";
 }

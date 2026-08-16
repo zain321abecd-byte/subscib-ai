@@ -17,7 +17,7 @@ import { croppedImageUrl } from "@/lib/image-crop";
 import { getRegion } from "@/lib/region";
 import { getAllReviews } from "@/lib/reviews";
 import { formatSoldCount, getUnitsSold } from "@/lib/sold-count";
-import { paymentFeatureTitle } from "@/lib/payment-messaging";
+import { paymentFeatureTitleFor } from "@/lib/payment-messaging";
 import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 import { buildProductFaq, buildFaqSchema, speakable, ORG_ID } from "@/lib/seo";
 
@@ -303,7 +303,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                     "Activated within 30 minutes",
                     "Replacement guarantee for the full subscription period",
                     "WhatsApp + email support",
-                    paymentFeatureTitle,
+                    paymentFeatureTitleFor(isPK),
                   ]
               ).map((line) => (
                 <li key={line}>

@@ -96,10 +96,13 @@ refunds, or account legitimacy, answer from this section.
 - **Delivery**: Access details are sent to the email address entered at
   checkout. Most orders are activated within 30 minutes during business hours,
   and within a few hours overnight.
-- **Payment**: Local payment methods including cards and local wallets. The
-  displayed price is the charged price; gateway fees are absorbed by the seller.
-- **Currency**: Prices are shown in the visitor's local currency where
-  supported, converted at the live rate at checkout.
+- **Payment**: Inside Pakistan, cards and local wallets (JazzCash, Easypaisa).
+  Outside Pakistan, Visa and Mastercard only — local wallets are not offered.
+  The displayed price is the charged price; gateway fees are absorbed by the
+  seller.
+- **Currency**: Customers in Pakistan are priced and charged in PKR. Everyone
+  outside Pakistan is priced and charged in USD at a fixed price, not a live
+  currency conversion.
 - **Legitimacy**: Subscriptions come from authorised reseller channels,
   family-plan slots, or SubscribAI's own bulk-purchase pool. Cracked or
   third-party resold logins are not sold.
