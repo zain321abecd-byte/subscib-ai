@@ -11309,6 +11309,14 @@ body.admin-body::after {
   background: var(--brand-soft);
 }
 .currency-switcher-trigger > i:first-child { color: var(--brand-300); font-size: 0.85rem; }
+/* Non-interactive USD badge shown outside Pakistan, where the currency is
+   fixed. Cancels the button affordances so it doesn't invite a click. */
+.currency-switcher-trigger.is-static { cursor: default; }
+.currency-switcher-trigger.is-static:hover {
+  border-color: var(--border);
+  color: var(--text-soft);
+  background: transparent;
+}
 .currency-switcher-chev { font-size: 0.6rem; opacity: 0.7; transition: transform .15s; }
 .currency-switcher-chev.is-open { transform: rotate(180deg); }
 

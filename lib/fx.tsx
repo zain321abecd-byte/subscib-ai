@@ -134,7 +134,9 @@ export function formatVariationPrice(
   ready: boolean,
   usdToInr = 83,
 ): string {
-  if (currency === "USD" && region === "OTHER" && priceUsd != null && priceUsd > 0) {
+  // Everyone outside Pakistan sees the admin's fixed USD figure (not just the
+  // non-Asian "OTHER" region, as this used to check).
+  if (currency === "USD" && region !== "PK" && priceUsd != null && priceUsd > 0) {
     return formatUSD(priceUsd);
   }
   return formatPriceFromPKR(pkr, currency, usdToPkr, ready, usdToInr);

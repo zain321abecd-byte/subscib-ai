@@ -13,11 +13,13 @@ export default function CartClient({ recommended }: { recommended: Product[] }) 
   // For non-PK visitors, formatPriceFromPKR converts via the live FX rate.
   const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
 
-  /* Non-Asian buyers pay the admin's fixed USD prices, so quote those rather
-     than a converted rupee figure — the cart must match the product page and
-     what PayFast will charge. */
+  /* Every buyer outside Pakistan pays the admin's fixed USD prices, so quote
+     those rather than a converted rupee figure — the cart must match the
+     product page and what PayFast will charge. (Mirrors
+     usesInternationalPricing in lib/region.ts, which can't be imported here:
+     it pulls in next/headers and this is a client component.) */
   const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
-  const useIntlPricing = region === "OTHER";
+  const useIntlPricing = region !== "PK";
   const itemUsd = (i: { price: number; priceUsd?: number; qty: number }) =>
     (i.priceUsd != null ? i.priceUsd : i.price / fxRate) * (i.qty || 1);
   const intlSubtotal = cart.items.reduce((sum, i) => sum + itemUsd(i), 0);

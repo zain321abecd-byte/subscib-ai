@@ -10,7 +10,7 @@ import { readAttribution } from "@/components/TrafficCapture";
 import { apiUrl, authHeaders } from "@/lib/api-client";
 import { redeemCoupon } from "@/lib/coupon-actions";
 import { trackBeginCheckout } from "@/lib/analytics";
-import { paymentFeatureDescription, paymentFeatureTitle } from "@/lib/payment-messaging";
+import { paymentFeatureDescriptionFor, paymentFeatureTitleFor } from "@/lib/payment-messaging";
 import type { CartItem } from "@/lib/cart";
 
 type StatusPill = "idle" | "submitting" | "redirecting" | "failed";
@@ -188,11 +188,11 @@ export default function CheckoutPage() {
   const usdFormatted = usdTotal.toFixed(2);
   const fmtMoney = (pkr: number) => formatPriceFromPKR(pkr, currency, usdToPkr, fxReady, usdToInr);
 
-  /* Non-Asian buyers are charged the admin's fixed USD prices, so the summary
-     has to quote those exact figures — converting the rupee total here would
-     show one number and charge another. */
+  /* Every buyer outside Pakistan is charged the admin's fixed USD prices, so
+     the summary has to quote those exact figures — converting the rupee total
+     here would show one number and charge another. */
   const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
-  const useIntlPricing = region === "OTHER";
+  const useIntlPricing = region !== "PK";
   const lineUsd = (i: CartItem) => (i.priceUsd != null ? i.priceUsd : i.price / fxRate) * (i.qty || 1);
   const intlSubtotal = cart.items.reduce((sum, i) => sum + lineUsd(i), 0);
   const intlDiscount = cart.discount > 0 ? cart.discount / fxRate : 0;
@@ -303,11 +303,12 @@ export default function CheckoutPage() {
     }
     const package_tier = tiers.size === 1 ? [...tiers][0] : tiers.size > 1 ? "mixed" : null;
 
-    /* Non-Asian buyers pay the admin's fixed USD price where one is set, so
-       the gateway charges exactly what the product page quoted. Lines without
-       an international price still convert from PKR at the live rate. */
+    /* Every buyer outside Pakistan pays the admin's fixed USD price where one
+       is set, so the gateway charges exactly what the product page quoted.
+       Lines without an international price still convert from PKR at the live
+       rate. */
     const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
-    const useIntlPricing = region === "OTHER";
+    const useIntlPricing = region !== "PK";
     const convertedUsd = checkoutPkrTotal / fxRate;
     const intlUsd = orderItemsSnapshot.reduce((sum, i) => {
       // Coerce everything: a NaN here produced an empty TXNAMT and PayFast
@@ -583,9 +584,9 @@ export default function CheckoutPage() {
             <div className="surface-card" style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <i className="fa-solid fa-shield-halved" style={{ color: "var(--accent-600)", fontSize: 22 }}></i>
               <div>
-                <strong style={{ color: "var(--text)", display: "block" }}>{paymentFeatureTitle}</strong>
+                <strong style={{ color: "var(--text)", display: "block" }}>{paymentFeatureTitleFor(isPK)}</strong>
                 <span style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
-                  {paymentFeatureDescription}
+                  {paymentFeatureDescriptionFor(isPK)}
                 </span>
               </div>
             </div>
