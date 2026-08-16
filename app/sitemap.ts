@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getAllProducts } from "@/lib/products";
 import { getAllPosts } from "@/lib/blog";
 import { absoluteUrl } from "@/lib/site-url";
+import { authorSlug } from "@/lib/seo";
 
 /**
  * `lastModified` has to be truthful or Google discards the signal.
@@ -66,8 +67,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: p.featured ? 0.7 : 0.6,
   }));
 
+  // Author hubs — one per distinct byline, dated from that author's newest
+  // post. These exist to make authorship crawlable, so they have to be in the
+  // sitemap or the E-E-A-T signal only reaches crawlers that follow bylines.
+  const byAuthor = new Map<string, string[]>();
+  for (const post of POSTS) {
+    if (!post.robotsIndex || !post.author) continue;
+    const slug = authorSlug(post.author);
+    if (!slug) continue;
+    const dates = byAuthor.get(slug) ?? [];
+    dates.push(post.updatedAt || post.date);
+    byAuthor.set(slug, dates);
+  }
+  const authorPages: MetadataRoute.Sitemap = [...byAuthor.entries()].map(([slug, dates]) => ({
+    url: absoluteUrl(`/author/${slug}`),
+    lastModified: newest(dates),
+    changeFrequency: "monthly",
+    priority: 0.4,
+  }));
+
   const seen = new Set<string>();
-  return [...datedStatic, ...undatedStatic, ...productPages, ...blogPages].filter((entry) => {
+  return [...datedStatic, ...undatedStatic, ...productPages, ...blogPages, ...authorPages].filter((entry) => {
     const key = entry.url.replace(/\/+$/, "");
     if (seen.has(key)) return false;
     seen.add(key);
