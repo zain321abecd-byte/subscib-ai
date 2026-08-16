@@ -10,47 +10,19 @@ import PageProgress from "@/components/PageProgress";
 import NavigationProgress from "@/components/NavigationProgress";
 import RevealOnScroll from "@/components/RevealOnScroll";
 import TrafficCapture from "@/components/TrafficCapture";
-import { absoluteUrl, SITE_URL } from "@/lib/site-url";
+import { buildOrganizationSchema, buildWebsiteSchema } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 const SITE_NAME = "SubscribAI";
-const websiteJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: SITE_NAME,
-  url: SITE_URL,
-  potentialAction: {
-    "@type": "SearchAction",
-    target: { "@type": "EntryPoint", urlTemplate: `${absoluteUrl("/shop")}?q={search_term_string}` },
-    "query-input": "required name=search_term_string",
-  },
-};
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSiteSettings();
   const wa = normalisePhoneDigits(settings.whatsapp_number || "");
-  const socials = [
-    settings.social_instagram,
-    settings.social_facebook,
-    settings.social_tiktok,
-    settings.social_youtube,
-  ].map((url) => url?.trim()).filter(Boolean);
-  const orgJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: settings.business_name?.trim() || SITE_NAME,
-    url: SITE_URL,
-    logo: absoluteUrl("/assets/subscribai-logo.png"),
-    sameAs: socials,
-    contactPoint: [{
-      "@type": "ContactPoint",
-      contactType: "customer support",
-      availableLanguage: ["en", "ur"],
-      url: absoluteUrl("/contact"),
-      ...(settings.contact_email ? { email: settings.contact_email } : {}),
-    }],
-  };
+  // Entity facts (description, knowsAbout, areaServed, address) now live in
+  // lib/seo.ts so every page describes the business identically.
+  const orgJsonLd = buildOrganizationSchema(settings);
+  const websiteJsonLd = buildWebsiteSchema(settings.business_name?.trim() || SITE_NAME);
 
   const mode = (settings.currency_mode || "auto") as CurrencyMode;
   const [initialCurrency, region] = await Promise.all([resolveCurrency(mode), getRegion()]);

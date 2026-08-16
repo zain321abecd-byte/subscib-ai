@@ -17805,6 +17805,7 @@ textarea:focus {
   .pl-detail-tabs { order: 5; }
   .pl-detail-description { order: 6; }
   .pl-detail-features { order: 7; }
+  .pl-detail-faq { order: 8; }
 
   /* Title: large bold white */
   .pl-detail-title {
@@ -18326,7 +18327,8 @@ textarea:focus {
   .pl-detail-tabs { order: 4; }
   .pl-detail-description { order: 5; }
   .pl-detail-features { order: 6; margin-bottom: 12px; }
-  .pl-pd-seller { order: 7; margin-bottom: 4px; }
+  .pl-detail-faq { order: 7; margin-bottom: 12px; }
+  .pl-pd-seller { order: 8; margin-bottom: 4px; }
 
   .pl-trust-chips.pl-pd-sidebox {
     background: transparent;
@@ -20135,4 +20137,121 @@ html {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 6px;
+}
+
+/* ---- Product "Quick answers" FAQ (AEO) --------------------------------
+   The visible counterpart to the FAQPage JSON-LD on product pages. Styled to
+   match .pl-detail-features / .pl-detail-description at every breakpoint, but
+   with its own heading class — .pl-desc-heading is deliberately toggled
+   per-breakpoint and this heading should always be visible. */
+.pl-detail-faq {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 12px;
+}
+.pl-faq-heading {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 12px;
+}
+.pl-faq-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.pl-faq-item {
+  background: var(--surface-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.pl-faq-q {
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 4px;
+}
+.pl-faq-a {
+  margin: 0;
+  color: var(--text-muted, rgba(255, 255, 255, 0.72));
+  line-height: 1.6;
+}
+
+/* ---- Author profile hub (E-E-A-T) -------------------------------------- */
+.author-profile {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin: 24px 0 32px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.author-profile-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+.author-profile-initials {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #fff;
+}
+.author-profile-body h1 {
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: var(--text);
+  margin: 8px 0;
+  letter-spacing: -0.02em;
+}
+.author-profile-bio {
+  color: var(--text-soft);
+  line-height: 1.65;
+  margin: 0 0 8px;
+  max-width: 62ch;
+}
+.author-profile-count {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: 0;
+}
+.author-profile-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+.author-profile-socials a {
+  color: var(--brand-300);
+  font-size: var(--fs-sm);
+  text-transform: capitalize;
+}
+.pro-blog-author-link {
+  color: inherit;
+  text-decoration: none;
+}
+.pro-blog-author-link:hover {
+  color: var(--brand-300);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .author-profile {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .author-profile-bio { max-width: none; }
+  .author-profile-socials { justify-content: center; }
 }

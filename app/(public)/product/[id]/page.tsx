@@ -19,6 +19,7 @@ import { getAllReviews } from "@/lib/reviews";
 import { formatSoldCount, getUnitsSold } from "@/lib/sold-count";
 import { paymentFeatureTitle } from "@/lib/payment-messaging";
 import { absoluteUrl, SITE_URL } from "@/lib/site-url";
+import { buildProductFaq, buildFaqSchema, speakable, ORG_ID } from "@/lib/seo";
 
 // Product pages render on-demand from the database (dynamicParams defaults to
 // true). We don't pre-generate any ids so no dummy/seed URLs are ever built —
@@ -148,7 +149,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       price: getStartingPrice(product),
       priceValidUntil,
       availability: "https://schema.org/InStock",
-      seller: { "@type": "Organization", name: "SubscribAI" },
+      // Reference the single Organization entity from the layout rather than
+      // re-declaring a bare name, so the seller resolves to the same node the
+      // rest of the site describes.
+      seller: { "@id": ORG_ID },
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: "PK",
@@ -157,6 +161,13 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       },
     },
   };
+  // Answer-engine Q&A for this product. Rendered visibly in the "Quick
+  // answers" block below — schema and page say the same thing, which is both
+  // Google's requirement for FAQ markup and what makes the block quotable by
+  // ChatGPT / Perplexity when someone asks about this specific product.
+  const productFaq = buildProductFaq(product);
+  const productFaqJsonLd = buildFaqSchema(productFaq, { speakableSelector: ".pl-detail-faq" });
+
   const testimonialSlides: Testimonial[] = [...matchedReviews, ...otherReviews].slice(0, 6).map((r, i) => ({
     id: i + 1,
     name: r.name,
@@ -187,6 +198,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     <section className="v2-section pl-pd-section">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      {productFaqJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productFaqJsonLd) }} />
+      )}
       <div className="v2-container">
         {/* Breadcrumb — plati style with home icon */}
         <nav className="product-detail-breadcrumb" aria-label="Breadcrumb">
@@ -261,6 +275,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             {/* Section tabs — plati's Description | Reviews | Related */}
             <nav className="pl-detail-tabs" aria-label="Product sections">
               <a href="#description" className="is-active">Description</a>
+              <a href="#faq">FAQ</a>
               <a href="#reviews">Reviews</a>
               <a href="#related">Related</a>
             </nav>
@@ -297,6 +312,22 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                 </li>
               ))}
             </ul>
+
+            {/* Quick answers — the visible counterpart to the FAQPage schema
+                above. Kept as plain <h3>/<p> (no accordion) so the answer text
+                is in the initial HTML: answer engines extract from the served
+                markup, not from post-hydration DOM. */}
+            <section className="pl-detail-faq" id="faq" aria-labelledby="faq-heading">
+              <h2 className="pl-faq-heading" id="faq-heading">Quick answers</h2>
+              <dl className="pl-faq-list">
+                {productFaq.map((item) => (
+                  <div className="pl-faq-item" key={item.question}>
+                    <dt className="pl-faq-q">{item.question}</dt>
+                    <dd className="pl-faq-a">{item.answer}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
           </div>
 
           <aside className="pl-pd-side">

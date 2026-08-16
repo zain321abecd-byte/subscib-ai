@@ -10,6 +10,7 @@ import { extractHeadings, slugifyBlogTitle } from "@/lib/blog-seo";
 import { getAllPosts, getPost } from "@/lib/blog";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { absoluteUrl, SITE_URL } from "@/lib/site-url";
+import { authorSlug, buildPersonSchema, speakable, ORG_ID } from "@/lib/seo";
 
 // Force dynamic — public layout reads cookies/headers, incompatible with
 // static ISR in Next 15.
@@ -238,15 +239,22 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     headline: post.title,
     description: post.metaDescription,
     image: post.ogImage,
-    author: { "@type": "Person", name: post.author, description: post.authorBio },
+    // Full Person entity (image + sameAs + link to the author hub) rather than
+    // a bare name, so the byline resolves to something a crawler can verify.
+    author: buildPersonSchema({
+      name: post.author,
+      bio: post.authorBio,
+      image: post.authorImage,
+      socialLinks: post.authorSocialLinks,
+      slug: authorSlug(post.author),
+    }),
     datePublished: post.date,
     dateModified: post.updatedAt,
     mainEntityOfPage: canonical,
-    publisher: {
-      "@type": "Organization",
-      name: "SubscribAI",
-      logo: { "@type": "ImageObject", url: absoluteUrl("/assets/subscribai-logo.png") },
-    },
+    publisher: { "@id": ORG_ID },
+    // The excerpt and headline are the self-contained answer on an article
+    // page — the part worth reading aloud or quoting.
+    speakable: speakable(".pro-article-header h1", ".pro-article-intro"),
   };
   const faqJsonLd = post.faqItems.length ? {
     "@context": "https://schema.org",

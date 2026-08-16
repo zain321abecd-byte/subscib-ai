@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getRegion } from "@/lib/region";
 import { getContactLinks } from "@/lib/contact-links";
 import { paymentMethodFaqAnswer } from "@/lib/payment-messaging";
+import { speakable } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "FAQ — Frequently Asked Questions",
@@ -55,10 +56,13 @@ export default async function FAQPage() {
     return acc;
   }, {});
 
-  // FAQ JSON-LD for rich Google results
+  // FAQ JSON-LD for rich Google results. The answers live inside <details>,
+  // which is collapsed-but-present in the served HTML — that is explicitly
+  // allowed for FAQ rich results and is still readable by AI crawlers.
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
+    speakable: speakable(".v2-faq summary", ".v2-faq p"),
     mainEntity: QUESTIONS.map((q) => ({
       "@type": "Question",
       name: q.q,
