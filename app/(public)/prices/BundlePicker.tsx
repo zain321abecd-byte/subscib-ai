@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
+import { useFx, autoUsd, formatUSD } from "@/lib/fx";
 import type { PricingPlanRow } from "@/lib/supabase/types";
 
 type BillingCycle = "monthly" | "yearly";
@@ -46,16 +47,24 @@ export function PlanCheckoutButton({
 }) {
   const router = useRouter();
   const cart = useCart();
+  const { region, usdToPkr, ready: fxReady } = useFx();
   const [open, setOpen] = useState(false);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const limit = planLimit(plan.slug);
   const price = displayPrice(plan, cycle);
   const canContinue = selectedTools.length === limit;
 
+  /* Outside Pakistan, show the same international USD figure the checkout
+     charges — round(PKR / live rate) + $10 markup — so the picker matches
+     the gateway. Inside Pakistan (and before FX loads), show rupees. */
+  const fmtPrice = (pkr: number) =>
+    region !== "PK" && fxReady && usdToPkr > 0 ? formatUSD(autoUsd(pkr, usdToPkr)) : formatPKR(pkr);
+
   const summary = useMemo(() => {
     const cycleLabel = cycle === "monthly" ? "Monthly" : "Yearly";
-    return `${plan.name} · ${cycleLabel} · ${selectedTools.join(", ")} · ${formatPKR(price)}`;
-  }, [cycle, plan.name, price, selectedTools]);
+    return `${plan.name} · ${cycleLabel} · ${selectedTools.join(", ")} · ${fmtPrice(price)}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cycle, plan.name, price, selectedTools, region, usdToPkr, fxReady]);
 
   function toggleTool(tool: string) {
     setSelectedTools((current) => {
@@ -154,7 +163,7 @@ export function PlanCheckoutButton({
 
             <div className="bundle-picker-summary">
               <div>
-                <strong>{formatPKR(price)}</strong>
+                <strong>{fmtPrice(price)}</strong>
                 <span>{cycle === "monthly" ? "Monthly" : "Yearly with 25% discount"}</span>
               </div>
               <p>{selectedTools.length > 0 ? selectedTools.join(", ") : `Select ${limit} tools to continue.`}</p>

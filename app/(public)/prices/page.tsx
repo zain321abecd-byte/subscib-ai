@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { BusinessInquiryButton, PlanCheckoutButton } from "./BundlePicker";
-import { useFx } from "@/lib/fx";
+import { useFx, autoUsd, formatUSD } from "@/lib/fx";
 import type { PricingPlanRow } from "@/lib/supabase/types";
 
 type BillingCycle = "monthly" | "yearly";
@@ -125,8 +125,14 @@ function planIcon(slug: string) {
 
 export default function PricesPage() {
   // Local wallet rows are hidden outside Pakistan — card is the only method there.
-  const { region } = useFx();
+  const { region, usdToPkr, ready: fxReady } = useFx();
   const isPK = region === "PK";
+
+  /* Bundle prices are stored in PKR. Visitors outside Pakistan see the same
+     international USD figure the checkout charges — round(PKR / live rate) plus
+     the $10 markup — so the card and the gateway always agree. */
+  const fmtPlanPrice = (pkr: number) =>
+    !isPK && fxReady && usdToPkr > 0 ? formatUSD(autoUsd(pkr, usdToPkr)) : formatPKR(pkr);
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [plans, setPlans] = useState<PricingPlanRow[]>(FALLBACK_PLANS);
   const [loading, setLoading] = useState(true);
@@ -198,7 +204,7 @@ export default function PricesPage() {
                     </>
                   ) : (
                     <>
-                      <strong>{formatPKR(effectivePrice)}</strong>
+                      <strong>{fmtPlanPrice(effectivePrice)}</strong>
                       <span>{cycleLabel}</span>
                       {cycle === "yearly" && (
                         <small style={{ display: "block", color: "var(--accent-300)", fontSize: "var(--fs-xs)", fontWeight: 700, marginTop: 4 }}>
