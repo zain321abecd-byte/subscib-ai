@@ -23,7 +23,7 @@
  */
 import type { Product } from "@/lib/products";
 import type { Currency } from "@/lib/fx";
-import { formatINR, formatPKR, formatUSD } from "@/lib/fx";
+import { formatINR, formatPKR, formatUSD, autoUsd } from "@/lib/fx";
 
 /** Keys we treat as "this is a price" when recursively scanning JSONB. */
 const PRICE_KEYS = new Set([
@@ -198,8 +198,11 @@ export function formatProductPriceLabel(
   const start = getStartingPrice(product);
   const prefix = hasMultiplePrices(product) ? "From " : "";
   if (currency === "USD" && region && region !== "PK") {
+    // Hand-typed international price wins; otherwise derive it automatically
+    // from the starting rupee price at the live rate + flat markup.
     const intl = getStartingPriceUsd(product);
     if (intl != null) return `${prefix}${formatUSD(intl)}`;
+    if (fxReady && usdToPkr > 0) return `${prefix}${formatUSD(autoUsd(start, usdToPkr))}`;
   }
   // If we're on PKR (native), just format directly — no FX round-trip.
   if (currency === "PKR") return `${prefix}${formatPKR(start)}`;

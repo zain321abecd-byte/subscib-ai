@@ -3,7 +3,7 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import { useCart } from "@/lib/cart";
-import { useFx, formatPriceFromPKR, formatUSD } from "@/lib/fx";
+import { useFx, formatPriceFromPKR, formatUSD, effectiveUsd } from "@/lib/fx";
 import type { Product } from "@/lib/products";
 
 export default function CartClient({ recommended }: { recommended: Product[] }) {
@@ -21,7 +21,7 @@ export default function CartClient({ recommended }: { recommended: Product[] }) 
   const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
   const useIntlPricing = region !== "PK";
   const itemUsd = (i: { price: number; priceUsd?: number; qty: number }) =>
-    (i.priceUsd != null ? i.priceUsd : i.price / fxRate) * (i.qty || 1);
+    effectiveUsd(i.price, i.priceUsd, fxRate) * (i.qty || 1);
   const intlSubtotal = cart.items.reduce((sum, i) => sum + itemUsd(i), 0);
   const fmtItem = (i: { price: number; priceUsd?: number; qty: number }, unit = false) =>
     useIntlPricing

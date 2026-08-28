@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCountries, getCountryCallingCode, isValidPhoneNumber, type CountryCode } from "libphonenumber-js";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
-import { formatPriceFromPKR, formatUSD, useFx } from "@/lib/fx";
+import { formatPriceFromPKR, formatUSD, effectiveUsd, useFx } from "@/lib/fx";
 import { readAttribution } from "@/components/TrafficCapture";
 import { apiUrl, authHeaders } from "@/lib/api-client";
 import { redeemCoupon } from "@/lib/coupon-actions";
@@ -193,7 +193,7 @@ export default function CheckoutPage() {
      here would show one number and charge another. */
   const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
   const useIntlPricing = region !== "PK";
-  const lineUsd = (i: CartItem) => (i.priceUsd != null ? i.priceUsd : i.price / fxRate) * (i.qty || 1);
+  const lineUsd = (i: CartItem) => effectiveUsd(i.price, i.priceUsd, fxRate) * (i.qty || 1);
   const intlSubtotal = cart.items.reduce((sum, i) => sum + lineUsd(i), 0);
   const intlDiscount = cart.discount > 0 ? cart.discount / fxRate : 0;
   const intlTotal = Math.max(0, intlSubtotal - intlDiscount);
@@ -303,10 +303,9 @@ export default function CheckoutPage() {
     }
     const package_tier = tiers.size === 1 ? [...tiers][0] : tiers.size > 1 ? "mixed" : null;
 
-    /* Every buyer outside Pakistan pays the admin's fixed USD price where one
-       is set, so the gateway charges exactly what the product page quoted.
-       Lines without an international price still convert from PKR at the live
-       rate. */
+    /* Every buyer outside Pakistan pays the international USD price, so the
+       gateway charges exactly what the product page quoted. A hand-typed price
+       wins; lines without one use the live-rate + markup auto price. */
     const fxRate = fxReady && usdToPkr > 0 ? usdToPkr : 280;
     const useIntlPricing = region !== "PK";
     const convertedUsd = checkoutPkrTotal / fxRate;
@@ -314,7 +313,8 @@ export default function CheckoutPage() {
       // Coerce everything: a NaN here produced an empty TXNAMT and PayFast
       // rejected the request, so non-Asian checkouts never redirected.
       const qty = Number(i.qty) > 0 ? Number(i.qty) : 1;
-      const unit = Number(i.priceUsd) > 0 ? Number(i.priceUsd) : Number(i.price) / fxRate;
+      const priceUsd = Number(i.priceUsd) > 0 ? Number(i.priceUsd) : undefined;
+      const unit = effectiveUsd(Number(i.price) || 0, priceUsd, fxRate);
       return sum + (Number.isFinite(unit) ? unit * qty : 0);
     }, 0);
     const usdAmount = useIntlPricing && Number.isFinite(intlUsd) && intlUsd > 0
@@ -452,8 +452,9 @@ export default function CheckoutPage() {
             // Everything settles in PKR, so line prices are rupees too. An
             // international line uses its fixed USD price converted, keeping
             // the basket consistent with TXNAMT.
-            const unit = useIntlPricing && Number(i.priceUsd) > 0
-              ? Math.round(Number(i.priceUsd) * fxRate)
+            const priceUsd = Number(i.priceUsd) > 0 ? Number(i.priceUsd) : undefined;
+            const unit = useIntlPricing
+              ? Math.round(effectiveUsd(unitPkr, priceUsd, fxRate) * fxRate)
               : Math.round(unitPkr);
             return { sku: i.id, name: i.name, price: unit, qty };
           }),

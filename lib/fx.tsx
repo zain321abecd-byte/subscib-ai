@@ -113,6 +113,35 @@ export function formatUSD(n: number) {
   return `$${Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 }
 
+/**
+ * Flat markup (in USD) added on top of the live-rate conversion when deriving
+ * an international price automatically. So a product with no hand-typed $ price
+ * is quoted `round(PKR / liveRate) + USD_MARKUP` to every non-Pakistan visitor.
+ * Change this one number to retune every auto USD price at once.
+ */
+export const USD_MARKUP = 10;
+
+/**
+ * Auto international price for a rupee amount: convert at the live "Google"
+ * USD→PKR rate, round to a clean whole dollar, then add the flat markup.
+ * Returns 0 when the rate is not usable yet (caller shows a placeholder).
+ */
+export function autoUsd(pkr: number, usdToPkr: number): number {
+  if (!usdToPkr || usdToPkr <= 0) return 0;
+  return Math.round(pkr / usdToPkr) + USD_MARKUP;
+}
+
+/**
+ * The USD price a non-Pakistan visitor actually pays for a line/variation.
+ * A hand-typed `priceUsd` (admin override) always wins; otherwise it is
+ * derived automatically via {@link autoUsd}. This is the single source of
+ * truth used by every display and checkout site.
+ */
+export function effectiveUsd(pkr: number, priceUsd: number | undefined, usdToPkr: number): number {
+  if (priceUsd != null && priceUsd > 0) return priceUsd;
+  return autoUsd(pkr, usdToPkr);
+}
+
 export function formatINR(n: number) {
   return `₹${Math.round(n).toLocaleString("en-IN")}`;
 }
@@ -134,10 +163,11 @@ export function formatVariationPrice(
   ready: boolean,
   usdToInr = 83,
 ): string {
-  // Everyone outside Pakistan sees the admin's fixed USD figure (not just the
-  // non-Asian "OTHER" region, as this used to check).
-  if (currency === "USD" && region !== "PK" && priceUsd != null && priceUsd > 0) {
-    return formatUSD(priceUsd);
+  // Everyone outside Pakistan sees the international USD figure: the admin's
+  // hand-typed price when set, otherwise the auto live-rate + markup price.
+  if (currency === "USD" && region !== "PK") {
+    if (priceUsd != null && priceUsd > 0) return formatUSD(priceUsd);
+    if (ready && usdToPkr > 0) return formatUSD(autoUsd(pkr, usdToPkr));
   }
   return formatPriceFromPKR(pkr, currency, usdToPkr, ready, usdToInr);
 }

@@ -728,9 +728,10 @@ function VariationEditor({
       <div className="admin-variation-matrix">
         <label className="admin-label">Combination pricing</label>
         <p className="admin-help">
-          Rs is the price everyone in Pakistan and Asia pays. $ is the fixed price
-          charged to UK, US and all other non-Asian visitors — leave it blank to
-          convert the rupee price at the live exchange rate instead.
+          Rs is the price everyone in Pakistan pays. $ is charged to every visitor
+          outside Pakistan. Leave it blank to price automatically: the rupee price
+          is converted at the live exchange rate and a $10 markup is added. Only
+          type a $ value here to override that for a specific combination.
         </p>
         {value.plans.map((plan) => (
           <div key={plan.id} className="admin-variation-plan-block">
