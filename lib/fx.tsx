@@ -128,6 +128,10 @@ export const USD_MARKUP = 10;
  */
 export function autoUsd(pkr: number, usdToPkr: number): number {
   if (!usdToPkr || usdToPkr <= 0) return 0;
+  // Discount / credit lines (negative amounts) and free items are plain-
+  // converted with no markup — adding $10 to a coupon line would corrupt the
+  // total. The markup only ever applies to a real, positive product price.
+  if (pkr <= 0) return pkr / usdToPkr;
   return Math.round(pkr / usdToPkr) + USD_MARKUP;
 }
 

@@ -203,7 +203,6 @@ export default function CheckoutPage() {
   const fmtTotal = () => (useIntlPricing ? formatUSD(intlTotal) : fmtMoney(pkrTotal));
   /** Aliases used by the summary note below. */
   const useIntlPricingDisplay = useIntlPricing;
-  const fxRateDisplay = fxRate;
 
   if (cart.ready && cart.items.length === 0 && status === "idle") {
     return (
@@ -388,27 +387,15 @@ export default function CheckoutPage() {
       status: "pending",
     });
 
-    // Per-visitor currency on PayFast:
-    //   PK visitor  → PKR amount  + CURRENCY_CODE=PKR  (sees "Rs 1,400" on hosted page)
-    //   Foreigner   → USD amount  + CURRENCY_CODE=USD  (sees "$5.00" on hosted page)
-    // The cart subtotal is canonical PKR; we convert to USD via the live FX rate.
-    /* Settle everything in PKR.
-     *
-     * USD transactions consistently failed at PayFast's card step with
-     * "Error in processing Inquiry request", while PKR ones have always
-     * succeeded — and PayFast confirmed multi-currency settlement is NOT
-     * enabled on this merchant. Charging in PKR uses the proven rail; the
-     * customer's card issuer converts, so a buyer quoted $18 is billed the
-     * rupee equivalent and sees ≈$18 on their statement.
-     *
-     * The quoted price is still the admin's fixed international one — only
-     * the currency handed to the gateway changes. */
-    const txnCurrency: "PKR" | "USD" = "PKR";
-    /* Rupee amount actually charged. For an international buyer this is the
-       fixed USD price converted at the live rate, so the charge matches the
-       $ figure they were quoted rather than the rupee list price. */
-    const intlPkrTotal = useIntlPricing ? usdAmount * fxRate : checkoutPkrTotal;
-    const txnAmount = intlPkrTotal.toFixed(2);
+    /* Per-visitor currency on PayFast (merchant 619747 is USD-enabled, per
+       PayFast support):
+         PK visitor  → PKR amount + CURRENCY_CODE=PKR  (sees "Rs 1,400")
+         Foreigner   → USD amount + CURRENCY_CODE=USD  (sees "$21.00")
+       The foreign buyer is charged the exact USD figure they were quoted —
+       the same round(PKR / live rate) + $10 price shown on the product page —
+       so the gateway displays dollars instead of a converted rupee amount. */
+    const txnCurrency: "PKR" | "USD" = useIntlPricing ? "USD" : "PKR";
+    const txnAmount = (useIntlPricing ? usdAmount : checkoutPkrTotal).toFixed(2);
 
     // Never hand PayFast a zero/NaN amount — it fails with a generic error.
     if (!Number.isFinite(Number(txnAmount)) || Number(txnAmount) <= 0) {
@@ -417,17 +404,11 @@ export default function CheckoutPage() {
       return;
     }
 
-    /* Payment-instrument lock.
-     *
-     * We used to force Transaction_Instrument=3 (card) for every non-PK
-     * visitor. That is a domestic instrument code, and pinning it on a
-     * global-payments transaction made PayFast fail at the card step with
-     * "Error in processing Inquiry request" — the merchant is enabled for
-     * global payments and USD settlement, so the currency was never the
-     * problem. Leaving the instrument unset lets PayFast route the payment
-     * itself and show only the methods it can actually process; local
-     * wallets are not offered to foreign cards anyway. */
-    const restrictTo = undefined;
+    /* Payment-instrument lock. Foreign buyers can only realistically pay by
+       card, so lock the hosted page to Transaction_Instrument=3 (card) and
+       hide the Pakistan-only methods (Raast, Mobile Wallet, Bank Account).
+       Pakistani visitors keep the full method list. */
+    const restrictTo: "card" | undefined = useIntlPricing ? "card" : undefined;
     try {
       const res = await fetch(apiUrl("/payments/init"), {
         method: "POST",
@@ -449,12 +430,13 @@ export default function CheckoutPage() {
           items: orderItemsSnapshot.slice(0, 10).map((i) => {
             const qty = Number(i.qty) > 0 ? Number(i.qty) : 1;
             const unitPkr = Number(i.price) || 0;
-            // Everything settles in PKR, so line prices are rupees too. An
-            // international line uses its fixed USD price converted, keeping
-            // the basket consistent with TXNAMT.
+            // Line prices must be in the SAME currency as TXNAMT. Foreign
+            // orders settle in USD, so each line is its international USD price
+            // (manual override or live-rate + markup); the sum equals the USD
+            // total. Pakistani orders settle in PKR, so lines are rupees.
             const priceUsd = Number(i.priceUsd) > 0 ? Number(i.priceUsd) : undefined;
             const unit = useIntlPricing
-              ? Math.round(effectiveUsd(unitPkr, priceUsd, fxRate) * fxRate)
+              ? Number(effectiveUsd(unitPkr, priceUsd, fxRate).toFixed(2))
               : Math.round(unitPkr);
             return { sku: i.id, name: i.name, price: unit, qty };
           }),
@@ -645,8 +627,8 @@ export default function CheckoutPage() {
                 Charged securely via PayFast checkout.
                 {useIntlPricingDisplay && (
                   <>
-                    {" "}Billed in PKR (≈ Rs {Math.round(intlSubtotal * fxRateDisplay).toLocaleString("en-PK")});
-                    your bank converts at its own rate.
+                    {" "}Billed in USD by card. Your bank may apply its own
+                    conversion to your local currency.
                   </>
                 )}
               </p>
