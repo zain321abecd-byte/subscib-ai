@@ -8,6 +8,8 @@ import FloatField from "../FloatField";
 import PhotoField from "./PhotoField";
 import type { ReviewRow } from "@/lib/supabase/types";
 
+export const metadata = { title: "Reviews" };
+
 export const dynamic = "force-dynamic";
 
 const COLORS = [

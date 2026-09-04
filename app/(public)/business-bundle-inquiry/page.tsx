@@ -61,7 +61,7 @@ export default function BusinessBundleInquiryPage() {
       <div className="v2-container">
         <header className="v2-section-head">
           <p className="v2-eyebrow">Business bundles</p>
-          <h2>Contact Sales</h2>
+          <h1>Contact Sales</h1>
           <p>Tell us your team size and required tools. We will prepare a custom bundle price for you.</p>
         </header>
 

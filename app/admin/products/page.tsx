@@ -3,6 +3,8 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import DeleteButton from "./DeleteButton";
 import type { ProductRow } from "@/lib/supabase/types";
 
+export const metadata = { title: "Products" };
+
 export const dynamic = "force-dynamic";
 
 const CATEGORY_LABELS: Record<string, string> = {

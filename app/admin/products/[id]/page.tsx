@@ -4,6 +4,8 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import ProductForm from "../ProductForm";
 import type { ProductRow } from "@/lib/supabase/types";
 
+export const metadata = { title: "Edit product" };
+
 export const dynamic = "force-dynamic";
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {

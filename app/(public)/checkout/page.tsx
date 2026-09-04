@@ -466,7 +466,7 @@ export default function CheckoutPage() {
       <div className="v2-container">
         <header className="v2-section-head" style={{ textAlign: "left", maxWidth: "none" }}>
           <p className="v2-eyebrow">Checkout</p>
-          <h2>Almost there</h2>
+          <h1>Almost there</h1>
         </header>
 
         <form onSubmit={placeOrder} style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "var(--space-5)", alignItems: "start" }} className="checkout-grid">

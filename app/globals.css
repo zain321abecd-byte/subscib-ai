@@ -7539,6 +7539,10 @@ body.v2::before, body.v2::after { display: none !important; }
   background: var(--brand-soft);
   margin-bottom: var(--space-3);
 }
+/* h1 shares the h2 treatment: pages whose main heading is the section head
+   (checkout, contact, the inquiry forms) need a real <h1> for heading
+   hierarchy without looking any different. */
+.v2-section-head h1,
 .v2-section-head h2 {
   font-family: var(--font-heading); font-size: var(--fs-3xl);
   font-weight: var(--fw-bold); color: var(--text); line-height: 1.08;
@@ -14176,7 +14180,12 @@ body.admin-body::after {
   }
   .v2-footer-grid a {
     font-size: 0.82rem !important;
-    padding: 4px 0 !important;
+    /* 4px of padding left these at ~25px tall — under the 40px touch target
+       people actually hit. The text size is unchanged; only the hit area grows. */
+    padding: 9px 0 !important;
+    min-height: 40px;
+    display: flex !important;
+    align-items: center;
     line-height: 1.3 !important;
     color: var(--text-soft);
   }

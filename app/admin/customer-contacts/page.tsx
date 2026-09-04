@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import CustomerContactsClient, { type CustomerContact } from "./CustomerContactsClient";
 import type { OrderRow } from "@/lib/supabase/types";
 
+export const metadata = { title: "Customer contacts" };
+
 export const dynamic = "force-dynamic";
 
 const PAID_STATUSES = new Set(["paid", "delivered"]);

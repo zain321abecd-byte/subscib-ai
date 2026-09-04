@@ -4,6 +4,8 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import DeletePostButton from "./DeletePostButton";
 import type { BlogPostRow } from "@/lib/supabase/types";
 
+export const metadata = { title: "Blog posts" };
+
 export const dynamic = "force-dynamic";
 
 export default async function BlogAdminPage({

@@ -35,7 +35,14 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
-    unoptimized: true,
+    /* Optimization ON. Every <Image> in the app points at a local asset
+       (/assets/subscribai-logo.png — a 537×130 PNG rendered at ~149px wide),
+       so the optimizer converts it to AVIF/WebP at the right DPR instead of
+       shipping the full PNG on every page. Product and blog artwork uses plain
+       <img> with admin-supplied URLs and is unaffected by this flag.
+       Re-add `unoptimized: true` if the app is ever deployed to a host without
+       the Next image optimizer. */
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "cdn.simpleicons.org" },
     ],

@@ -22,7 +22,7 @@ export default async function ContactPage() {
       <div className="v2-container contact-grid" style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: "var(--space-5)" }}>
         <div className="surface-card">
           <p className="v2-eyebrow">Contact</p>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-2xl)", color: "var(--text)", marginBottom: "var(--space-3)" }}>Talk to a human</h2>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "var(--fs-2xl)", color: "var(--text)", marginBottom: "var(--space-3)" }}>Talk to a human</h1>
           <p style={{ color: "var(--text-soft)", marginBottom: "var(--space-5)" }}>Reach out on WhatsApp for the fastest reply, or email and we&apos;ll get back within a few hours.</p>
           <ContactForm />
         </div>

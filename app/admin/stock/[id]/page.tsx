@@ -4,6 +4,8 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import type { StockItemRow } from "@/lib/supabase/types";
 import StockForm from "../StockForm";
 
+export const metadata = { title: "Edit stock item" };
+
 export const dynamic = "force-dynamic";
 
 export default async function EditStockItemPage({ params }: { params: Promise<{ id: string }> }) {

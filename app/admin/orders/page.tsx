@@ -4,6 +4,8 @@ import StatusPill from "../StatusPill";
 import OrdersFilters from "./OrdersFilters";
 import type { OrderRow } from "@/lib/supabase/types";
 
+export const metadata = { title: "Orders" };
+
 export const dynamic = "force-dynamic";
 
 const STATUSES = ["all", "pending", "paid", "delivered", "failed", "refunded", "cancelled"] as const;

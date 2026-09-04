@@ -1,6 +1,8 @@
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { createCoupon, deleteCoupon, toggleCoupon } from "./actions";
 
+export const metadata = { title: "Promo codes" };
+
 export const dynamic = "force-dynamic";
 
 type CouponRow = {

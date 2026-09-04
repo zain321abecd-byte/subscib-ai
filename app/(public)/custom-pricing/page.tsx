@@ -67,7 +67,7 @@ export default function CustomPricingPage() {
       <div className="v2-container">
         <header className="v2-section-head">
           <p className="v2-eyebrow">Business bundles</p>
-          <h2>Custom Pricing Request</h2>
+          <h1>Custom Pricing Request</h1>
           <p>Tell us what you need and our team will contact you with the best custom bundle price.</p>
         </header>
 

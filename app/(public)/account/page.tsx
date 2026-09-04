@@ -89,7 +89,7 @@ export default function AccountPage() {
         >
           <div>
             <p className="v2-eyebrow">Account</p>
-            <h2>Hi {displayName}</h2>
+            <h1>Hi {displayName}</h1>
             <p style={{ color: "var(--text-muted)", marginTop: 6 }}>{user.email}</p>
           </div>
           <SignOutButton />

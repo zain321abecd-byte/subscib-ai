@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import CurrencySwitcher from "@/components/CurrencySwitcher";
@@ -32,6 +32,9 @@ export default function MobileMenu({
 }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const restoreFocusTo = useRef<HTMLElement | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -44,10 +47,43 @@ export default function MobileMenu({
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  // Esc to dismiss — keyboard-accessible.
+  // Move focus into the dialog on open and hand it back to whatever opened it
+  // on close — without this, a keyboard or screen-reader user opens the menu
+  // and their focus is still parked on the page behind it.
+  useEffect(() => {
+    if (open) {
+      restoreFocusTo.current = document.activeElement as HTMLElement | null;
+      // Wait a frame: the panel animates in from opacity-0/pointer-events-none.
+      const t = window.setTimeout(() => closeRef.current?.focus(), 60);
+      return () => window.clearTimeout(t);
+    }
+    restoreFocusTo.current?.focus?.();
+    restoreFocusTo.current = null;
+  }, [open]);
+
+  // Esc to dismiss, and keep Tab inside the panel while it's open (it covers
+  // the viewport, so tabbing out would land on links nobody can see).
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab") return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      } else if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
@@ -56,10 +92,15 @@ export default function MobileMenu({
 
   return createPortal(
     <div
+      ref={panelRef}
       role="dialog"
       aria-modal="true"
       aria-label="Site navigation"
       aria-hidden={!open}
+      /* The panel stays mounted so it can animate. `inert` takes its links
+         out of the tab order and the a11y tree while it's closed — without it
+         keyboard users tab through an invisible menu. */
+      inert={!open}
       className={`premium-mobile-menu
         fixed inset-0 z-[80]
         md:hidden
@@ -82,6 +123,7 @@ export default function MobileMenu({
         />
         <button
           type="button"
+          ref={closeRef}
           onClick={onClose}
           aria-label="Close menu"
           className="premium-mobile-menu-close h-11 w-11 grid place-items-center rounded-full appearance-none bg-transparent border-0 cursor-pointer text-ink-50 active:bg-white/10 transition-colors"
@@ -97,10 +139,21 @@ export default function MobileMenu({
         style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom))" }}
       >
         {/* Primary navigation — large taps, no descriptions, just speed. */}
-        <div className="premium-mobile-menu-hero">
-          <p>Premium AI tools</p>
-          <h2>Choose where you want to go.</h2>
-          <span>Fast checkout, local support, and instant digital delivery.</span>
+        {/* Utilities, not a stylesheet class: `premium-mobile-menu-hero` has no
+            CSS rule anywhere, so this block used to render at browser defaults
+            (oversized serif h2, stock margins) inside an otherwise styled
+            panel. The copy is decorative, so it's a <p> rather than a heading —
+            an <h2> here landed in every page's heading outline. */}
+        <div className="premium-mobile-menu-hero mb-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-500 m-0">
+            Premium AI tools
+          </p>
+          <p className="mt-1 mb-1 text-[20px] font-bold leading-tight tracking-tight text-ink-50">
+            Choose where you want to go.
+          </p>
+          <span className="block text-[13px] leading-relaxed text-ink-400">
+            Fast checkout, local support, and instant digital delivery.
+          </span>
         </div>
 
         <ul className="premium-mobile-menu-list flex flex-col list-none p-0 m-0">

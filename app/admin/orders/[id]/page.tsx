@@ -7,6 +7,8 @@ import StatusPill from "../../StatusPill";
 import OrderControls from "./OrderControls";
 import type { OrderRow } from "@/lib/supabase/types";
 
+export const metadata = { title: "Order detail" };
+
 export const dynamic = "force-dynamic";
 
 function fmtPKR(n: number | null | undefined) {

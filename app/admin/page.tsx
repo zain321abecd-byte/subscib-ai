@@ -5,6 +5,8 @@ import type { OrderRow } from "@/lib/supabase/types";
 import type { StockItemRow } from "@/lib/supabase/types";
 import { normalizeStockItem } from "@/lib/stock";
 
+export const metadata = { title: "Dashboard" };
+
 export const dynamic = "force-dynamic";
 
 function fmtPKR(n: number | null | undefined) {

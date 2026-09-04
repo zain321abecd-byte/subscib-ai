@@ -4,6 +4,8 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import PostForm from "../PostForm";
 import type { BlogPostRow } from "@/lib/supabase/types";
 
+export const metadata = { title: "Edit post" };
+
 export const dynamic = "force-dynamic";
 
 export default async function EditPostPage({ params }: { params: Promise<{ slug: string }> }) {
