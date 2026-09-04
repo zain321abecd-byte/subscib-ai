@@ -89,6 +89,11 @@ export type TemplateInput = {
   body: string;
   active?: boolean;
   is_default?: boolean;
+  /** Approved template name in Meta's WhatsApp Manager (blank → free-form text). */
+  wa_template_name?: string | null;
+  wa_template_language?: string | null;
+  /** Variable keys in the order Meta's template body expects them. */
+  wa_body_params?: string[];
 };
 
 function validateTemplate(input: TemplateInput): string | null {
@@ -97,6 +102,16 @@ function validateTemplate(input: TemplateInput): string | null {
   if (input.body.length > 8000) return "Template body is too long (8000 characters max).";
   if (!MESSAGE_KINDS.includes(input.kind)) return "Pick a valid template type.";
   if (!/^[a-z]{2}$/i.test(input.language || "")) return "Language must be a two-letter code (e.g. en, ur).";
+  const waName = input.wa_template_name?.trim();
+  if (waName) {
+    // Meta only accepts lowercase letters, digits and underscores.
+    if (!/^[a-z0-9_]{1,120}$/.test(waName)) {
+      return "The Meta template name must be lowercase letters, numbers, and underscores only (e.g. subscription_delivered).";
+    }
+    if (!/^[a-z]{2}(_[A-Z]{2})?$/.test((input.wa_template_language || "en_US").trim())) {
+      return "The Meta template language must look like en_US, en, or ur.";
+    }
+  }
   return null;
 }
 
@@ -223,6 +238,10 @@ export type SendResult = {
   /** wa.me link — the fallback when no API is configured or a send failed. */
   manualLink?: string | null;
   error?: string | null;
+  /** True when Meta refused free-form text because the 24-hour window is shut. */
+  needsApprovedTemplate?: boolean;
+  /** "text" | "template" — which Cloud API message type went out. */
+  mode?: "text" | "template" | null;
   message?: string;
   body?: string;
   missing?: string[];
@@ -359,4 +378,39 @@ export async function getOrderPrefill(orderIdOrNumber: string): Promise<OrderPre
     planName: first?.planName || (data.package_tier ? String(data.package_tier) : null),
     items: mapped,
   };
+}
+
+/**
+ * Mark a `pending` message as sent.
+ *
+ * In manual mode nothing leaves the server — the admin fires the message from
+ * WhatsApp Web — so without this every manual delivery would sit in the log as
+ * `pending` forever and the history would stop being a record of what the
+ * customer actually received.
+ */
+export async function markDeliverySent(id: string): Promise<Result<DeliveryMessageRow>> {
+  const me = await requireAdmin("delivery:send");
+  if (!id) return { ok: false, error: "Missing message id." };
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("delivery_messages")
+    .update({
+      status: "sent",
+      sent_at: new Date().toISOString(),
+      provider: "manual",
+      error: null,
+      sent_by: me.userId,
+      sent_by_email: me.email,
+    })
+    .eq("id", id)
+    .eq("status", "pending")
+    .select("*")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "That message is no longer pending." };
+
+  bust();
+  return { ok: true, data: data as DeliveryMessageRow };
 }

@@ -173,6 +173,7 @@ export default function TemplatesClient({
                   <Th>Type</Th>
                   <Th>Language</Th>
                   <Th>Product</Th>
+                  <Th>WhatsApp</Th>
                   <Th>Status</Th>
                   <Th style={{ textAlign: "right" }}>Actions</Th>
                 </tr>
@@ -192,6 +193,23 @@ export default function TemplatesClient({
                     <Td>{KIND_LABELS[row.kind]}</Td>
                     <Td>{languageLabel(row.language)}</Td>
                     <Td>{productName(row.product_id)}</Td>
+                    <Td>
+                      {row.wa_template_name ? (
+                        <>
+                          <Pill tone="ok">APPROVED TEMPLATE</Pill>
+                          <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 4 }}>
+                            <code>{row.wa_template_name}</code> · {row.wa_template_language}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Pill tone="neutral">FREE-FORM TEXT</Pill>
+                          <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 4 }}>
+                            24-hour window only
+                          </div>
+                        </>
+                      )}
+                    </Td>
                     <Td>
                       <Pill tone={row.active ? "ok" : "neutral"}>{row.active ? "ACTIVE" : "INACTIVE"}</Pill>
                     </Td>
@@ -273,6 +291,9 @@ function TemplateEditor({
   const [body, setBody] = useState(initial?.body ?? "");
   const [active, setActive] = useState(initial?.active ?? true);
   const [isDefault, setIsDefault] = useState(initial?.is_default ?? false);
+  const [waName, setWaName] = useState(initial?.wa_template_name ?? "");
+  const [waLang, setWaLang] = useState(initial?.wa_template_language ?? "en_US");
+  const [waParams, setWaParams] = useState<string[]>(initial?.wa_body_params ?? []);
   const [busy, setBusy] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -309,6 +330,9 @@ function TemplateEditor({
                     body,
                     active,
                     is_default: isDefault,
+                    wa_template_name: waName.trim() || null,
+                    wa_template_language: waLang.trim() || "en_US",
+                    wa_body_params: waParams,
                   });
                 } finally {
                   setBusy(false);
@@ -396,6 +420,16 @@ function TemplateEditor({
           </div>
         )}
 
+        <MetaTemplateFields
+          readOnly={readOnly}
+          name={waName}
+          language={waLang}
+          params={waParams}
+          onName={setWaName}
+          onLanguage={setWaLang}
+          onParams={setWaParams}
+        />
+
         <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
           <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: "0.85rem", color: "var(--text-muted)", cursor: readOnly ? "default" : "pointer" }}>
             <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} disabled={readOnly} />
@@ -434,6 +468,152 @@ function TemplateEditor({
         </div>
       </div>
     </ModalShell>
+  );
+}
+
+/**
+ * Meta-approved-template mapping.
+ *
+ * The Cloud API only delivers free-form text inside the 24-hour window that
+ * opens when the customer messages you. A delivery goes out right after a
+ * purchase, so it needs a template Meta has approved, with our values slotted
+ * into its {{1}}, {{2}} … placeholders — which is what these fields describe.
+ */
+function MetaTemplateFields({
+  readOnly, name, language, params, onName, onLanguage, onParams,
+}: {
+  readOnly: boolean;
+  name: string;
+  language: string;
+  params: string[];
+  onName: (v: string) => void;
+  onLanguage: (v: string) => void;
+  onParams: (v: string[]) => void;
+}) {
+  const enabled = name.trim().length > 0;
+
+  function addParam(key: string) {
+    onParams([...params, key]);
+  }
+  function removeParam(index: number) {
+    onParams(params.filter((_, i) => i !== index));
+  }
+  function move(index: number, delta: number) {
+    const next = [...params];
+    const target = index + delta;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    onParams(next);
+  }
+
+  return (
+    <section
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+        padding: "14px 16px",
+        background: "var(--surface-2, rgba(255,255,255,0.02))",
+      }}
+    >
+      <h3 style={{ margin: "0 0 4px", fontFamily: "var(--font-heading)", fontSize: "0.75rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700 }}>
+        <i className="fa-brands fa-whatsapp" style={{ marginRight: 6, color: "#22c55e" }} />
+        WhatsApp Cloud API delivery
+      </h3>
+      <p className="admin-help" style={{ marginTop: 0 }}>
+        Leave the name blank to send this as free-form text — that only reaches a customer who
+        messaged you in the last 24 hours. Fill it in with a template you&rsquo;ve had approved in
+        Meta&rsquo;s WhatsApp Manager to send at any time.
+      </p>
+
+      <FieldRow>
+        <Field label="Approved template name" hint="Lowercase, numbers, underscores — exactly as in WhatsApp Manager.">
+          <input
+            className="admin-input"
+            value={name}
+            onChange={(e) => onName(e.target.value)}
+            disabled={readOnly}
+            placeholder="subscription_delivered"
+            spellCheck={false}
+          />
+        </Field>
+        <Field label="Template language" hint="The locale of the approved template, e.g. en_US.">
+          <input
+            className="admin-input"
+            value={language}
+            onChange={(e) => onLanguage(e.target.value)}
+            disabled={readOnly || !enabled}
+            placeholder="en_US"
+            spellCheck={false}
+          />
+        </Field>
+      </FieldRow>
+
+      {enabled && (
+        <div style={{ marginTop: 12 }}>
+          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500 }}>
+            Body variables, in Meta&rsquo;s order
+          </span>
+          <p className="admin-help" style={{ marginTop: 4 }}>
+            The first entry fills <code>{"{{1}}"}</code> in the approved body, the second{" "}
+            <code>{"{{2}}"}</code>, and so on. The count must match the approved template exactly.
+          </p>
+
+          {params.length === 0 ? (
+            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "6px 0 8px" }}>
+              No variables mapped — use this only if the approved body has no placeholders.
+            </p>
+          ) : (
+            <ol style={{ margin: "8px 0", paddingLeft: 20, display: "grid", gap: 6 }}>
+              {params.map((key, i) => (
+                <li key={`${key}-${i}`} style={{ fontSize: "0.84rem" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <code style={{ color: "#4884FF" }}>{`{{${i + 1}}}`}</code>
+                    <span>→</span>
+                    <code>{key}</code>
+                    {!readOnly && (
+                      <>
+                        <IconBtn icon="fa-arrow-up" title="Move up" onClick={() => move(i, -1)} />
+                        <IconBtn icon="fa-arrow-down" title="Move down" onClick={() => move(i, 1)} />
+                        <IconBtn icon="fa-xmark" title="Remove" color="#F54848" onClick={() => removeParam(i)} />
+                      </>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {!readOnly && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+              {TEMPLATE_VARIABLES.map((v) => (
+                <button
+                  key={v.key}
+                  type="button"
+                  onClick={() => addParam(v.key)}
+                  title={`Append ${v.label} as {{${params.length + 1}}}`}
+                  style={{
+                    background: "var(--surface-2, rgba(255,255,255,0.05))",
+                    border: "1px solid var(--border)",
+                    borderRadius: 999,
+                    padding: "4px 10px",
+                    fontSize: "0.74rem",
+                    color: "var(--text)",
+                    cursor: "pointer",
+                  }}
+                >
+                  + {v.key}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <p className="admin-help" style={{ marginTop: 10 }}>
+            Newlines in a value are flattened to <code>·</code> before sending — Meta rejects
+            template parameters containing line breaks.
+          </p>
+        </div>
+      )}
+    </section>
   );
 }
 

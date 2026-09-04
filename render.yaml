@@ -58,6 +58,38 @@ services:
         sync: false
       - key: CRON_SECRET
         sync: false
+      # ---- Server-to-server token (admin Server Actions -> this API) ----
+      # Must match INTERNAL_API_TOKEN in the frontend env, or /emails/* and
+      # /delivery/* reject the admin panel with 401.
+      - key: INTERNAL_API_TOKEN
+        sync: false
+      # ---- WhatsApp (subscription delivery automation) ----
+      # Blank/unset => manual mode: messages are rendered + logged and the admin
+      # fires them from WhatsApp Web. Set the Cloud API pair (or a custom
+      # gateway URL) to send automatically. See ADMIN_SETUP.md.
+      - key: WHATSAPP_PROVIDER
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_BUSINESS_NUMBER
+        sync: false
+      - key: WHATSAPP_API_VERSION
+        value: v21.0
+      - key: WHATSAPP_CUSTOM_URL
+        sync: false
+      - key: WHATSAPP_CUSTOM_TOKEN
+        sync: false
+      # ---- Delivery automation behaviour ----
+      - key: DELIVERY_DUPLICATE_WINDOW_MINUTES
+        value: "10"
+      - key: DELIVERY_REMINDER_DAYS_BEFORE
+        value: "3"
+      - key: DELIVERY_DEFAULT_LANGUAGE
+        value: en
+      - key: DELIVERY_REMINDERS_ENABLED
+        value: "true"
       - key: PAYFAST_MERCHANT_ID
         sync: false
       - key: PAYFAST_MERCHANT_NAME

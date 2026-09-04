@@ -682,6 +682,18 @@ function SendOutcome({ result, onReset }: { result: SendResult; onReset: () => v
         {!sent && result.channel !== "manual" && <><i className="fa-solid fa-circle-exclamation" style={{ marginRight: 6 }} />{result.error || "Send failed."}</>}
       </div>
 
+      {result.needsApprovedTemplate && (
+        <div style={{ ...flashStyle("warn"), marginBottom: 12, fontSize: "0.85rem" }}>
+          <strong>WhatsApp needs an approved template for this one.</strong> Meta only allows
+          free-form messages within 24 hours of the customer messaging you. Add your approved
+          template name to this message template under{" "}
+          <Link href="/admin/delivery/templates" style={{ color: "inherit", textDecoration: "underline" }}>
+            Templates
+          </Link>
+          , then resend. The message is logged and the WhatsApp link below still works meanwhile.
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {result.manualLink && (
           <a

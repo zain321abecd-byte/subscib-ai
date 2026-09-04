@@ -18,7 +18,7 @@ import {
   type MessageKind,
   type MessageStatus,
 } from "@/lib/delivery";
-import { resendDeliveryMessage } from "../actions";
+import { markDeliverySent, resendDeliveryMessage } from "../actions";
 import {
   ConfirmModal,
   CopyButton,
@@ -96,6 +96,14 @@ export default function HistoryClient({
       return true;
     });
   }, [messages, search, statusFilter, kindFilter]);
+
+  async function markSent(row: DeliveryMessageRow) {
+    const res = await markDeliverySent(row.id);
+    if (!res.ok) { notify("err", res.error); return; }
+    setMessages((prev) => prev.map((m) => (m.id === row.id ? (res.data as DeliveryMessageRow) : m)));
+    notify("ok", "Marked as sent.");
+    router.refresh();
+  }
 
   async function resend(row: DeliveryMessageRow) {
     const res = await resendDeliveryMessage(row.id);
@@ -257,6 +265,14 @@ export default function HistoryClient({
                           >
                             <i className="fa-brands fa-whatsapp" />
                           </a>
+                        )}
+                        {canSend && row.status === "pending" && row.channel !== "email" && (
+                          <IconBtn
+                            icon="fa-check"
+                            title="Mark as sent (I sent this from WhatsApp)"
+                            color="#22c55e"
+                            onClick={() => markSent(row)}
+                          />
                         )}
                         {canSend && (
                           <IconBtn icon="fa-rotate-right" title="Resend" color="#4884FF" onClick={() => setConfirmResend(row)} />

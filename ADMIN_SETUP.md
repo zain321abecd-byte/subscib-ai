@@ -83,7 +83,7 @@ optionally by email), and every send is logged.
 
 **Setup**
 
-1. Run `supabase/21-delivery-automation.sql` in the Supabase SQL editor. It
+1. Run `supabase/21-delivery-automation.sql`, then `supabase/22-whatsapp-cloud-templates.sql`, in the Supabase SQL editor. The first
    creates `message_templates` + `delivery_messages`, seeds an English and an
    Urdu template for each message type, and grants the new `delivery:read`,
    `delivery:send`, `delivery:templates` keys to the seeded Admins / Managers
@@ -115,6 +115,73 @@ optionally by email), and every send is logged.
 `order_number`, plus `support_email` / `support_whatsapp` / `brand_name`, which
 are filled from Site settings. Empty placeholders are dropped rather than sent
 as literal text.
+
+### Turning off "Manual mode" (sending automatically)
+
+The banner at the top of `/admin/delivery` says **Manual mode** until a provider
+is configured on the API. Two routes:
+
+**A. WhatsApp Cloud API (Meta) — official**
+
+1. In the [Meta for Developers](https://developers.facebook.com/apps) dashboard,
+   create an app (type: Business) and add the **WhatsApp** product.
+2. Under WhatsApp → API Setup, note the **Phone number ID** and add/verify the
+   sending number. The test number Meta gives you only messages numbers you
+   add to its allow-list — a real number needs Business verification.
+3. Create a **permanent** token: Business Settings → Users → System users → add
+   a system user with the `whatsapp_business_messaging` permission → Generate
+   token. The 24-hour token on the API Setup page expires and will strand you.
+4. On Render → your API service → Environment, set:
+   `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, and optionally
+   `WHATSAPP_BUSINESS_NUMBER` (display only). Save — Render redeploys.
+5. **Create and get a message template approved** (WhatsApp Manager → Message
+   templates), then put its name into the matching row under
+   `/admin/delivery/templates`. See the next section — without this, most
+   delivery sends will be rejected.
+
+**B. A third-party gateway**
+
+Any provider that accepts a JSON POST works: set `WHATSAPP_CUSTOM_URL` plus
+`WHATSAPP_CUSTOM_TOKEN`, and the field names if they differ from
+`to` / `message` (see `api/.env.example`). These usually have no 24-hour
+restriction, but check the provider's WhatsApp compliance before relying on it.
+
+Nothing else changes — the composer, templates, history, and reminder cron all
+work the same; only the transport differs. The banner turns green and names the
+provider once it's configured.
+
+### The 24-hour window (read this before you test)
+
+WhatsApp only delivers **free-form** text inside a 24-hour "customer service
+window" that opens when the *customer* messages *you*. A delivery message goes
+out right after a purchase, so that window is normally shut and Meta rejects the
+send with error 131047. That is a platform rule, not a bug — and it's why
+setting the two variables alone isn't enough.
+
+To send at any time, each template row can carry a **Meta-approved template**:
+
+1. In WhatsApp Manager create a template (category: Utility) whose body uses
+   numbered placeholders, e.g.
+   `Hello {{1}}, your {{2}} subscription is ready. Email: {{3}} Password: {{4}}`
+2. Submit it; approval is usually minutes to a few hours.
+3. In `/admin/delivery/templates`, open the matching row and fill in
+   **Approved template name**, **Template language** (e.g. `en_US`), and map the
+   body variables in Meta's order — the first maps to `{{1}}`, and so on. The
+   count must match the approved template exactly.
+
+The row then shows **APPROVED TEMPLATE** in the list and sends as a template;
+rows left blank show **FREE-FORM TEXT** and only reach customers inside the
+window. History records which transport was used (`cloud:template` vs
+`cloud:text`). If Meta rejects a send for this reason, the composer says so and
+links straight to the template screen.
+
+Newlines in a value are flattened to `·` before sending, because Meta rejects
+template parameters containing line breaks.
+
+**Manual mode is still a legitimate choice.** The message is rendered, logged,
+and one click opens WhatsApp Web with it pre-typed — no API, no approvals, no
+24-hour rule. Use **Mark as sent** on the history row afterwards so the log
+reflects what the customer actually got.
 
 **Automatic reminders.** `DeliveryRemindersService` sweeps
 `subscription_sales` daily at 09:00 server time: a renewal reminder

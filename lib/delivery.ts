@@ -41,6 +41,12 @@ export interface MessageTemplateRow {
   body: string;
   active: boolean;
   is_default: boolean;
+  /** Name of the approved template in Meta's WhatsApp Manager, or null for free-form text. */
+  wa_template_name: string | null;
+  /** Locale of that approved template, e.g. "en_US". */
+  wa_template_language: string;
+  /** Variable keys in the order Meta's template body expects ({{1}}, {{2}}, …). */
+  wa_body_params: string[];
   created_by: string | null;
   created_at: string;
   updated_at: string;

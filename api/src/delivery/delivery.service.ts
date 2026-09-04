@@ -208,6 +208,19 @@ export class DeliveryService {
       set("language", (str(input.language, 8) || "en").toLowerCase());
     }
     if (input.product_id !== undefined || !partial) set("product_id", str(input.product_id, 120));
+    // Meta template mapping. Empty name → send as free-form text.
+    if (input.wa_template_name !== undefined || !partial) set("wa_template_name", str(input.wa_template_name, 120));
+    if (input.wa_template_language !== undefined || !partial) {
+      set("wa_template_language", (str(input.wa_template_language, 12) || "en_US"));
+    }
+    if (input.wa_body_params !== undefined || !partial) {
+      const keys = Array.isArray(input.wa_body_params)
+        ? input.wa_body_params
+            .map((k) => String(k).trim())
+            .filter((k) => TEMPLATE_VARIABLES.some((v) => v.key === k))
+        : [];
+      set("wa_body_params", keys);
+    }
     if (input.active !== undefined || !partial) set("active", input.active === undefined ? true : !!input.active);
     if (input.is_default !== undefined || !partial) set("is_default", !!input.is_default);
     return out;
@@ -236,6 +249,36 @@ export class DeliveryService {
     const usable = candidates.filter((t) => !t.product_id || !args.productId || t.product_id === args.productId);
     if (usable.length === 0) return null;
     return usable.sort((a, b) => score(b) - score(a))[0];
+  }
+
+  /**
+   * Build the Meta template payload for a send, or null when this template has
+   * no approved-template mapping (in which case we send free-form text).
+   *
+   * The parameter values come from the SAME resolved variables the text body
+   * was rendered from, so what Meta delivers matches what we log.
+   */
+  private async buildWhatsappTemplate(
+    templateId: string | null,
+    vars: DeliveryVariables,
+  ): Promise<{ name: string; language: string; bodyParams: string[] } | null> {
+    if (!templateId) return null;
+    let row: MessageTemplateRow;
+    try {
+      row = await this.getTemplate(templateId);
+    } catch {
+      return null;
+    }
+    const name = (row.wa_template_name || "").trim();
+    if (!name) return null;
+
+    const keys = Array.isArray(row.wa_body_params) ? row.wa_body_params : [];
+    const bodyParams = keys.map((key) => {
+      const value = (vars as Record<string, unknown>)[key];
+      return value == null ? "" : String(value);
+    });
+
+    return { name, language: (row.wa_template_language || "en_US").trim(), bodyParams };
   }
 
   // ── rendering ──────────────────────────────────────────────────────────
@@ -326,6 +369,10 @@ export class DeliveryService {
       customerPhone: phone,
     });
 
+    // Same auto-filled values the body was rendered with — the Meta template
+    // parameters have to agree with the text we log and fall back to.
+    const resolvedVars = await this.resolveVariables(input.variables ?? {}, productName);
+
     const hash = dedupeHash({ kind, phone, productId: input.productId, body: preview.body });
 
     // Duplicate guard — same message, same number, within the window.
@@ -366,13 +413,27 @@ export class DeliveryService {
       sent_by_email: str(input.actor?.email, 200),
     });
 
-    const result = await this.whatsapp.sendText({ to: phone, body: preview.body });
+    // A business-initiated WhatsApp message (a delivery right after purchase)
+    // only reaches the customer as a Meta-approved template — the free-form
+    // window is closed unless they messaged us in the last 24 hours. If the
+    // chosen template row carries that mapping, send it as a template.
+    const waTemplate = await this.buildWhatsappTemplate(preview.templateId, resolvedVars);
+
+    const result = await this.whatsapp.sendText({
+      to: phone,
+      body: preview.body,
+      template: waTemplate,
+    });
+
+    // Record the transport that was actually used, so history distinguishes
+    // "sent as an approved template" from "sent as free-form text".
+    const providerLabel = result.mode ? `${result.provider}:${result.mode}` : result.provider;
 
     const patch: Partial<DeliveryMessageRow> = result.ok
-      ? { status: "sent", sent_at: new Date().toISOString(), provider: result.provider, provider_message_id: result.messageId ?? null, error: null }
+      ? { status: "sent", sent_at: new Date().toISOString(), provider: providerLabel, provider_message_id: result.messageId ?? null, error: null }
       : channel === "manual"
         ? { status: "pending", provider: "manual", error: null }
-        : { status: "failed", provider: result.provider, error: result.error?.slice(0, 500) || "Send failed." };
+        : { status: "failed", provider: providerLabel, error: result.error?.slice(0, 500) || "Send failed." };
 
     const updated = await this.updateLog(log.id, patch);
 
@@ -407,6 +468,8 @@ export class DeliveryService {
       provider: result.provider,
       manualLink: result.manualLink ?? preview.manualLink,
       error: result.ok ? null : result.error ?? null,
+      needsApprovedTemplate: result.needsApprovedTemplate ?? false,
+      mode: result.mode ?? null,
       body: preview.body,
       missing: preview.missing,
       unknown: preview.unknown,
