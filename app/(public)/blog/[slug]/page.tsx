@@ -11,6 +11,10 @@ import { getAllPosts, getPost } from "@/lib/blog";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 import { authorSlug, buildPersonSchema, speakable, ORG_ID } from "@/lib/seo";
+import { cdnImage } from "@/lib/cloudinary-url";
+
+/** Widest CSS width the article column renders an image at (see .pro-article). */
+const ARTICLE_IMAGE_WIDTH = 820;
 
 // Force dynamic — public layout reads cookies/headers, incompatible with
 // static ISR in Next 15.
@@ -163,7 +167,13 @@ function renderMarkdown(content: string) {
       blocks.push(
         <figure className="pro-content-image" key={`img-${blocks.length}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image[2]} alt={image[1]} loading="lazy" />
+          <img
+            {...cdnImage(image[2], ARTICLE_IMAGE_WIDTH)}
+            alt={image[1]}
+            loading="lazy"
+            decoding="async"
+            sizes={`(max-width: 820px) 100vw, ${ARTICLE_IMAGE_WIDTH}px`}
+          />
           {image[1] && <figcaption>{image[1]}</figcaption>}
         </figure>
       );
@@ -290,7 +300,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
           <figure className="pro-article-image">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={post.image} alt={post.featuredImageAlt} loading="eager" />
+            <img
+              {...cdnImage(post.image, ARTICLE_IMAGE_WIDTH)}
+              alt={post.featuredImageAlt}
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              sizes={`(max-width: 820px) 100vw, ${ARTICLE_IMAGE_WIDTH}px`}
+            />
           </figure>
 
           <header className="pro-article-header">

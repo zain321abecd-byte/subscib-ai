@@ -11,6 +11,8 @@
  * are returned untouched — the container still renders them, just uncropped.
  */
 
+import { cloudinaryUrl } from "./cloudinary-url";
+
 export type CropRect = {
   /** Left edge of the crop window, in source pixels. */
   x: number;
@@ -53,8 +55,13 @@ function isCloudinary(url: string): boolean {
  */
 export function croppedImageUrl(url: string | undefined, crop: unknown): string | undefined {
   if (!url) return url;
+  if (!isCloudinary(url)) return url;
   const rect = parseCrop(crop);
-  if (!rect || !isCloudinary(url)) return url;
-  const transform = `c_crop,x_${Math.round(rect.x)},y_${Math.round(rect.y)},w_${Math.round(rect.w)},h_${Math.round(rect.h)}/c_fill,w_${OUTPUT_SIZE},h_${OUTPUT_SIZE}`;
+  // No crop stored: still ask Cloudinary for a modern format at tile size
+  // instead of shipping the raw upload (originals here run past 1 MB).
+  if (!rect) return cloudinaryUrl(url, { width: OUTPUT_SIZE });
+  const transform =
+    `c_crop,x_${Math.round(rect.x)},y_${Math.round(rect.y)},w_${Math.round(rect.w)},h_${Math.round(rect.h)}` +
+    `/c_fill,w_${OUTPUT_SIZE},h_${OUTPUT_SIZE},f_auto,q_auto`;
   return url.replace("/upload/", `/upload/${transform}/`);
 }

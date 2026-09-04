@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { imageRatioStyle } from "@/lib/image-ratio";
+import { cdnImage } from "@/lib/cloudinary-url";
 
 type Props = {
   images: string[];
@@ -58,7 +59,7 @@ export default function ProductGallery({ images, alt, autoMs = 5000, imageFit = 
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={src + i}
-            src={src}
+            {...cdnImage(src, 760)}
             alt={`${alt} — image ${i + 1} of ${total}`}
             className={`product-gallery-img ${i === active ? "is-active" : ""}`}
             loading={i === 0 ? "eager" : "lazy"}
@@ -122,7 +123,7 @@ export default function ProductGallery({ images, alt, autoMs = 5000, imageFit = 
               aria-label={`Show image ${i + 1}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" loading="lazy" />
+              <img {...cdnImage(src, 96)} alt="" loading="lazy" decoding="async" />
             </button>
           ))}
         </div>

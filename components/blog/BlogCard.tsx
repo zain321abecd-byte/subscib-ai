@@ -1,13 +1,20 @@
 import Link from "next/link";
 import type { Post } from "@/lib/blog";
 import BlogMeta from "./BlogMeta";
+import { cdnImage } from "@/lib/cloudinary-url";
 
 export default function BlogCard({ post }: { post: Post }) {
   return (
     <article className="pro-blog-card">
       <Link href={`/blog/${post.slug}`} className="pro-blog-card-image" aria-label={post.title}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={post.image} alt={post.featuredImageAlt || post.title} loading="lazy" />
+        <img
+          {...cdnImage(post.image, 420)}
+          alt={post.featuredImageAlt || post.title}
+          loading="lazy"
+          decoding="async"
+          sizes="(max-width: 720px) 100vw, 420px"
+        />
         <span className="pro-blog-category">{post.category}</span>
       </Link>
       <div className="pro-blog-card-body">

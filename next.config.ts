@@ -35,14 +35,17 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
-    /* Optimization ON. Every <Image> in the app points at a local asset
-       (/assets/subscribai-logo.png — a 537×130 PNG rendered at ~149px wide),
-       so the optimizer converts it to AVIF/WebP at the right DPR instead of
-       shipping the full PNG on every page. Product and blog artwork uses plain
-       <img> with admin-supplied URLs and is unaffected by this flag.
-       Re-add `unoptimized: true` if the app is ever deployed to a host without
-       the Next image optimizer. */
-    formats: ["image/avif", "image/webp"],
+    /* Optimizer stays OFF — deliberately, and it costs nothing here.
+       The only asset any <Image> points at is /assets/subscribai-logo.png,
+       which is now pre-optimized to 448×108 / 9 KB (down from 537×130 / 39 KB)
+       and is never rendered wider than 160 CSS px. Serving it statically means
+       no per-request transforms counting against the Vercel image quota, and
+       no format-support risk, for ~5 KB more than an AVIF transform would give.
+       Product and blog artwork is Cloudinary-hosted and optimized at the URL
+       level instead — see lib/cloudinary-url.ts.
+       Flip this to `false` only if a future <Image> needs true responsive
+       resizing off a large local source. */
+    unoptimized: true,
     remotePatterns: [
       { protocol: "https", hostname: "cdn.simpleicons.org" },
     ],

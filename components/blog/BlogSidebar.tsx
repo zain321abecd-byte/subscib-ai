@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Post } from "@/lib/blog";
 import { getBlogArchives, getBlogCategories, getBlogTags } from "@/lib/blog";
 import TagCloud from "./TagCloud";
+import { cdnImage } from "@/lib/cloudinary-url";
 
 export default function BlogSidebar({ posts, popularPosts }: { posts: Post[]; popularPosts?: Post[] }) {
   const recent = posts.slice(0, 5);
@@ -64,7 +65,7 @@ export default function BlogSidebar({ posts, popularPosts }: { posts: Post[]; po
           {popular.map((post) => (
             <Link key={post.slug} href={`/blog/${post.slug}`} className="pro-recent-post">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={post.image} alt="" loading="lazy" />
+              <img {...cdnImage(post.image, 120)} alt="" loading="lazy" decoding="async" />
               <span>
                 <small>{post.readingTime} min read</small>
                 <strong>{post.title}</strong>
@@ -80,7 +81,7 @@ export default function BlogSidebar({ posts, popularPosts }: { posts: Post[]; po
           {recent.slice(0, 4).map((post) => (
             <Link key={post.slug} href={`/blog/${post.slug}`} className="pro-recent-post">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={post.image} alt="" loading="lazy" />
+              <img {...cdnImage(post.image, 120)} alt="" loading="lazy" decoding="async" />
               <span>
                 <small>{post.date}</small>
                 <strong>{post.title}</strong>
