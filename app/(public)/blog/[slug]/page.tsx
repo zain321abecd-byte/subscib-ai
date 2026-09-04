@@ -355,7 +355,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <section className="pro-author-bio">
             {post.authorImage ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.authorImage} alt={post.author} loading="lazy" />
+              <img {...cdnImage(post.authorImage, 64)} alt={post.author} loading="lazy" decoding="async" />
             ) : (
               <span style={{ background: post.authorColor }}>{post.authorInitials}</span>
             )}

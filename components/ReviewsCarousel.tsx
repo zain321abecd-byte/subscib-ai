@@ -7,6 +7,7 @@
  */
 import { useState } from "react";
 import ReviewFullModal from "./ReviewFullModal";
+import { cdnImage } from "@/lib/cloudinary-url";
 
 type Review = {
   name: string;
@@ -37,7 +38,7 @@ function ReviewAvatar({
     return (
       <span className={`rc-avatar-tile ${className}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={review.photoUrl} alt="" width={size} height={size} loading="lazy" />
+        <img {...cdnImage(review.photoUrl, size)} alt="" width={size} height={size} loading="lazy" decoding="async" />
       </span>
     );
   }

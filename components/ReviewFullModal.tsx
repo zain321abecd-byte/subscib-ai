@@ -10,6 +10,7 @@
  * which have room to expand a card inline.
  */
 import { useEffect } from "react";
+import { cdnImage } from "@/lib/cloudinary-url";
 
 export type ReviewModalProps = {
   open: boolean;
@@ -92,7 +93,7 @@ export default function ReviewFullModal({
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt="" width={56} height={56}
+            <img {...cdnImage(photoUrl, 56)} alt="" width={56} height={56}
               style={{ width: 56, height: 56, borderRadius: 14, objectFit: "cover", flexShrink: 0 }}
             />
           ) : (

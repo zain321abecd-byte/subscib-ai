@@ -6,6 +6,7 @@ import { getAllPosts } from "@/lib/blog";
 import type { Post } from "@/lib/blog";
 import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 import { authorSlug, buildPersonSchema, ORG_ID } from "@/lib/seo";
+import { cdnImage } from "@/lib/cloudinary-url";
 
 // Public layout reads cookies/headers (region + currency), so static ISR is
 // not an option here — same reason as the blog index.
@@ -108,7 +109,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ slug: s
         <header className="author-profile">
           {author.image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img className="author-profile-avatar" src={author.image} alt={author.name} width={96} height={96} loading="eager" />
+            <img className="author-profile-avatar" {...cdnImage(author.image, 96)} alt={author.name} width={96} height={96} loading="eager" decoding="async" />
           ) : (
             <span className="author-profile-avatar author-profile-initials" style={{ background: author.color }} aria-hidden>
               {author.initials}

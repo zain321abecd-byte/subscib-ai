@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import BrandIcon from "@/components/BrandIcon";
 import { useFx, formatPKR, formatUSD, formatINR } from "@/lib/fx";
+import { cdnImage } from "@/lib/cloudinary-url";
 
 /* Shape returned by /api/products/search */
 type Suggestion = {
@@ -230,7 +231,7 @@ export default function SearchSuggest({
                       <span className={`pl-suggest-thumb ${!s.imageUrl ? s.mediaClass : ""}`} aria-hidden>
                         {s.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={s.imageUrl} alt="" loading="lazy" />
+                          <img {...cdnImage(s.imageUrl, 48)} alt="" loading="lazy" decoding="async" />
                         ) : s.brand ? (
                           <BrandIcon name={s.brand} size={22} />
                         ) : (
