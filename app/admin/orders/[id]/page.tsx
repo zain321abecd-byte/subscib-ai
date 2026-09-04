@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getAdminContext } from "@/lib/admin-auth";
 import StatusPill from "../../StatusPill";
 import OrderControls from "./OrderControls";
 import type { OrderRow } from "@/lib/supabase/types";
@@ -20,6 +22,20 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const { data, error } = await supabase.from("orders").select("*").eq(filterCol, id).maybeSingle();
   if (error || !data) notFound();
   const order = data as OrderRow;
+
+  // "Send delivery message" shortcut — only for teammates who may actually
+  // send, with a count of what has already gone out for this order.
+  const me = await getAdminContext();
+  const canSendDelivery = !!me && (me.isSuper || me.effectivePermissions.includes("delivery:send"));
+  let deliveriesSent = 0;
+  if (canSendDelivery) {
+    const { count } = await getSupabaseAdmin()
+      .from("delivery_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("order_id", order.id)
+      .neq("status", "failed");
+    deliveriesSent = count ?? 0;
+  }
 
   const items = Array.isArray(order.items) ? order.items : [];
   const fmtPhone = order.customer_phone ? order.customer_phone.replace(/^\+/, "") : null;
@@ -166,7 +182,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           )}
         </div>
 
-        <OrderControls order={order} />
+        <OrderControls order={order} canSendDelivery={canSendDelivery} deliveriesSent={deliveriesSent} />
       </div>
     </>
   );

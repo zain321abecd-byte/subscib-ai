@@ -1,12 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { updateOrderNotes, updateOrderStatus } from "../actions";
 import type { OrderRow } from "@/lib/supabase/types";
 
 const STATUS_OPTIONS: OrderRow["status"][] = ["pending", "paid", "delivered", "failed", "refunded", "cancelled"];
 
-export default function OrderControls({ order }: { order: OrderRow }) {
+export default function OrderControls({
+  order,
+  canSendDelivery = false,
+  deliveriesSent = 0,
+}: {
+  order: OrderRow;
+  /** Whether this teammate holds delivery:send — hides the shortcut if not. */
+  canSendDelivery?: boolean;
+  /** How many delivery messages are already logged against this order. */
+  deliveriesSent?: number;
+}) {
   const [status, setStatus] = useState<OrderRow["status"]>(order.status);
   const [notes, setNotes] = useState(order.notes ?? "");
   const [pending, startTransition] = useTransition();
@@ -61,6 +72,34 @@ export default function OrderControls({ order }: { order: OrderRow }) {
         </div>
         <p className="admin-help" style={{ marginTop: 10 }}>Setting status to &quot;Delivered&quot; stamps the delivery time automatically.</p>
       </div>
+
+      {canSendDelivery && (
+        <div className="admin-card">
+          <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", color: "var(--text)", margin: "0 0 12px" }}>
+            Delivery message
+          </h3>
+          <p className="admin-help" style={{ marginTop: 0 }}>
+            {status === "delivered"
+              ? "Send this customer their credentials on WhatsApp — the composer opens pre-filled with their details and this order's subscription."
+              : "Mark the order delivered, then send the credentials on WhatsApp. The composer opens pre-filled either way."}
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            <Link
+              href={`/admin/delivery?order=${order.id}`}
+              className={`admin-btn ${status === "delivered" ? "admin-btn-primary" : "admin-btn-ghost"}`}
+            >
+              <i className="fa-brands fa-whatsapp" style={{ marginRight: 6 }} />
+              Send delivery message
+            </Link>
+            {deliveriesSent > 0 && (
+              <Link href={`/admin/delivery/history?order=${order.id}`} className="admin-btn admin-btn-ghost">
+                <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: 6 }} />
+                {deliveriesSent} already sent
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="admin-card">
         <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1rem", color: "var(--text)", margin: "0 0 12px" }}>Internal notes</h3>

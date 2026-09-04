@@ -73,6 +73,69 @@ You can then edit, delete, or rearrange them via `/admin/products`. Re-running i
 - `/admin/reviews` — manage testimonials. `Approved = false` hides them.
 - `/admin/freebies` — lead-magnet listings on `/freebies`.
 - `/admin/settings` — WhatsApp number, contact email, hero copy, social links.
+- `/admin/delivery` — Subscription Delivery Automation (see below).
+
+## Subscription Delivery Automation
+
+`/admin/delivery` turns a delivery into: pick a template → pick the subscription →
+paste the credentials → preview → send. The message goes out on WhatsApp (and
+optionally by email), and every send is logged.
+
+**Setup**
+
+1. Run `supabase/21-delivery-automation.sql` in the Supabase SQL editor. It
+   creates `message_templates` + `delivery_messages`, seeds an English and an
+   Urdu template for each message type, and grants the new `delivery:read`,
+   `delivery:send`, `delivery:templates` keys to the seeded Admins / Managers
+   portal groups.
+2. Set `INTERNAL_API_TOKEN` to the same value in `.env.local` and `api/.env` —
+   that's how the admin Server Actions authenticate to the backend.
+3. Configure a WhatsApp provider in `api/.env` (all optional, see
+   `api/.env.example`):
+   - **Cloud API (Meta):** `WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_ACCESS_TOKEN`.
+   - **Any other gateway:** `WHATSAPP_CUSTOM_URL` (+ token / field names).
+   - **Nothing configured → manual mode:** the message is still rendered and
+     logged, and the admin gets a one-click `wa.me` link. Useful from day one,
+     while API access is pending.
+
+**Screens**
+
+- `/admin/delivery` — composer with a live preview (`delivery:read` to open,
+  `delivery:send` to send).
+- `/admin/delivery/templates` — create / edit / activate / delete templates,
+  scoped by type, language, and (optionally) product (`delivery:templates`).
+- `/admin/delivery/history` — every message with status, template, and which
+  teammate sent it; view, copy, or resend.
+- Order detail pages show **Send delivery message**, which opens the composer
+  pre-filled with the customer and the purchased subscription.
+
+**Templates** use `{{variable}}` (or `{variable}`) placeholders —
+`customer_name`, `subscription_name`, `plan_name`, `email`, `password`,
+`account_details`, `start_date`, `renewal_date`, `expiry_date`, `notes`,
+`order_number`, plus `support_email` / `support_whatsapp` / `brand_name`, which
+are filled from Site settings. Empty placeholders are dropped rather than sent
+as literal text.
+
+**Automatic reminders.** `DeliveryRemindersService` sweeps
+`subscription_sales` daily at 09:00 server time: a renewal reminder
+`DELIVERY_REMINDER_DAYS_BEFORE` days before `renew_date` (once per day per
+sale) and a one-off expiry notice after `expiry_date` passes. Trigger it by
+hand with `GET /delivery/cron/reminders` and the `CRON_SECRET` bearer (add
+`?dry_run=1` to see what it would do). It skips itself in manual mode, and
+`DELIVERY_REMINDERS_ENABLED=false` turns it off.
+
+**Safeguards**
+
+- Phone numbers are validated twice — libphonenumber-js in the Server Action
+  (Pakistani numbers may be typed as `03001234567`) and an E.164 check on the
+  API — before any provider is called.
+- An identical message to the same number inside
+  `DELIVERY_DUPLICATE_WINDOW_MINUTES` (default 10) is refused until the admin
+  confirms, which stops double-clicks and re-submitted forms.
+- The delivery log holds the credentials that were sent (that's what makes copy
+  / resend work). Both tables are admin-only via RLS, the password field is
+  masked in the composer preview, and history hides each message body until an
+  admin clicks **Reveal**.
 
 ## Architecture notes
 

@@ -10383,6 +10383,14 @@ select.input::-ms-expand { display: none; }
   .admin-order-grid { grid-template-columns: 2fr 1fr; align-items: start; }
 }
 
+/* Delivery automation composer: form + live preview side by side on wide
+   screens, stacked (preview under the form) once there isn't room. The
+   inline grid-template-columns on the element wins above the breakpoint. */
+@media (max-width: 1100px) {
+  .admin-delivery-grid { grid-template-columns: 1fr !important; }
+  .admin-delivery-grid > div:last-child { position: static !important; }
+}
+
 /* Image picker (Cloudinary) */
 .admin-image-picker {
   display: grid; gap: 12px;

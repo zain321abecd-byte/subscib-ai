@@ -14,6 +14,7 @@ import { PublicModule } from "./public/public.module";
 import { ContentModule } from "./content/content.module";
 import { UsersAdminModule } from "./users-admin/users-admin.module";
 import { PortalModule } from "./portal/portal.module";
+import { DeliveryModule } from "./delivery/delivery.module";
 
 @Module({
   imports: [
@@ -40,6 +41,8 @@ import { PortalModule } from "./portal/portal.module";
     UsersAdminModule,
     // Phase 7 — portal team invites + groups (back-office teammates)
     PortalModule,
+    // Phase 8 — subscription delivery automation (WhatsApp templates + log)
+    DeliveryModule,
   ],
 })
 export class AppModule {}

@@ -31,6 +31,10 @@ export const PERMISSION_KEYS = [
   // Stock
   "stock:read",
   "stock:write",
+  // Subscription delivery automation (WhatsApp delivery messages)
+  "delivery:read",
+  "delivery:send",
+  "delivery:templates",
   // Settings
   "settings:read",
   "settings:write",
@@ -55,6 +59,7 @@ export const PERMISSION_GROUPS: Array<{ label: string; keys: PermissionKey[] }> 
   { label: "Reviews", keys: ["reviews:read", "reviews:moderate", "reviews:delete"] },
   { label: "Freebies", keys: ["freebies:read", "freebies:write", "freebies:delete"] },
   { label: "Stock", keys: ["stock:read", "stock:write"] },
+  { label: "Delivery automation", keys: ["delivery:read", "delivery:send", "delivery:templates"] },
   { label: "Settings", keys: ["settings:read", "settings:write"] },
   { label: "Emails", keys: ["emails:read", "emails:send"] },
   { label: "Users", keys: ["users:read", "users:write", "users:assign-roles", "users:delete"] },
@@ -79,6 +84,7 @@ export const ROLE_DEFAULTS: Record<Role, ReadonlyArray<PermissionKey>> = {
     "reviews:read", "reviews:moderate",
     "freebies:read", "freebies:write",
     "stock:read", "stock:write",
+    "delivery:read", "delivery:send",
     "settings:read",
     "emails:read", "emails:send",
     "analytics:view",

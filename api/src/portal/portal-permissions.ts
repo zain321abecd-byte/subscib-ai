@@ -18,6 +18,10 @@ export const PORTAL_PERMISSION_KEYS = [
   // Daily Sales / Renewals — customer subscription tracking (distinct
   // from stock:*, which is our own inventory expiry).
   "sales:read", "sales:write", "sales:delete",
+  // Subscription delivery automation — send credentials over WhatsApp,
+  // manage the message templates. Deliberately separate from sales:* because
+  // these messages carry account passwords.
+  "delivery:read", "delivery:send", "delivery:templates",
   "settings:read", "settings:write",
   "emails:read", "emails:send",
   "users:read", "users:write",
@@ -34,6 +38,7 @@ export const PORTAL_PERMISSION_GROUPS: Array<{ label: string; keys: PortalPermis
   { label: "Freebies",  keys: ["freebies:read","freebies:write","freebies:delete"] },
   { label: "Stock",     keys: ["stock:read","stock:write"] },
   { label: "Daily sales", keys: ["sales:read","sales:write","sales:delete"] },
+  { label: "Delivery automation", keys: ["delivery:read","delivery:send","delivery:templates"] },
   { label: "Settings",  keys: ["settings:read","settings:write"] },
   { label: "Emails",    keys: ["emails:read","emails:send"] },
   { label: "Team",      keys: ["users:read","users:write"] },
