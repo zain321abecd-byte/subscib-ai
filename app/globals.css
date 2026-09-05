@@ -10387,6 +10387,19 @@ select.input::-ms-expand { display: none; }
   .admin-order-grid { grid-template-columns: 2fr 1fr; align-items: start; }
 }
 
+/* Send-by-WhatsApp screen: the admin buttons have no focus-visible ring of
+   their own, and this screen is driven from the keyboard at the counter.
+   Scoped rather than global so no other admin screen's focus behaviour
+   changes. Matches the ring used elsewhere (see .blog-show-more). */
+.wa-send button:focus-visible,
+.wa-send input:focus-visible,
+.wa-send textarea:focus-visible,
+.wa-send [tabindex]:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 /* Delivery automation composer: form + live preview side by side on wide
    screens, stacked (preview under the form) once there isn't room. The
    inline grid-template-columns on the element wins above the breakpoint. */

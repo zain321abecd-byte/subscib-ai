@@ -36,6 +36,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { href: "/admin/stock",   label: "Stock",   icon: "fa-boxes-stacked",  permission: "stock:read" },
       { href: "/admin/sales",   label: "Daily Sales", icon: "fa-hand-holding-dollar", permission: "sales:read" },
       { href: "/admin/delivery", label: "Delivery Messages", icon: "fa-paper-plane", permission: "delivery:read" },
+      { href: "/admin/whatsapp", label: "Send by WhatsApp", icon: "fa-comment-sms", permission: "delivery:read" },
       { href: "/admin/coupons", label: "Promo Codes", icon: "fa-ticket",         permission: "settings:read" },
       { href: "/admin/traffic", label: "Traffic", icon: "fa-chart-line",     permission: "analytics:view" },
     ],
