@@ -5,9 +5,33 @@ import { parseCrop, serializeCrop } from "@/lib/image-crop";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getSupabaseServer } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/admin-auth";
 import { ensureUniqueSlug, slugify } from "@/lib/slug";
+
+/**
+ * WHY THE SERVICE-ROLE CLIENT
+ *
+ * These writes used the cookie-aware anon client (getSupabaseServer). The
+ * products RLS policy is `using (is_admin())`, and is_admin() resolves
+ * `auth.uid()` against the `admins` table — i.e. a SUPABASE AUTH session. The
+ * admin portal doesn't create one: it authenticates against portal_users and
+ * stores its own JWT in the subscribai-portal-token cookie.
+ *
+ * So the client ran as `anon` for any teammate who didn't separately hold a
+ * Supabase auth session belonging to a row in `admins`. The original
+ * superadmin usually does (legacy account), which is why saving worked for
+ * them and silently did nothing for everyone invited afterwards.
+ *
+ * Worse, it failed silently: PostgREST reports no error when an UPDATE matches
+ * zero rows, and the action only inspected `error`, so it redirected to
+ * ?updated=… and the UI said "Updated" while the row was untouched.
+ *
+ * Authorisation is not weakened by this change — it was never RLS doing the
+ * gating here. requireAdmin("products:write") resolves the portal token via
+ * the backend and is the real check, the same way sales, delivery,
+ * pricing-plans and reviews already work.
+ */
 
 export type ProductFormData = {
   name: string;
@@ -216,7 +240,7 @@ export async function createProduct(formData: FormData): Promise<{ ok: false; er
   const err = validate(p);
   if (err) return { ok: false, error: err };
 
-  const supabase = await getSupabaseServer();
+  const supabase = getSupabaseAdmin();
 
   // Auto-generate the URL id from the name. If "ChatGPT Plus" already exists,
   // we'll get "chatgpt-plus-2" automatically.
@@ -249,12 +273,22 @@ export async function updateProduct(formData: FormData): Promise<{ ok: false; er
 
   // Slug is sticky on edits — keep the existing URL stable so external links
   // don't break when admins tweak the product name.
-  const supabase = await getSupabaseServer();
-  let { error } = await supabase.from("products").update(p).eq("id", originalId);
+  const supabase = getSupabaseAdmin();
+  // `.select("id")` so a write that changes nothing is detectable — an update
+  // matching zero rows returns no error, which is how this used to report
+  // success while saving nothing.
+  let { data, error } = await supabase.from("products").update(p).eq("id", originalId).select("id");
   if (error && missingVariationColumn(error)) {
-    ({ error } = await supabase.from("products").update(withoutVariationConfig(p)).eq("id", originalId));
+    ({ data, error } = await supabase
+      .from("products")
+      .update(withoutVariationConfig(p))
+      .eq("id", originalId)
+      .select("id"));
   }
   if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0) {
+    return { ok: false, error: `No product was updated — "${originalId}" no longer exists.` };
+  }
 
   try {
     await syncProductReviews(supabase, originalId, p.name, parseReviews(formData));
@@ -270,9 +304,12 @@ export async function deleteProduct(formData: FormData): Promise<void> {
   await requireAdmin("products:delete");
   const id = String(formData.get("id") || "").trim();
   if (!id) redirect(`/admin/products?error=${encodeURIComponent("Missing id.")}`);
-  const supabase = await getSupabaseServer();
-  const { error } = await supabase.from("products").delete().eq("id", id);
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from("products").delete().eq("id", id).select("id");
   if (error) redirect(`/admin/products?error=${encodeURIComponent(error.message)}`);
+  if (!data || data.length === 0) {
+    redirect(`/admin/products?error=${encodeURIComponent(`Nothing was deleted — "${id}" no longer exists.`)}`);
+  }
   bustCaches(id);
   redirect(`/admin/products?deleted=${encodeURIComponent(id)}`);
 }

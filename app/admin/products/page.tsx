@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import DeleteButton from "./DeleteButton";
+import ProductsFilters from "./ProductsFilters";
 import type { ProductRow } from "@/lib/supabase/types";
 
 export const metadata = { title: "Products" };
@@ -21,13 +23,33 @@ export default async function ProductsAdminPage({
   searchParams: Promise<Record<string, string>>;
 }) {
   const params = await searchParams;
+  const search = (params.q || "").trim();
+
   const supabase = await getSupabaseServer();
-  const { data, error } = await supabase
+  let query = supabase
     .from("products")
     .select("*")
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
 
+  if (search) {
+    // PostgREST `or` uses comma as the separator between conditions, so a
+    // comma in the admin's input would break the query. Same escaping the
+    // orders search uses.
+    const safe = search.replace(/[,()]/g, "").slice(0, 80);
+    const pat = `%${safe}%`;
+    query = query.or(
+      [
+        `name.ilike.${pat}`,
+        `id.ilike.${pat}`,
+        `brand.ilike.${pat}`,
+        `tag.ilike.${pat}`,
+        `category.ilike.${pat}`,
+      ].join(","),
+    );
+  }
+
+  const { data, error } = await query;
   const products = (data ?? []) as ProductRow[];
 
   return (
@@ -56,10 +78,20 @@ export default async function ProductsAdminPage({
         </div>
       )}
 
+      <Suspense fallback={null}>
+        <ProductsFilters count={products.length} />
+      </Suspense>
+
       {products.length === 0 ? (
         <div className="admin-card admin-empty">
           <i className="fa-solid fa-box-open"></i>
-          <div>No products yet. Add your first product or run the seed script to import the static catalog.</div>
+          {search ? (
+            <div>
+              No product matches <strong>{search}</strong>. Try part of the name, the id, or the brand.
+            </div>
+          ) : (
+            <div>No products yet. Add your first product or run the seed script to import the static catalog.</div>
+          )}
         </div>
       ) : (
         <div className="admin-card" style={{ padding: 0 }}>
