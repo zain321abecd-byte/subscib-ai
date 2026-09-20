@@ -203,15 +203,42 @@ export class OrdersService {
     }
 
     try {
-      await this.supabase.admin().from("email_subscribers").upsert({
-        email: order.customer_email,
-        name: order.customer_name,
-        phone: order.customer_phone,
-        source: "order",
-        subscribed: true,
-        unsubscribed_at: null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "email" });
+      // Record the buyer as a contact WITHOUT inventing marketing consent.
+      //
+      // This used to upsert `subscribed: true, unsubscribed_at: null` on every
+      // order, which did two harmful things: it added every customer to the
+      // newsletter list they never signed up for, and it silently resurrected
+      // anyone who had clicked Unsubscribe the next time they bought — making
+      // the unsubscribe link meaningless.
+      //
+      // Now: create the contact opted OUT, and never touch the subscription
+      // state of a row that already exists. Consent is the customer's to give
+      // (a signup form) and to withdraw (the unsubscribe link). Admins can
+      // still email buyers via the "customers" audience, which reads orders.
+      const subscriberEmail = String(order.customer_email).trim().toLowerCase();
+      const { data: existingSubscriber } = await this.supabase.admin()
+        .from("email_subscribers")
+        .select("email")
+        .eq("email", subscriberEmail)
+        .maybeSingle();
+
+      if (existingSubscriber) {
+        // Refresh contact details only — subscribed / unsubscribed_at untouched.
+        await this.supabase.admin().from("email_subscribers").update({
+          name: order.customer_name,
+          phone: order.customer_phone,
+          updated_at: new Date().toISOString(),
+        }).eq("email", subscriberEmail);
+      } else {
+        await this.supabase.admin().from("email_subscribers").insert({
+          email: subscriberEmail,
+          name: order.customer_name,
+          phone: order.customer_phone,
+          source: "order",
+          subscribed: false,
+          updated_at: new Date().toISOString(),
+        });
+      }
     } catch (err) {
       this.logger.warn(`Could not update email subscriber for order ${order.order_number}: ${err instanceof Error ? err.message : "Unknown error"}`);
     }

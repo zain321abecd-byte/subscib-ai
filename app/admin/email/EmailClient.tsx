@@ -65,7 +65,10 @@ export default function EmailClient({
   const [subject, setSubject] = useState(EMAIL_TYPES[0].subject);
   const [html, setHtml] = useState(EMAIL_TYPES[0].html);
   const [text, setText] = useState("");
-  const [audience, setAudience] = useState<Audience>("subscribers");
+  // Custom list is the default on purpose: with a real audience preselected,
+  // one stray click on Send mails everyone. Pick the broad audiences
+  // deliberately.
+  const [audience, setAudience] = useState<Audience>("manual");
   const [manual, setManual] = useState("");
   const [testTo, setTestTo] = useState("");
   const [busy, setBusy] = useState<"" | "test" | "send">("");
@@ -227,10 +230,15 @@ export default function EmailClient({
 
         <label style={label}>Audience</label>
         <select className="input" value={audience} onChange={(e) => setAudience(e.target.value as Audience)} style={{ width: "100%" }}>
-          <option value="subscribers">Newsletter subscribers ({counts.subscribers})</option>
-          <option value="customers">Customers who ordered ({counts.customers})</option>
-          <option value="manual">Custom list</option>
+          <option value="manual">Custom list — type the addresses</option>
+          <option value="subscribers">Newsletter opt-ins ({counts.subscribers}) — everyone who consented</option>
+          <option value="customers">All customers who ordered ({counts.customers}) — marketing to these needs care</option>
         </select>
+
+        <p style={{ margin: "6px 0 0", color: "var(--text-muted)", fontSize: 12.5 }}>
+          Opt-ins are people who asked for marketing email. Customers are everyone who bought —
+          reaching them with promotions is a different decision. Use the test field below to preview.
+        </p>
 
         {audience === "manual" && (
           <>
@@ -271,7 +279,9 @@ export default function EmailClient({
               <strong style={{ color: "var(--text)" }}>
                 {audience === "manual"
                   ? "your custom list"
-                  : `all ${audienceCount ?? 0} ${audience}`}
+                  : audience === "subscribers"
+                    ? `all ${audienceCount ?? 0} newsletter opt-ins`
+                    : `all ${audienceCount ?? 0} customers who have ordered`}
               </strong>
               . This can&apos;t be undone.
             </p>
