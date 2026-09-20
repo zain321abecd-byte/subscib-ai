@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSupabaseServer } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { OrderRow, TrafficSessionRow } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -99,7 +99,12 @@ export default async function TrafficPage({
   const days = RANGE_OPTIONS.find((r) => r.value === range)?.days;
   const sinceIso = days ? new Date(Date.now() - days * 86400_000).toISOString() : null;
 
-  const supabase = await getSupabaseServer();
+  // Service role, not the cookie client. traffic_sessions is `select using
+  // (is_admin())`, and is_admin() resolves a SUPABASE AUTH session against the
+  // `admins` table — which a portal teammate doesn't have. Under the anon
+  // client the SELECT returned zero rows with no error, so this page rendered
+  // "0 visitors / No data" while the sessions table was filling up normally.
+  const supabase = getSupabaseAdmin();
 
   let sessionsQuery = supabase.from("traffic_sessions").select("*").order("last_seen", { ascending: false }).limit(5000);
   if (sinceIso) sessionsQuery = sessionsQuery.gte("first_seen", sinceIso);

@@ -38,6 +38,10 @@ export type SaleRow = {
   notes: string | null;
   reminder_message: string | null;
   last_reminder_sent_at: string | null;
+  /** Soft delete — non-null means the sale sits in Deleted Sales. */
+  deleted_at: string | null;
+  deleted_by: string | null;
+  delete_reason: string | null;
   renewed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -107,6 +111,7 @@ function normalise(input: SaleInput) {
 
 function bust() {
   revalidatePath("/admin/sales");
+  revalidatePath("/admin/sales/deleted");
   revalidatePath("/admin");
 }
 
@@ -117,6 +122,7 @@ export async function getSubscriptionSales(): Promise<Result<SaleRow[]>> {
   const { data, error } = await supabase
     .from("subscription_sales")
     .select("*")
+    .is("deleted_at", null)
     .order("renew_date", { ascending: true });
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: (data as SaleRow[]) || [] };
@@ -157,12 +163,81 @@ export async function updateSubscriptionSale(id: string, input: SaleInput): Prom
   return { ok: true, data: data as SaleRow };
 }
 
-export async function deleteSubscriptionSale(id: string): Promise<Result> {
+/**
+ * Soft delete. The row keeps its place in the table with deleted_at stamped,
+ * so Daily Sales, revenue and the renewal sweep skip it while Deleted Sales
+ * can still show it and put it back. Removing it outright made an accidental
+ * click unrecoverable and silently rewrote past revenue.
+ */
+export async function deleteSubscriptionSale(id: string, reason?: string): Promise<Result> {
+  const me = await requireAdmin("sales:delete");
+  if (!id) return { ok: false, error: "Missing sale id." };
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("subscription_sales")
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: me.userId,
+      delete_reason: reason?.trim().slice(0, 500) || null,
+    })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "That sale is already deleted." };
+  bust();
+  return { ok: true };
+}
+
+/** Everything in Deleted Sales. */
+export async function getDeletedSales(): Promise<Result<SaleRow[]>> {
+  await requireAdmin("sales:read");
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("subscription_sales")
+    .select("*")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: (data as SaleRow[]) || [] };
+}
+
+/** Put a deleted sale back into Daily Sales. */
+export async function restoreSubscriptionSale(id: string): Promise<Result<SaleRow>> {
   await requireAdmin("sales:delete");
   if (!id) return { ok: false, error: "Missing sale id." };
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("subscription_sales").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("subscription_sales")
+    .update({ deleted_at: null, deleted_by: null, delete_reason: null })
+    .eq("id", id)
+    .not("deleted_at", "is", null)
+    .select("*")
+    .maybeSingle();
   if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "That sale is not in Deleted Sales." };
+  bust();
+  return { ok: true, data: data as SaleRow };
+}
+
+/**
+ * Remove a sale for good. Only reachable from Deleted Sales, so a row has to
+ * be deleted first — there's no one-click path from the live list to gone.
+ */
+export async function purgeSubscriptionSale(id: string): Promise<Result> {
+  await requireAdmin("sales:delete");
+  if (!id) return { ok: false, error: "Missing sale id." };
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("subscription_sales")
+    .delete()
+    .eq("id", id)
+    .not("deleted_at", "is", null)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Only a deleted sale can be permanently removed." };
   bust();
   return { ok: true };
 }

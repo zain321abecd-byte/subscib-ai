@@ -22,6 +22,8 @@ export const PORTAL_PERMISSION_KEYS = [
   // manage the message templates. Deliberately separate from sales:* because
   // these messages carry account passwords.
   "delivery:read", "delivery:send", "delivery:templates",
+  // Account book — money owed and owing.
+  "accounts:read", "accounts:write",
   "settings:read", "settings:write",
   "emails:read", "emails:send",
   "users:read", "users:write",
@@ -39,6 +41,7 @@ export const PORTAL_PERMISSION_GROUPS: Array<{ label: string; keys: PortalPermis
   { label: "Stock",     keys: ["stock:read","stock:write"] },
   { label: "Daily sales", keys: ["sales:read","sales:write","sales:delete"] },
   { label: "Delivery automation", keys: ["delivery:read","delivery:send","delivery:templates"] },
+  { label: "Account book", keys: ["accounts:read","accounts:write"] },
   { label: "Settings",  keys: ["settings:read","settings:write"] },
   { label: "Emails",    keys: ["emails:read","emails:send"] },
   { label: "Team",      keys: ["users:read","users:write"] },

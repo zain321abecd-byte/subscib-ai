@@ -8,7 +8,15 @@ import { usePortalAuth } from "@/lib/portal-auth";
 import { requiredPermissionForPath, type PermissionKey, type Role } from "@/lib/permissions";
 import AdminNavProgress from "./AdminNavProgress";
 
-type NavItem = { href: string; label: string; icon: string; permission?: PermissionKey };
+type NavChild = { href: string; label: string; permission?: PermissionKey };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: string;
+  permission?: PermissionKey;
+  /** Rendered indented under the parent while that section is open. */
+  children?: NavChild[];
+};
 
 const NAV: { section: string; items: NavItem[] }[] = [
   {
@@ -36,7 +44,26 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { href: "/admin/email",   label: "Emails",  icon: "fa-envelope",       permission: "emails:read" },
       { href: "/admin/stock",   label: "Stock",   icon: "fa-boxes-stacked",  permission: "stock:read" },
       { href: "/admin/sale-requests", label: "Sale Requests", icon: "fa-inbox", permission: "sales:read" },
-      { href: "/admin/sales",   label: "Daily Sales", icon: "fa-hand-holding-dollar", permission: "sales:read" },
+      {
+        href: "/admin/sales",
+        label: "Daily Sales",
+        icon: "fa-hand-holding-dollar",
+        permission: "sales:read",
+        children: [
+          { href: "/admin/sales", label: "Completed sales", permission: "sales:read" },
+          { href: "/admin/sales/deleted", label: "Deleted sales", permission: "sales:read" },
+        ],
+      },
+      {
+        href: "/admin/account-book",
+        label: "Account Book",
+        icon: "fa-book",
+        permission: "accounts:read",
+        children: [
+          { href: "/admin/account-book/payables", label: "Vendor payable", permission: "accounts:read" },
+          { href: "/admin/account-book/receivables", label: "Customer receivable", permission: "accounts:read" },
+        ],
+      },
       { href: "/admin/delivery", label: "Delivery Messages", icon: "fa-paper-plane", permission: "delivery:read" },
       { href: "/admin/whatsapp", label: "Send by WhatsApp", icon: "fa-comment-sms", permission: "delivery:read" },
       { href: "/admin/coupons", label: "Promo Codes", icon: "fa-ticket",         permission: "settings:read" },
@@ -157,17 +184,48 @@ export default function AdminShell({
                 .filter((item) => !item.permission || hasPermission(item.permission))
                 .map((item) => {
                 const active = isActive(pathname, item.href);
+                const children = (item.children ?? []).filter(
+                  (child) => !child.permission || hasPermission(child.permission),
+                );
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`admin-nav-link ${active ? "is-active" : ""}`}
-                    onClick={(e) => handleNav(e, item.href)}
-                    aria-current={active ? "page" : undefined}
-                  >
-                    <i className={`fa-solid ${item.icon}`}></i>
-                    {item.label}
-                  </Link>
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={`admin-nav-link ${active ? "is-active" : ""}`}
+                      onClick={(e) => handleNav(e, item.href)}
+                      aria-current={active && children.length === 0 ? "page" : undefined}
+                    >
+                      <i className={`fa-solid ${item.icon}`}></i>
+                      {item.label}
+                    </Link>
+
+                    {/* Sub-items only while the section is open, so the sidebar
+                        doesn't turn into a wall of links. */}
+                    {active && children.length > 0 && (
+                      <div style={{ margin: "2px 0 6px" }}>
+                        {children.map((child) => {
+                          const childActive = pathname === child.href;
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              className={`admin-nav-link ${childActive ? "is-active" : ""}`}
+                              onClick={(e) => handleNav(e, child.href)}
+                              aria-current={childActive ? "page" : undefined}
+                              style={{ paddingLeft: 38, fontSize: "0.86rem" }}
+                            >
+                              <i
+                                className="fa-solid fa-angle-right"
+                                style={{ fontSize: 10, opacity: 0.6 }}
+                                aria-hidden="true"
+                              ></i>
+                              {child.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

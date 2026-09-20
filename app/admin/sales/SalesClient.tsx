@@ -115,7 +115,7 @@ export default function SalesClient({
   const [newOpen, setNewOpen] = useState(false);
   const [editing, setEditing] = useState<SaleRow | null>(null);
   const [renewingSale, setRenewingSale] = useState<SaleRow | null>(null);
-  const [confirm, setConfirm] = useState<{ title: string; message: React.ReactNode; onConfirm: () => Promise<void> | void; confirmLabel: string } | null>(null);
+  const [deleting, setDeleting] = useState<SaleRow | null>(null);
 
   function notify(kind: "ok" | "err", msg: string) {
     setFlash({ kind, msg });
@@ -190,19 +190,13 @@ export default function SalesClient({
     return true;
   }
 
-  function askDelete(row: SaleRow) {
-    setConfirm({
-      title: `Delete sale for ${row.customer_name}?`,
-      message: <>This deletes the record permanently. Customer stays unaffected.</>,
-      confirmLabel: "Delete",
-      onConfirm: async () => {
-        const res = await deleteSubscriptionSale(row.id);
-        if (!res.ok) { notify("err", res.error); return; }
-        setSales((prev) => prev.filter((s) => s.id !== row.id));
-        notify("ok", "Sale deleted.");
-        refresh();
-      },
-    });
+  async function confirmDelete(row: SaleRow, reason: string) {
+    const res = await deleteSubscriptionSale(row.id, reason);
+    if (!res.ok) { notify("err", res.error); return; }
+    setSales((prev) => prev.filter((s) => s.id !== row.id));
+    notify("ok", "Moved to Deleted sales — you can restore it from there.");
+    setDeleting(null);
+    refresh();
   }
 
   function openWhatsApp(row: SaleRow) {
@@ -374,7 +368,7 @@ export default function SalesClient({
                           onReminderSent={() => reminderSent(row)}
                           onRenew={() => setRenewingSale(row)}
                           onEdit={() => setEditing(row)}
-                          onDelete={() => askDelete(row)}
+                          onDelete={() => setDeleting(row)}
                         />
                       </Td>
                     </tr>
@@ -416,17 +410,11 @@ export default function SalesClient({
           onConfirm={(next) => markRenewed(renewingSale, next)}
         />
       )}
-      {confirm && (
-        <ConfirmModal
-          title={confirm.title}
-          message={confirm.message}
-          confirmLabel={confirm.confirmLabel}
-          onCancel={() => setConfirm(null)}
-          onConfirm={async () => {
-            const d = confirm;
-            setConfirm(null);
-            await d.onConfirm();
-          }}
+      {deleting && (
+        <DeleteSaleModal
+          sale={deleting}
+          onClose={() => setDeleting(null)}
+          onConfirm={(reason) => confirmDelete(deleting, reason)}
         />
       )}
     </div>
@@ -771,6 +759,57 @@ function RenewModal({
 }
 
 // ─── shared modal shell + confirm ─────────────────────────────────────
+/**
+ * Delete is a soft delete now: the sale moves to Deleted sales, where it can be
+ * restored or removed for good. The reason is optional and internal — it shows
+ * on the Deleted sales row so a later reviewer knows why it went.
+ */
+function DeleteSaleModal({
+  sale, onClose, onConfirm,
+}: {
+  sale: SaleRow;
+  onClose: () => void;
+  onConfirm: (reason: string) => Promise<void> | void;
+}) {
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <ModalShell
+      title={`Delete sale for ${sale.customer_name}?`}
+      size="sm"
+      onClose={busy ? () => {} : onClose}
+      footer={
+        <>
+          <button type="button" onClick={onClose} disabled={busy} style={footerCancelStyle}>CANCEL</button>
+          <button
+            type="button"
+            onClick={async () => { setBusy(true); try { await onConfirm(reason); } finally { setBusy(false); } }}
+            disabled={busy}
+            style={{ ...footerPrimaryStyle(true), background: "#F54848" }}
+          >
+            {busy ? "WORKING…" : "DELETE"}
+          </button>
+        </>
+      }
+    >
+      <p style={{ marginTop: 0, fontSize: "0.9rem", lineHeight: 1.5 }}>
+        This moves the sale to <strong>Deleted sales</strong>, out of Daily Sales, revenue and renewal reminders.
+        You can restore it from there. The customer isn&apos;t affected or notified.
+      </p>
+      <Field label="Reason (optional)" hint="Internal only. Shown on the deleted sale so you remember why.">
+        <textarea
+          className="admin-input admin-textarea"
+          rows={3}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="e.g. duplicate entry, customer cancelled, test row"
+        />
+      </Field>
+    </ModalShell>
+  );
+}
+
 function ModalShell({
   title, children, onClose, footer, size = "md",
 }: {
@@ -817,40 +856,6 @@ function ModalShell({
         )}
       </div>
     </div>
-  );
-}
-
-function ConfirmModal({
-  title, message, onCancel, onConfirm, confirmLabel = "Confirm",
-}: {
-  title: string;
-  message: React.ReactNode;
-  onCancel: () => void;
-  onConfirm: () => Promise<void> | void;
-  confirmLabel?: string;
-}) {
-  const [busy, setBusy] = useState(false);
-  return (
-    <ModalShell title={title} onClose={busy ? () => {} : onCancel} size="sm" footer={
-      <>
-        <button type="button" onClick={onCancel} disabled={busy} style={footerCancelStyle}>CANCEL</button>
-        <button
-          type="button"
-          onClick={async () => { setBusy(true); try { await onConfirm(); } finally { setBusy(false); } }}
-          disabled={busy}
-          style={{ ...footerPrimaryStyle(true), background: "#F54848" }}
-        >
-          {busy ? "WORKING…" : confirmLabel.toUpperCase()}
-        </button>
-      </>
-    }>
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", flexShrink: 0, background: "rgba(245,72,72,0.12)", color: "#F54848" }}>
-          <i className="fa-solid fa-triangle-exclamation" />
-        </div>
-        <div style={{ flex: 1, fontSize: "0.9rem", lineHeight: 1.5 }}>{message}</div>
-      </div>
-    </ModalShell>
   );
 }
 

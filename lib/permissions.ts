@@ -37,6 +37,9 @@ export const PERMISSION_KEYS = [
   "sales:read",
   "sales:write",
   "sales:delete",
+  // Account book (vendor payables / customer receivables)
+  "accounts:read",
+  "accounts:write",
   // Subscription delivery automation (WhatsApp delivery messages)
   "delivery:read",
   "delivery:send",
@@ -71,6 +74,7 @@ export const PERMISSION_GROUPS: Array<{ label: string; keys: PermissionKey[] }> 
   { label: "Stock", keys: ["stock:read", "stock:write"] },
   { label: "Daily sales", keys: ["sales:read", "sales:write", "sales:delete"] },
   { label: "Delivery automation", keys: ["delivery:read", "delivery:send", "delivery:templates"] },
+  { label: "Account book", keys: ["accounts:read", "accounts:write"] },
   { label: "Settings", keys: ["settings:read", "settings:write"] },
   { label: "Emails", keys: ["emails:read", "emails:send"] },
   { label: "Users", keys: ["users:read", "users:write", "users:assign-roles", "users:delete"] },
@@ -102,6 +106,7 @@ export const ROLE_DEFAULTS: Record<Role, ReadonlyArray<PermissionKey>> = {
     "stock:read", "stock:write",
     "sales:read", "sales:write",
     "delivery:read", "delivery:send",
+    "accounts:read",
     "settings:read",
     "emails:read", "emails:send",
     "analytics:view",
@@ -183,6 +188,7 @@ export const SECTION_PERMISSIONS: Array<{ prefix: string; permission: Permission
   { prefix: "/admin/stock", permission: "stock:read" },
   { prefix: "/admin/sales", permission: "sales:read" },
   { prefix: "/admin/sale-requests", permission: "sales:read" },
+  { prefix: "/admin/account-book", permission: "accounts:read" },
   { prefix: "/admin/product-forms", permission: "products:read" },
   { prefix: "/admin/delivery", permission: "delivery:read" },
   { prefix: "/admin/delivery/templates", permission: "delivery:templates" },

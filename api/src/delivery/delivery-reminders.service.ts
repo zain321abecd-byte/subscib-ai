@@ -103,6 +103,9 @@ export class DeliveryRemindersService {
       .from("subscription_sales")
       .select("id, customer_name, customer_email, customer_phone, product_id, product_name, plan_name, sale_date, expiry_date, renew_date, status, last_reminder_sent_at")
       .not("status", "in", "(renewed,cancelled)")
+      // Soft-deleted sales are out of the business's books, so they must not
+      // generate customer messages either.
+      .is("deleted_at", null)
       .order("renew_date", { ascending: true });
     if (error) throw new Error(error.message);
 

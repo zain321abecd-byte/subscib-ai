@@ -31,6 +31,9 @@ export const PERMISSION_KEYS = [
   // Stock
   "stock:read",
   "stock:write",
+  // Account book (vendor payables / customer receivables)
+  "accounts:read",
+  "accounts:write",
   // Subscription delivery automation (WhatsApp delivery messages)
   "delivery:read",
   "delivery:send",
@@ -60,6 +63,7 @@ export const PERMISSION_GROUPS: Array<{ label: string; keys: PermissionKey[] }> 
   { label: "Freebies", keys: ["freebies:read", "freebies:write", "freebies:delete"] },
   { label: "Stock", keys: ["stock:read", "stock:write"] },
   { label: "Delivery automation", keys: ["delivery:read", "delivery:send", "delivery:templates"] },
+  { label: "Account book", keys: ["accounts:read", "accounts:write"] },
   { label: "Settings", keys: ["settings:read", "settings:write"] },
   { label: "Emails", keys: ["emails:read", "emails:send"] },
   { label: "Users", keys: ["users:read", "users:write", "users:assign-roles", "users:delete"] },
