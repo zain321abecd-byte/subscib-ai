@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { internalApi } from "@/lib/internal-api";
 import { isEmail, isPlausiblePhone, planLabel, type ProductFormRow } from "@/lib/product-forms";
 
 export const dynamic = "force-dynamic";
@@ -93,5 +94,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Could not submit the request. Please try again." }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, requestNo: data?.request_no ?? null });
+  // Acknowledge the customer and alert the team. Deliberately after the row is
+  // written and deliberately non-fatal: a mail outage must never cost us the
+  // request itself, which is the thing the customer cares about.
+  const requestNo = data?.request_no ?? null;
+  try {
+    await internalApi("/emails/request-form", {
+      method: "POST",
+      body: {
+        customerName: name,
+        customerEmail: email,
+        customerPhone: phone,
+        productName: form.product_name,
+        requestNo,
+        priceLabel: form.price != null ? `${form.price} ${form.currency}` : null,
+      },
+    });
+  } catch (err) {
+    console.error("[forms] request emails failed", err);
+  }
+
+  return NextResponse.json({ ok: true, requestNo });
 }

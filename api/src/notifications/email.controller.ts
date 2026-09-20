@@ -92,6 +92,38 @@ export class EmailController {
     return { ok: true, message: "You have been unsubscribed." };
   }
 
+  /**
+   * Emails for a product-form submission: acknowledge the customer, alert the
+   * team. Called by the Next.js form endpoint after the request row is
+   * written, so a mail problem can never lose the request itself.
+   */
+  @Post("request-form")
+  @UseGuards(InternalOrAdminGuard)
+  async requestForm(@Body() body: any) {
+    if (!isEmail(body?.customerEmail)) {
+      return { ok: false, error: "A valid customer email is required." };
+    }
+    const results = await this.email.sendRequestFormEmails({
+      customerName: String(body.customerName || "Customer").slice(0, 160),
+      customerEmail: body.customerEmail.trim().toLowerCase(),
+      customerPhone: String(body.customerPhone || "").slice(0, 40),
+      productName: String(body.productName || "your order").slice(0, 200),
+      requestNo: body.requestNo ? String(body.requestNo).slice(0, 40) : null,
+      priceLabel: body.priceLabel ? String(body.priceLabel).slice(0, 80) : null,
+    });
+    return { ok: true, ...results };
+  }
+
+  /**
+   * Connect and authenticate without sending — the check to run when mail
+   * "just isn't arriving".
+   */
+  @Get("diagnose")
+  @UseGuards(InternalOrAdminGuard)
+  diagnose() {
+    return this.email.diagnose();
+  }
+
   @Post("promotions/test")
   @UseGuards(InternalOrAdminGuard)
   async sendTest(@Body() body: any) {

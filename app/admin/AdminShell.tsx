@@ -41,7 +41,16 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { href: "/admin/business-bundle-inquiries", label: "Business Bundle Inquiries", icon: "fa-building-circle-check", permission: "orders:read" },
       { href: "/admin/custom-pricing-requests", label: "Custom Pricing Requests", icon: "fa-file-signature", permission: "orders:read" },
       { href: "/admin/contact-messages", label: "Contact Messages", icon: "fa-message" },
-      { href: "/admin/email",   label: "Emails",  icon: "fa-envelope",       permission: "emails:read" },
+      {
+        href: "/admin/email",
+        label: "Emails",
+        icon: "fa-envelope",
+        permission: "emails:read",
+        children: [
+          { href: "/admin/email", label: "Compose", permission: "emails:read" },
+          { href: "/admin/email/logs", label: "Email logs", permission: "emails:read" },
+        ],
+      },
       { href: "/admin/stock",   label: "Stock",   icon: "fa-boxes-stacked",  permission: "stock:read" },
       { href: "/admin/sale-requests", label: "Sale Requests", icon: "fa-inbox", permission: "sales:read" },
       {

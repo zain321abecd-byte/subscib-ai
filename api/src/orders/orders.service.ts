@@ -268,6 +268,14 @@ export class OrdersService {
     try {
       this.logger.log(`Sending order confirmation email to: ${order.customer_email}`);
       const result = await this.email.sendOrderConfirmationEmail({ order });
+
+      // Alert the shop too. Separately caught: a failure here must never stop
+      // the customer's confirmation from being reported as sent.
+      this.email.sendAdminOrderNotification({ order }).catch((err: unknown) =>
+        this.logger.warn(
+          `Admin order notification failed for ${order.order_number}: ${err instanceof Error ? err.message : "unknown"}`,
+        ),
+      );
       if ((result as { skipped?: boolean } | undefined)?.skipped) {
         this.logger.log(`Order confirmation email already sent for order: ${order.order_number}`);
       } else {
@@ -301,6 +309,14 @@ export class OrdersService {
     }
     try {
       const result = await this.email.sendOrderConfirmationEmail({ order });
+
+      // Alert the shop too. Separately caught: a failure here must never stop
+      // the customer's confirmation from being reported as sent.
+      this.email.sendAdminOrderNotification({ order }).catch((err: unknown) =>
+        this.logger.warn(
+          `Admin order notification failed for ${order.order_number}: ${err instanceof Error ? err.message : "unknown"}`,
+        ),
+      );
       if ((result as { skipped?: boolean } | undefined)?.skipped) {
         this.logger.log(`Order confirmation already sent for ${order.order_number} — skip`);
       } else {

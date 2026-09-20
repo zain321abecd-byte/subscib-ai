@@ -71,6 +71,45 @@ function layout(title: string, body: string, contactEmail: string) {
 </html>`;
 }
 
+/**
+ * Nodemailer/SMTP errors arrive as opaque codes. Translate them into the thing
+ * the operator actually has to change, because "Connection timeout" on its own
+ * sent us hunting for a week.
+ */
+export function explainSmtpError(err: unknown): string {
+  const e = err as { code?: string; responseCode?: number; response?: string; message?: string };
+  const code = (e?.code || "").toUpperCase();
+  const host = process.env.SMTP_HOST || "(unset)";
+  const port = process.env.SMTP_PORT || "587";
+
+  if (code === "ETIMEDOUT" || code === "ESOCKET" || /timeout/i.test(e?.message || "")) {
+    return (
+      `Could not reach the mail server at ${host}:${port} — the connection timed out. ` +
+      `Either SMTP_HOST is wrong, or that port is blocked outbound. Check the host is the ` +
+      `SUBMISSION server (not the inbound MX record) and that the port is 465 (SSL) or 587 (STARTTLS), not 25.`
+    );
+  }
+  if (code === "ENOTFOUND" || code === "EAI_AGAIN") {
+    return `SMTP_HOST "${host}" does not resolve. Check the hostname for a typo.`;
+  }
+  if (code === "ECONNREFUSED") {
+    return `${host}:${port} refused the connection. The port is probably wrong for this provider.`;
+  }
+  if (code === "EAUTH" || e?.responseCode === 535) {
+    return (
+      `The mail server rejected the username or password. SMTP_USER is usually the full email ` +
+      `address, and some providers need an app-specific password rather than the account one.`
+    );
+  }
+  if (e?.responseCode === 550 || e?.responseCode === 553) {
+    return (
+      `The server rejected the sender address. EMAIL_FROM must be a mailbox this account is ` +
+      `allowed to send as. Server said: ${(e?.response || "").slice(0, 160)}`
+    );
+  }
+  return e?.message || "Email send failed.";
+}
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
@@ -139,12 +178,42 @@ export class EmailService {
 
   status() {
     const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || "";
+    const port = Number(process.env.SMTP_PORT || 587);
     return {
       provider: "smtp",
       configured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && from),
       from,
       replyTo: process.env.EMAIL_REPLY_TO || "",
+      // Surfaced so the admin panel can show what the server is actually using.
+      // Never includes the password.
+      host: process.env.SMTP_HOST || "",
+      port,
+      secure: String(process.env.SMTP_SECURE || "").toLowerCase() === "true" || port === 465,
+      user: process.env.SMTP_USER || "",
     };
+  }
+
+  /**
+   * Open a connection and authenticate without sending anything. This is the
+   * check to run when mail "just isn't arriving" — it separates a broken
+   * connection from a broken recipient.
+   */
+  async diagnose(): Promise<{ ok: boolean; detail: string; config: ReturnType<EmailService["status"]> }> {
+    const config = this.status();
+    if (!config.configured) {
+      return {
+        ok: false,
+        detail: "SMTP is not fully configured — SMTP_HOST, SMTP_USER, SMTP_PASS and a from address are all required.",
+        config,
+      };
+    }
+    try {
+      await this.getTransporter().verify();
+      return { ok: true, detail: `Connected to ${config.host}:${config.port} and authenticated successfully.`, config };
+    } catch (err) {
+      this.logger.error(`SMTP diagnose failed: ${(err as Error).message}`);
+      return { ok: false, detail: explainSmtpError(err), config };
+    }
   }
 
   async sendEmail({ to, subject, text, html, replyTo, emailType = "transactional", relatedOrderId = null }: SendEmailInput) {
@@ -201,7 +270,7 @@ export class EmailService {
       if (logId) {
         await this.supabase.admin().from("email_logs").update({
           status: "failed",
-          error_message: err instanceof Error ? err.message : "Email send failed",
+          error_message: explainSmtpError(err).slice(0, 500),
         }).eq("id", logId);
       }
       throw err;
@@ -354,6 +423,177 @@ export class EmailService {
       `Support: ${s.contactEmail}${s.whatsapp ? ` / WhatsApp ${s.whatsapp}` : ""}`,
     ].join("\n");
     return this.sendEmail({ to: order.customer_email, subject, html, text, emailType: "order_confirmation", relatedOrderId: order.id });
+  }
+
+  /**
+   * Tell the shop a new order landed. Nothing did this before — orders only
+   * ever emailed the customer, so the team found out by opening the admin
+   * panel.
+   *
+   * Goes to ADMIN_NOTIFY_EMAIL, falling back to the site's contact address.
+   * Reply-to is the customer, so hitting reply reaches the buyer.
+   */
+  async sendAdminOrderNotification({ order }: { order: OrderEmail }) {
+    const s = await this.settings();
+    const to = (process.env.ADMIN_NOTIFY_EMAIL || s.contactEmail || "").trim();
+    if (!to) {
+      this.logger.warn("No ADMIN_NOTIFY_EMAIL or contact_email set — skipping the admin order notification.");
+      return null;
+    }
+
+    const items = Array.isArray((order as any).items) ? (order as any).items : [];
+    const placed = new Date((order as any).created_at || Date.now()).toLocaleString("en-PK");
+    const total = (order as any).subtotal_pkr != null
+      ? `Rs ${Number((order as any).subtotal_pkr).toLocaleString("en-PK")}`
+      : (order as any).subtotal_usd != null
+        ? `$${Number((order as any).subtotal_usd).toFixed(2)}`
+        : "—";
+
+    const rows = items
+      .map((it: any) => `
+        <tr>
+          <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">${escapeHtml(String(it?.name ?? "Item"))}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;">${escapeHtml(String(it?.qty ?? 1))}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">Rs ${Number(it?.price ?? 0).toLocaleString("en-PK")}</td>
+        </tr>`)
+      .join("");
+
+    const subject = `New order ${order.order_number} — ${total}`;
+    const html = layout(subject, `
+      <h1 style="margin:0 0 12px;font-size:22px;color:#111827;">New order received</h1>
+      <p style="margin:0 0 18px;color:#374151;line-height:1.7;">
+        Order <strong>${escapeHtml(order.order_number)}</strong> came in on ${escapeHtml(placed)}.
+      </p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 18px;">
+        <tr><td style="padding:6px 0;color:#6b7280;">Customer</td><td style="padding:6px 0;"><strong>${escapeHtml(order.customer_name || "—")}</strong></td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;">Email</td><td style="padding:6px 0;">${escapeHtml(order.customer_email)}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;">Phone</td><td style="padding:6px 0;">${escapeHtml((order as any).customer_phone || "—")}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;">Status</td><td style="padding:6px 0;">${escapeHtml((order as any).status || "pending")}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;">Payment</td><td style="padding:6px 0;">${escapeHtml((order as any).payment_method || "—")}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;">Total</td><td style="padding:6px 0;"><strong>${escapeHtml(total)}</strong></td></tr>
+      </table>
+      ${rows ? `<table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead><tr>
+          <th align="left" style="padding:8px 10px;border-bottom:2px solid #e5e7eb;color:#6b7280;">Product</th>
+          <th align="center" style="padding:8px 10px;border-bottom:2px solid #e5e7eb;color:#6b7280;">Qty</th>
+          <th align="right" style="padding:8px 10px;border-bottom:2px solid #e5e7eb;color:#6b7280;">Price</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : ""}
+    `, s.contactEmail);
+
+    const text = [
+      `New order ${order.order_number}`,
+      `Placed: ${placed}`,
+      `Customer: ${order.customer_name || "—"} (${order.customer_email})`,
+      `Phone: ${(order as any).customer_phone || "—"}`,
+      `Status: ${(order as any).status || "pending"}`,
+      `Total: ${total}`,
+      "",
+      ...items.map((it: any) => `- ${it?.name ?? "Item"} x${it?.qty ?? 1}`),
+    ].join("\n");
+
+    return this.sendEmail({
+      to,
+      subject,
+      html,
+      text,
+      // Replying reaches the customer, which is what you want from an alert.
+      replyTo: order.customer_email,
+      emailType: "admin_order_alert",
+      relatedOrderId: (order as any).id ?? null,
+    });
+  }
+
+  /**
+   * Acknowledge a product-form request to the customer, and alert the team.
+   * Returns both outcomes so the caller can log what actually went out.
+   */
+  async sendRequestFormEmails(input: {
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    productName: string;
+    requestNo: string | null;
+    priceLabel?: string | null;
+  }) {
+    const s = await this.settings();
+    const results: { customer: boolean; admin: boolean; error?: string } = { customer: false, admin: false };
+
+    try {
+      const subject = `We have received your ${input.productName} request`;
+      const html = layout(subject, `
+        <h1 style="margin:0 0 12px;font-size:22px;color:#111827;">Your request has been received successfully.</h1>
+        <p style="margin:0 0 16px;color:#374151;line-height:1.7;">
+          Thanks ${escapeHtml(input.customerName)} — we have your request for
+          <strong>${escapeHtml(input.productName)}</strong>${input.priceLabel ? ` (${escapeHtml(input.priceLabel)})` : ""}.
+          Our team will confirm it shortly and contact you on ${escapeHtml(input.customerPhone)}.
+        </p>
+        ${input.requestNo ? `<p style="margin:0 0 16px;color:#374151;">Your reference is <strong>${escapeHtml(input.requestNo)}</strong>.</p>` : ""}
+        <p style="margin:18px 0 0;color:#6b7280;font-size:14px;">
+          Questions? Reply to this email or write to ${escapeHtml(s.contactEmail)}${s.whatsapp ? ` / WhatsApp ${escapeHtml(s.whatsapp)}` : ""}.
+        </p>
+      `, s.contactEmail);
+
+      await this.sendEmail({
+        to: input.customerEmail,
+        subject,
+        html,
+        text: [
+          "Your request has been received successfully.",
+          "",
+          `Product: ${input.productName}`,
+          input.requestNo ? `Reference: ${input.requestNo}` : "",
+          "",
+          `We will contact you on ${input.customerPhone}.`,
+          `Support: ${s.contactEmail}`,
+        ].filter(Boolean).join("\n"),
+        emailType: "request_ack",
+      });
+      results.customer = true;
+    } catch (err) {
+      results.error = explainSmtpError(err);
+      this.logger.error(`Request acknowledgement to ${input.customerEmail} failed: ${results.error}`);
+    }
+
+    const adminTo = (process.env.ADMIN_NOTIFY_EMAIL || s.contactEmail || "").trim();
+    if (adminTo) {
+      try {
+        const subject = `New customer request — ${input.productName}`;
+        const html = layout(subject, `
+          <h1 style="margin:0 0 12px;font-size:22px;color:#111827;">New customer request received</h1>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <tr><td style="padding:6px 0;color:#6b7280;">Reference</td><td style="padding:6px 0;"><strong>${escapeHtml(input.requestNo || "—")}</strong></td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;">Product</td><td style="padding:6px 0;">${escapeHtml(input.productName)}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;">Customer</td><td style="padding:6px 0;">${escapeHtml(input.customerName)}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;">Phone</td><td style="padding:6px 0;">${escapeHtml(input.customerPhone)}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;">Email</td><td style="padding:6px 0;">${escapeHtml(input.customerEmail)}</td></tr>
+          </table>
+          <p style="margin:18px 0 0;color:#374151;">Approve or decline it under Sale requests in the admin panel.</p>
+        `, s.contactEmail);
+
+        await this.sendEmail({
+          to: adminTo,
+          subject,
+          html,
+          text: [
+            "New customer request received",
+            `Reference: ${input.requestNo || "—"}`,
+            `Product: ${input.productName}`,
+            `Customer: ${input.customerName}`,
+            `Phone: ${input.customerPhone}`,
+            `Email: ${input.customerEmail}`,
+          ].join("\n"),
+          replyTo: input.customerEmail,
+          emailType: "admin_request_alert",
+        });
+        results.admin = true;
+      } catch (err) {
+        this.logger.error(`Admin request alert failed: ${explainSmtpError(err)}`);
+      }
+    }
+
+    return results;
   }
 
   async sendPromotionEmail({ to, subject, messageHtml, messageText }: { to: string; subject: string; messageHtml: string; messageText?: string }) {
