@@ -19,6 +19,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     section: "Catalog",
     items: [
       { href: "/admin/products", label: "Products",  icon: "fa-box",       permission: "products:read" },
+      { href: "/admin/product-forms", label: "Product Forms", icon: "fa-file-signature", permission: "products:read" },
       { href: "/admin/blog",     label: "Blog posts", icon: "fa-newspaper", permission: "blog:read" },
       { href: "/admin/reviews",  label: "Reviews",    icon: "fa-star",      permission: "reviews:read" },
     ],
@@ -34,6 +35,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       { href: "/admin/contact-messages", label: "Contact Messages", icon: "fa-message" },
       { href: "/admin/email",   label: "Emails",  icon: "fa-envelope",       permission: "emails:read" },
       { href: "/admin/stock",   label: "Stock",   icon: "fa-boxes-stacked",  permission: "stock:read" },
+      { href: "/admin/sale-requests", label: "Sale Requests", icon: "fa-inbox", permission: "sales:read" },
       { href: "/admin/sales",   label: "Daily Sales", icon: "fa-hand-holding-dollar", permission: "sales:read" },
       { href: "/admin/delivery", label: "Delivery Messages", icon: "fa-paper-plane", permission: "delivery:read" },
       { href: "/admin/whatsapp", label: "Send by WhatsApp", icon: "fa-comment-sms", permission: "delivery:read" },

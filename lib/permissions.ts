@@ -182,6 +182,8 @@ export const SECTION_PERMISSIONS: Array<{ prefix: string; permission: Permission
   { prefix: "/admin/custom-pricing-requests", permission: "orders:read" },
   { prefix: "/admin/stock", permission: "stock:read" },
   { prefix: "/admin/sales", permission: "sales:read" },
+  { prefix: "/admin/sale-requests", permission: "sales:read" },
+  { prefix: "/admin/product-forms", permission: "products:read" },
   { prefix: "/admin/delivery", permission: "delivery:read" },
   { prefix: "/admin/delivery/templates", permission: "delivery:templates" },
   { prefix: "/admin/whatsapp", permission: "delivery:read" },
