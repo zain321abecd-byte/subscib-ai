@@ -12,6 +12,23 @@ type SendEmailInput = {
   relatedOrderId?: string | null;
 };
 
+/** Which transport the service will use for the current env. */
+type EmailProvider = "resend" | "smtp";
+
+/** Resend API POST /emails payload. */
+type ResendPayload = {
+  from: string;
+  to: string[];
+  subject: string;
+  html?: string;
+  text?: string;
+  reply_to?: string;
+};
+
+function activeProvider(): EmailProvider {
+  return process.env.RESEND_API_KEY ? "resend" : "smtp";
+}
+
 type OrderEmail = {
   id: string;
   order_number: string;
@@ -177,15 +194,28 @@ export class EmailService {
   }
 
   status() {
+    const provider = activeProvider();
     const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || "";
     const port = Number(process.env.SMTP_PORT || 587);
+
+    if (provider === "resend") {
+      return {
+        provider: "resend" as const,
+        configured: Boolean(process.env.RESEND_API_KEY && from),
+        from,
+        replyTo: process.env.EMAIL_REPLY_TO || "",
+        host: "api.resend.com",
+        port: 443,
+        secure: true,
+        user: "(http-api)",
+      };
+    }
+
     return {
-      provider: "smtp",
+      provider: "smtp" as const,
       configured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && from),
       from,
       replyTo: process.env.EMAIL_REPLY_TO || "",
-      // Surfaced so the admin panel can show what the server is actually using.
-      // Never includes the password.
       host: process.env.SMTP_HOST || "",
       port,
       secure: String(process.env.SMTP_SECURE || "").toLowerCase() === "true" || port === 465,
@@ -201,12 +231,31 @@ export class EmailService {
   async diagnose(): Promise<{ ok: boolean; detail: string; config: ReturnType<EmailService["status"]> }> {
     const config = this.status();
     if (!config.configured) {
-      return {
-        ok: false,
-        detail: "SMTP is not fully configured — SMTP_HOST, SMTP_USER, SMTP_PASS and a from address are all required.",
-        config,
-      };
+      const provider = activeProvider();
+      const detail = provider === "resend"
+        ? "Resend is not fully configured — RESEND_API_KEY and a from address (EMAIL_FROM) are required."
+        : "SMTP is not fully configured — SMTP_HOST, SMTP_USER, SMTP_PASS and a from address are all required.";
+      return { ok: false, detail, config };
     }
+
+    if (activeProvider() === "resend") {
+      try {
+        const res = await fetch("https://api.resend.com/domains", {
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+        });
+        if (res.ok) {
+          return { ok: true, detail: "Resend HTTP API authenticated successfully (Full access).", config };
+        }
+        const body = await res.json().catch(() => null) as { name?: string; message?: string } | null;
+        if (body?.name === "restricted_api_key") {
+          return { ok: true, detail: "Resend HTTP API authenticated successfully (Sending access key).", config };
+        }
+        return { ok: false, detail: `Resend API error: ${body?.message || res.statusText}`, config };
+      } catch (err) {
+        return { ok: false, detail: `Resend API unreachable: ${(err as Error).message}`, config };
+      }
+    }
+
     try {
       await this.getTransporter().verify();
       return { ok: true, detail: `Connected to ${config.host}:${config.port} and authenticated successfully.`, config };
@@ -216,12 +265,58 @@ export class EmailService {
     }
   }
 
+  private async sendViaResend(input: {
+    from: string;
+    to: string;
+    subject: string;
+    html?: string;
+    text?: string;
+    replyTo?: string;
+  }): Promise<{ messageId: string; response: string }> {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY is not configured.");
+    }
+
+    const payload: ResendPayload = {
+      from: input.from,
+      to: [input.to],
+      subject: input.subject,
+      ...(input.html ? { html: input.html } : {}),
+      ...(input.text ? { text: input.text } : {}),
+      ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+    };
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = (await res.json().catch(() => null)) as { id?: string; message?: string; name?: string } | null;
+
+    if (!res.ok) {
+      const errMsg = data?.message || `HTTP ${res.status}: Failed to send email via Resend`;
+      throw new Error(errMsg);
+    }
+
+    return {
+      messageId: data?.id || `resend_${Date.now()}`,
+      response: "250 Delivered via Resend HTTP API",
+    };
+  }
+
   async sendEmail({ to, subject, text, html, replyTo, emailType = "transactional", relatedOrderId = null }: SendEmailInput) {
     const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER;
     if (!from) {
       this.logger.error("EMAIL_FROM / SMTP_FROM / SMTP_USER all empty — cannot determine 'from' address.");
       throw new Error("EMAIL_FROM, SMTP_FROM, or SMTP_USER must be configured before sending email.");
     }
+
+    const provider = activeProvider();
 
     let logId: string | null = null;
     try {
@@ -230,7 +325,7 @@ export class EmailService {
         recipient_email: to,
         subject,
         status: "pending",
-        provider: "smtp",
+        provider: provider,
         related_order_id: relatedOrderId,
       }).select("id").maybeSingle();
       logId = data?.id ?? null;
@@ -239,33 +334,52 @@ export class EmailService {
     }
 
     this.logger.log(
-      `sendEmail → to=${to} from="${from}" subject="${subject}" type=${emailType} logId=${logId || "-"}`,
+      `sendEmail [${provider}] → to=${to} from="${from}" subject="${subject}" type=${emailType} logId=${logId || "-"}`,
     );
 
     try {
-      const result = await this.getTransporter().sendMail({
-        from,
-        to,
-        subject,
-        text: text || stripHtml(html || ""),
-        html,
-        replyTo: replyTo || process.env.EMAIL_REPLY_TO || undefined,
-      });
+      let messageId = "";
+      let responseText = "";
+
+      if (provider === "resend") {
+        const result = await this.sendViaResend({
+          from,
+          to,
+          subject,
+          text: text || stripHtml(html || ""),
+          html,
+          replyTo: replyTo || process.env.EMAIL_REPLY_TO || undefined,
+        });
+        messageId = result.messageId;
+        responseText = result.response;
+      } else {
+        const result = await this.getTransporter().sendMail({
+          from,
+          to,
+          subject,
+          text: text || stripHtml(html || ""),
+          html,
+          replyTo: replyTo || process.env.EMAIL_REPLY_TO || undefined,
+        });
+        messageId = String(result.messageId || "");
+        responseText = String(result.response || "");
+      }
+
       this.logger.log(
-        `sendEmail OK → to=${to} messageId=${result.messageId || "?"} accepted=${(result.accepted || []).join(",")} rejected=${(result.rejected || []).join(",")} response="${(result.response || "").slice(0, 160)}"`,
+        `sendEmail OK [${provider}] → to=${to} messageId=${messageId} response="${responseText.slice(0, 160)}"`,
       );
       if (logId) {
         await this.supabase.admin().from("email_logs").update({
           status: "sent",
-          provider_message_id: String(result.messageId || ""),
+          provider_message_id: messageId,
           sent_at: new Date().toISOString(),
         }).eq("id", logId);
       }
-      return result;
+      return { messageId, response: responseText };
     } catch (err) {
       const e = err as { code?: string; command?: string; response?: string; responseCode?: number; message?: string };
       this.logger.error(
-        `sendEmail FAILED → to=${to}  code=${e?.code || "?"}  responseCode=${e?.responseCode ?? "?"}  command=${e?.command || "?"}  response="${(e?.response || "").slice(0, 200)}"  message="${(e?.message || "").slice(0, 200)}"`,
+        `sendEmail FAILED [${provider}] → to=${to}  code=${e?.code || "?"}  responseCode=${e?.responseCode ?? "?"}  command=${e?.command || "?"}  response="${(e?.response || "").slice(0, 200)}"  message="${(e?.message || "").slice(0, 200)}"`,
       );
       if (logId) {
         await this.supabase.admin().from("email_logs").update({
