@@ -11,6 +11,9 @@ import { NextResponse, type NextRequest } from "next/server";
  * action re-validates before touching data.
  */
 const PORTAL_COOKIE = "subscribai-portal-token";
+/** Customer session for /panel. Same two-tier idea: presence here, real
+ *  validation server-side in lib/panel/auth.ts against /auth/me. */
+const PANEL_COOKIE = "subscribai-panel-token";
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -19,6 +22,21 @@ export function middleware(req: NextRequest) {
   const fwdHeaders = new Headers(req.headers);
   fwdHeaders.set("x-pathname", pathname);
   fwdHeaders.set("x-user-country", req.headers.get("x-vercel-ip-country") || "");
+
+  if (pathname === "/panel" || pathname.startsWith("/panel/")) {
+    // The sign-in page itself has to stay reachable while signed out.
+    if (pathname === "/panel/login") {
+      return NextResponse.next({ request: { headers: fwdHeaders } });
+    }
+    if (!req.cookies.get(PANEL_COOKIE)?.value) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/panel/login";
+      url.search = "";
+      if (pathname !== "/panel") url.searchParams.set("next", pathname);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next({ request: { headers: fwdHeaders } });
+  }
 
   if (!pathname.startsWith("/admin")) {
     return NextResponse.next({ request: { headers: fwdHeaders } });

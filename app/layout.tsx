@@ -121,13 +121,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   // Consent banner is only shown where Google requires it (EEA/UK/CH);
   // elsewhere consent defaults to granted and no banner interrupts the shop.
-  const country = (await headers()).get("x-user-country");
+  const headerList = await headers();
+  const country = headerList.get("x-user-country");
+  // /panel is a dashboard, not a shop page: it opts out of the storefront's
+  // dark body, decorative gradients and giant heading scale. Decided here
+  // rather than in a client effect so there's no flash of shop chrome.
+  const isPanel = (headerList.get("x-pathname") || "").startsWith("/panel");
   // Boolean (not `ga && …`): the banner's mount is already gated on analytics
   // being configured, and `autoShow` needs a real boolean.
   const needsConsent = isConsentRequired(country);
 
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${inter.variable} ${poppins.variable}${isPanel ? " panel-html" : ""}`}
+      suppressHydrationWarning
+    >
       <head>
         <link
           rel="stylesheet"
@@ -180,7 +189,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
         )}
       </head>
-      <body className="v2">
+      <body className={isPanel ? "v2 panel-body" : "v2"}>
         {/* Google Tag Manager — noscript body fallback */}
         {gtm && (
           <noscript>

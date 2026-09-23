@@ -13,6 +13,11 @@
 @import "tailwindcss/theme.css";
 @import "tailwindcss/utilities.css";
 
+/* Dark mode is class-driven, not OS-driven: only /panel has a dark theme and
+   it is toggled by the user. The storefront uses no dark: utilities at all,
+   so this is inert outside the panel. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Brand — mirrors the existing :root tokens so utilities like
      bg-brand-500 / text-accent-500 / shadow-brand match site identity. */
@@ -22,6 +27,12 @@
   --color-brand-500: #4884FF;
   --color-brand-600: #3471EF;
   --color-brand-700: #2A5FD0;
+  /* Added for /panel, which needs a fuller ramp than the shop uses.
+     Purely additive — no existing shade above is altered. */
+  --color-brand-200: #A8C6FF;
+  --color-brand-400: #6B9BFF;
+  --color-brand-800: #204BA3;
+  --color-brand-900: #17376F;
 
   --color-accent-300: #F8B055;
   --color-accent-500: #F59622;

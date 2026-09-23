@@ -1,0 +1,251 @@
+/* ===========================================================================
+ * SMM Panel styles — everything under /panel.
+ *
+ * Imported by app/panel/layout.tsx, NOT by the root layout, so these rules
+ * only ship on panel routes.
+ *
+ * Two jobs:
+ *
+ *  1. Undo the storefront. app/globals.css styles bare elements — body gets a
+ *     dark navy background and two decorative ::before/::after layers, h1 is
+ *     clamp(2.65rem, …) with a 24px margin, and so on. A dashboard can't live
+ *     on top of that. The `body.panel-body` block below switches it off, the
+ *     same way `body.admin-body` already does for the staff portal.
+ *
+ *  2. Provide the panel's own surface tokens and component classes. Light by
+ *     default, dark under `.dark` on <html>, which the theme toggle sets.
+ *
+ * Tailwind utilities themselves come from app/tailwind.css, which is global —
+ * this file adds no utilities and imports no Tailwind, so it can't duplicate
+ * the bundle.
+ * ======================================================================== */
+
+/* ── 1. Storefront opt-out ─────────────────────────────────────────────── */
+
+html.panel-html {
+  /* The shop offsets anchors for its sticky header; the panel has none. */
+  scroll-padding-top: 0 !important;
+  background: var(--panel-surface-2) !important;
+}
+
+body.panel-body {
+  background: var(--panel-surface-2) !important;
+  color: var(--panel-text) !important;
+  font-family: var(--panel-font) !important;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden;
+}
+
+/* The shop paints a full-screen skeleton overlay at z-index 9998/9999. */
+body.panel-body::before,
+body.panel-body::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* globals.css sizes and colours bare headings for marketing pages. Inside the
+   panel, headings are sized by Tailwind utilities instead, so strip the
+   element-level styling back to neutral rather than fighting it per-heading. */
+body.panel-body :where(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+  max-width: none;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: normal;
+  color: inherit;
+}
+
+/* The storefront skips Tailwind's Preflight (see app/tailwind.css) to protect
+   its legacy CSS. The panel was written expecting Preflight, so it gets the
+   part of it that matters, scoped to the panel subtree only. */
+.panel-scope *,
+.panel-scope *::before,
+.panel-scope *::after {
+  box-sizing: border-box;
+}
+
+.panel-scope :where(p, figure, blockquote, dl, dd) {
+  margin: 0;
+}
+
+.panel-scope :where(ul, ol) {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-scope :where(table) {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.panel-scope :where(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  margin: 0;
+}
+
+.panel-scope :where(button) {
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.panel-scope :where(fieldset) {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.panel-scope :where(legend) {
+  padding: 0;
+}
+
+.panel-scope :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── 2. Panel tokens ───────────────────────────────────────────────────── */
+
+:root {
+  /* The shop loads Inter via next/font as --next-font-body. Naming a variable
+     that doesn't exist makes the whole font-family declaration invalid, which
+     is how the panel ended up rendering in the browser's default serif. */
+  --panel-font: var(--next-font-body), "Inter", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --panel-surface: #ffffff;
+  --panel-surface-2: #f6f8fb;
+  --panel-surface-3: #eef2f7;
+  --panel-border: #dde3ec;
+  --panel-text: #101a2b;
+  --panel-text-muted: #5b6878;
+  --panel-ring: #3471ef;
+}
+
+.dark {
+  --panel-surface: #131c2b;
+  --panel-surface-2: #0b1019;
+  --panel-surface-3: #1e293b;
+  --panel-border: #28364a;
+  --panel-text: #eef2f7;
+  --panel-text-muted: #94a3b8;
+  --panel-ring: #6b9bff;
+}
+
+/* Short aliases. The panel components were written against --surface/--text
+   before they moved into the shop; keeping the short names working means the
+   markup didn't have to be rewritten, and scoping them to .panel-scope means
+   they can't collide with the storefront's own --surface / --text tokens,
+   which are different colours entirely. */
+.panel-scope {
+  --surface: var(--panel-surface);
+  --surface-2: var(--panel-surface-2);
+  --surface-3: var(--panel-surface-3);
+  --border: var(--panel-border);
+  --text: var(--panel-text);
+  --text-muted: var(--panel-text-muted);
+  --ring: var(--panel-ring);
+
+  color: var(--panel-text);
+  font-family: var(--panel-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible focus everywhere. A dashboard is driven from the keyboard. */
+.panel-scope :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--panel-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ── 3. Components ─────────────────────────────────────────────────────────
+ *
+ * Every selector below is prefixed with .panel-scope, and that is load-bearing
+ * rather than tidiness. app/globals.css styles form controls as
+ * `input[type="email"], select, textarea { background: … }` — an attribute
+ * selector, so specificity (0,1,1), which beats a bare `.panel-input` at
+ * (0,1,0) and painted the panel's inputs shop-navy on a white card. The
+ * descendant prefix takes these to (0,2,0) and settles it without !important.
+ * ---------------------------------------------------------------------- */
+
+
+.panel-scope .panel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.panel-scope .panel-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.925rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.panel-scope .panel-input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+.panel-scope .panel-input:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
+}
+.panel-scope .panel-input:disabled {
+  background: var(--surface-3);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.panel-scope .panel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.925rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+.panel-scope .panel-btn-primary {
+  background: var(--color-brand-600);
+  color: #fff;
+  border: 1px solid var(--color-brand-600);
+}
+.panel-scope .panel-btn-primary:hover:not(:disabled) {
+  background: var(--color-brand-700);
+}
+.panel-scope .panel-btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.panel-scope .panel-btn-ghost:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+.panel-scope .panel-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.panel-scope .panel-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
