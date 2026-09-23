@@ -46,10 +46,26 @@ body.panel-body::after {
   content: none !important;
 }
 
-/* globals.css sizes and colours bare headings for marketing pages. Inside the
-   panel, headings are sized by Tailwind utilities instead, so strip the
-   element-level styling back to neutral rather than fighting it per-heading. */
-body.panel-body :where(h1, h2, h3, h4, h5, h6) {
+/* globals.css sizes and colours bare headings for marketing pages (h1 is
+   clamp(2.65rem, 5.8vw, 4.85rem) with a 24px margin). Inside the panel,
+   headings are sized by Tailwind utilities instead.
+ *
+ * The specificity here is deliberate and narrow. This rule has to BEAT
+ * globals.css `h1 { … }` but LOSE to a Tailwind `.text-5xl`, and there is no
+ * specificity value between those two — element (0,0,1) and class (0,1,0) are
+ * adjacent. So it matches globals.css exactly at (0,0,1), by wrapping the body
+ * class in :where() to contribute nothing, and wins the tie on source order:
+ * panel.css is imported by the panel layout, which Next emits after the root
+ * layout's globals.css. Utilities, being classes, still win outright.
+ *
+ * Written as `body.panel-body :where(h1)` instead, this rule was (0,1,1) and
+ * silently flattened every heading in the panel to body size. */
+:where(body.panel-body) h1,
+:where(body.panel-body) h2,
+:where(body.panel-body) h3,
+:where(body.panel-body) h4,
+:where(body.panel-body) h5,
+:where(body.panel-body) h6 {
   margin: 0;
   max-width: none;
   font-family: inherit;
@@ -60,58 +76,81 @@ body.panel-body :where(h1, h2, h3, h4, h5, h6) {
   color: inherit;
 }
 
+/* globals.css also has `h1 span { display: block }`, for the shop's stacked
+   marketing headlines. In the panel a span inside a heading is just an
+   emphasised phrase and must stay on the same line. Same (0,0,2) vs (0,0,2)
+   tie-broken-by-order trick as above. */
+:where(body.panel-body) h1 span,
+:where(body.panel-body) h2 span,
+:where(body.panel-body) h3 span {
+  display: inline;
+}
+
 /* The storefront skips Tailwind's Preflight (see app/tailwind.css) to protect
    its legacy CSS. The panel was written expecting Preflight, so it gets the
-   part of it that matters, scoped to the panel subtree only. */
-.panel-scope *,
-.panel-scope *::before,
-.panel-scope *::after {
+   part of it that matters, scoped to the panel subtree only.
+ *
+ * Every selector is wrapped in :where() so the whole block has specificity
+ * ZERO. That is the point of it. Written the obvious way,
+ * `.panel-scope :where(p) { margin: 0 }` is (0,1,0) — exactly the same as
+ * Tailwind's `.mt-4` — and because panel.css is emitted after the utilities,
+ * the reset won every tie. Margin, padding and list utilities silently did
+ * nothing inside the panel: mt-4 computed to 0px, and even text-brand-600 lost
+ * to the `a { color: inherit }` line. At zero specificity a utility always
+ * wins, which is what a reset should do.
+ *
+ * Elements that globals.css styles by name (h1-h6, a, img, form controls) are
+ * handled above or by .panel-* component classes, because a zero-specificity
+ * rule would lose to those. */
+:where(.panel-scope) *,
+:where(.panel-scope) *::before,
+:where(.panel-scope) *::after {
   box-sizing: border-box;
 }
 
-.panel-scope :where(p, figure, blockquote, dl, dd) {
+:where(.panel-scope) :where(p, figure, blockquote, dl, dd) {
   margin: 0;
 }
 
-.panel-scope :where(ul, ol) {
+:where(.panel-scope) :where(ul, ol) {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.panel-scope :where(table) {
+:where(.panel-scope) :where(table) {
   border-collapse: collapse;
   border-spacing: 0;
 }
 
-.panel-scope :where(button, input, select, textarea) {
+:where(.panel-scope) :where(button, input, select, textarea) {
   font: inherit;
   color: inherit;
   letter-spacing: inherit;
   margin: 0;
 }
 
-.panel-scope :where(button) {
+:where(.panel-scope) :where(button) {
   background: none;
   border: 0;
   cursor: pointer;
 }
 
-.panel-scope :where(fieldset) {
+:where(.panel-scope) :where(fieldset) {
   margin: 0;
   padding: 0;
   border: 0;
   min-width: 0;
 }
 
-.panel-scope :where(legend) {
+:where(.panel-scope) :where(legend) {
   padding: 0;
 }
 
-.panel-scope :where(a) {
-  color: inherit;
-  text-decoration: none;
-}
+/* No `a` rule here on purpose: globals.css already sets a { color: inherit;
+   text-decoration: none } for the whole site, which is what Preflight would
+   do anyway. Repeating it at class specificity is what stopped text-brand-600
+   from colouring links in the panel. */
 
 /* ── 2. Panel tokens ───────────────────────────────────────────────────── */
 

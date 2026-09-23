@@ -10,7 +10,7 @@ type Item = { href: string; label: string; icon: string };
 
 /** Navigation for the whole panel. Administration only renders for admins. */
 const CUSTOMER: Item[] = [
-  { href: "/panel", label: "Dashboard", icon: "▦" },
+  { href: "/panel/dashboard", label: "Dashboard", icon: "▦" },
   { href: "/panel/services", label: "Services", icon: "☰" },
   { href: "/panel/orders/new", label: "New order", icon: "＋" },
   { href: "/panel/orders", label: "My orders", icon: "⇄" },
@@ -63,7 +63,7 @@ function NavList({
 }
 
 export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
-  const pathname = usePathname() || "/panel";
+  const pathname = usePathname() || "/panel/dashboard";
   const [open, setOpen] = useState(false);
 
   // Close the mobile drawer whenever the route changes, so tapping a link
@@ -76,7 +76,7 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
     <>
       {/* Mobile bar */}
       <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3 md:hidden">
-        <Link href="/panel" className="flex items-center gap-2 font-bold text-[var(--text)]">
+        <Link href="/panel/dashboard" className="flex items-center gap-2 font-bold text-[var(--text)]">
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-xs text-white">SP</span>
           {PANEL_NAME}
         </Link>
@@ -96,7 +96,7 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
         className={`${open ? "block" : "hidden"} border-b border-[var(--border)] bg-[var(--surface)] p-3 md:sticky md:top-0 md:block md:h-dvh md:border-b-0 md:border-r md:p-4`}
       >
         <Link
-          href="/panel"
+          href="/panel/dashboard"
           className="mb-6 hidden items-center gap-2 px-2 font-bold text-[var(--text)] md:flex"
         >
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-sm text-white">SP</span>

@@ -157,7 +157,7 @@ export async function getPanelUser(): Promise<PanelUser | null> {
 export async function requirePanelUser(nextPath?: string): Promise<PanelUser> {
   const user = await getPanelUser();
   if (!user) {
-    const suffix = nextPath && nextPath !== "/panel" ? `?next=${encodeURIComponent(nextPath)}` : "";
+    const suffix = nextPath && nextPath !== "/panel/dashboard" ? `?next=${encodeURIComponent(nextPath)}` : "";
     redirect(`/panel/login${suffix}`);
   }
   return user;
@@ -166,7 +166,7 @@ export async function requirePanelUser(nextPath?: string): Promise<PanelUser> {
 /** Hard gate for /panel/admin. Non-admins land back on their own dashboard. */
 export async function requirePanelAdmin(): Promise<PanelUser> {
   const user = await requirePanelUser();
-  if (!user.isAdmin) redirect("/panel?denied=admin");
+  if (!user.isAdmin) redirect("/panel/dashboard?denied=admin");
   return user;
 }
 

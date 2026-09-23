@@ -65,7 +65,7 @@ export default async function PanelLoginPage({
  * out to an attacker's page wearing our domain in the referrer.
  */
 function safeNext(next: string | undefined): string {
-  if (!next) return "/panel";
+  if (!next) return "/panel/dashboard";
   if (!next.startsWith("/panel")) return "/panel";
   if (next.startsWith("//")) return "/panel";
   return next;

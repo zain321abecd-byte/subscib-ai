@@ -24,8 +24,8 @@ export function middleware(req: NextRequest) {
   fwdHeaders.set("x-user-country", req.headers.get("x-vercel-ip-country") || "");
 
   if (pathname === "/panel" || pathname.startsWith("/panel/")) {
-    // The sign-in page itself has to stay reachable while signed out.
-    if (pathname === "/panel/login") {
+    // The landing page and the sign-in page are the panel's public face.
+    if (pathname === "/panel" || pathname === "/panel/login") {
       return NextResponse.next({ request: { headers: fwdHeaders } });
     }
     if (!req.cookies.get(PANEL_COOKIE)?.value) {

@@ -105,7 +105,7 @@ export async function placeOrder(input: {
   }
 
   revalidatePath("/panel/orders");
-  revalidatePath("/panel");
+  revalidatePath("/panel/dashboard");
   revalidatePath("/panel/transactions");
   return { ok: true, data: { orderId: order.id, charge } };
 }

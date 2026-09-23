@@ -463,5 +463,5 @@ export async function regenerateApiKey(): Promise<Result<{ apiKey: string }>> {
 export async function panelSignOut(): Promise<void> {
   const { signOutOfPanel } = await import("@/lib/panel/auth");
   await signOutOfPanel();
-  revalidatePath("/panel");
+  revalidatePath("/panel/dashboard");
 }
