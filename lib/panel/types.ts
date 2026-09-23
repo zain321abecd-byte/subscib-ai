@@ -4,7 +4,7 @@
 export type PanelRole = "user" | "admin";
 export type OrderStatus =
   | "pending" | "processing" | "in_progress" | "completed" | "partial" | "cancelled" | "failed";
-export type PaymentStatus = "pending" | "approved" | "rejected";
+export type PaymentStatus = "pending" | "approved" | "rejected" | "failed";
 export type TicketStatus = "open" | "answered" | "closed";
 export type Platform =
   | "instagram" | "tiktok" | "youtube" | "facebook" | "twitter" | "telegram" | "spotify" | "other";
@@ -107,6 +107,12 @@ export interface PaymentRequest {
   admin_note: string | null;
   reviewed_at: string | null;
   created_at: string;
+  /** 'manual' = a claim an admin confirms. 'payfast' = the gateway confirms. */
+  gateway: "manual" | "payfast";
+  basket_id: string | null;
+  gateway_txn_id: string | null;
+  gateway_err_code: string | null;
+  paid_at: string | null;
 }
 
 export interface Ticket {

@@ -1,6 +1,7 @@
 import { All, Body, Controller, Get, Post, Query, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { PaymentsService, type InitPaymentInput, type PayFastReturnPayload } from "./payments.service";
+import { isPanelBasket } from "./panel-topup.service";
 
 @Controller("payments")
 export class PaymentsController {
@@ -55,6 +56,17 @@ export class PaymentsController {
     }
 
     const frontend = (process.env.FRONTEND_ORIGIN || "http://localhost:3001").split(",")[0].trim();
+
+    // A wallet top-up belongs back in the panel, not on the shop's thank-you
+    // page — there is no order to show there.
+    if (isPanelBasket(result.basketId)) {
+      const wallet = new URL("/panel/wallet", frontend);
+      wallet.searchParams.set("topup", result.hashOk ? result.paymentStatus : "unverified");
+      if (result.errCode) wallet.searchParams.set("code", result.errCode);
+      res.redirect(303, wallet.toString());
+      return;
+    }
+
     const dest = new URL("/thank-you", frontend);
     if (result.basketId) dest.searchParams.set("orderId", result.basketId);
     dest.searchParams.set("status", result.paymentStatus);

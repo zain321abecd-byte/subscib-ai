@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service";
 import { OrdersService } from "../orders/orders.service";
+import { PanelTopUpService, isPanelBasket } from "./panel-topup.service";
 import {
   TRANSACTION_INSTRUMENT,
   buildPostTransactionFields,
@@ -82,6 +83,7 @@ export class PaymentsService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly orders: OrdersService,
+    private readonly panelTopUp: PanelTopUpService,
   ) {}
 
   // ── STEP 1+2 — initiate the PayFast handshake ─────────────────────────────
@@ -243,7 +245,18 @@ export class PaymentsService {
       `payfast return basket=${basketId} err_code=${errCode} status=${paymentStatus} hash=${hashOk ? "ok" : "bad"} txn=${payload.transaction_id || ""}`,
     );
 
-    if (hashOk && basketId) {
+    if (hashOk && basketId && isPanelBasket(basketId)) {
+      // Panel wallet top-up, not a shop order — different table, different
+      // side effects, and it must survive being called twice.
+      await this.panelTopUp.applyOutcome({
+        basketId,
+        paymentStatus,
+        transactionId: String(payload.transaction_id || ""),
+        errCode,
+        reportedAmount:
+          payload.transaction_amount != null ? String(payload.transaction_amount) : undefined,
+      });
+    } else if (hashOk && basketId) {
       await this.syncOrder({
         basketId,
         paymentStatus,

@@ -64,12 +64,27 @@ export async function reviewTopUp(
   const db = getSupabaseAdmin();
   const { data: request } = await db
     .from("panel_payment_requests")
-    .select("id, user_id, amount, status")
+    .select("id, user_id, amount, status, gateway")
     .eq("id", id)
     .maybeSingle();
 
   if (!request) return { ok: false, error: "That request no longer exists." };
   if (request.status !== "pending") return { ok: false, error: `Already ${request.status}.` };
+
+  // A PayFast row is pending because the gateway hasn't confirmed it — usually
+  // because the customer never finished paying. Approving it by hand would
+  // credit a wallet for money that never arrived, so it's refused here. If a
+  // payment genuinely settled but the callback was lost, use Adjust balance on
+  // the Users screen: that's explicit, requires a reason, and shows on the
+  // customer's statement as a manual entry rather than masquerading as a
+  // gateway payment.
+  if (request.gateway === "payfast" && decision === "approved") {
+    return {
+      ok: false,
+      error:
+        "This is a PayFast payment — only the gateway can confirm it. If the money really arrived, credit it with Adjust balance on the Users screen instead.",
+    };
+  }
 
   let transactionId: string | null = null;
 

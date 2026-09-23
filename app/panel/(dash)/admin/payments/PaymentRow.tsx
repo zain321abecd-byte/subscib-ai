@@ -47,7 +47,9 @@ export default function PaymentRow({
         <Td align="right" className="whitespace-nowrap font-semibold text-[var(--text)]">
           <Money value={request.amount} />
         </Td>
-        <Td className="text-[var(--text-muted)]">{request.method}</Td>
+        <Td className="text-[var(--text-muted)]">
+          {request.gateway === "payfast" ? "PayFast" : <span className="capitalize">{request.method}</span>}
+        </Td>
         <Td>
           <div className="max-w-[160px] truncate text-[var(--text)]">{request.reference || "—"}</div>
           {request.note && <div className="max-w-[160px] truncate text-xs text-[var(--text-muted)]">{request.note}</div>}
@@ -63,10 +65,15 @@ export default function PaymentRow({
         <Td align="right">
           {open ? (
             <div className="flex flex-wrap justify-end gap-1.5">
-              <button type="button" className="panel-btn panel-btn-primary !px-2.5 !py-1 text-xs"
-                      onClick={() => review("approved")} disabled={pending}>
-                Approve
-              </button>
+              {/* Only the gateway may confirm a gateway payment — see the guard
+                  in reviewTopUp. Hiding the button keeps an admin from finding
+                  that out via an error message. */}
+              {request.gateway !== "payfast" && (
+                <button type="button" className="panel-btn panel-btn-primary !px-2.5 !py-1 text-xs"
+                        onClick={() => review("approved")} disabled={pending}>
+                  Approve
+                </button>
+              )}
               <button type="button" className="panel-btn panel-btn-ghost !px-2.5 !py-1 text-xs"
                       onClick={() => review("rejected")} disabled={pending}>
                 Reject
@@ -75,6 +82,11 @@ export default function PaymentRow({
                       onClick={() => setShowNote((v) => !v)} disabled={pending}>
                 Note
               </button>
+              {request.gateway === "payfast" && (
+                <p className="w-full text-right text-xs text-[var(--text-muted)]">
+                  Awaiting PayFast — usually means checkout wasn&apos;t completed.
+                </p>
+              )}
             </div>
           ) : (
             <span className="text-xs text-[var(--text-muted)]">

@@ -91,9 +91,15 @@ export function OrderBadge({ status }: { status: OrderStatus }) {
   return <Badge tone={ORDER_TONES[status] ?? "neutral"}>{label}</Badge>;
 }
 
+const PAYMENT_TONES: Record<PaymentStatus, "ok" | "danger" | "warn" | "neutral"> = {
+  approved: "ok",
+  rejected: "danger",
+  failed: "danger",
+  pending: "warn",
+};
+
 export function PaymentBadge({ status }: { status: PaymentStatus }) {
-  const tone = status === "approved" ? "ok" : status === "rejected" ? "danger" : "warn";
-  return <Badge tone={tone}>{status}</Badge>;
+  return <Badge tone={PAYMENT_TONES[status] ?? "neutral"}>{status}</Badge>;
 }
 
 export function TicketBadge({ status }: { status: TicketStatus }) {
