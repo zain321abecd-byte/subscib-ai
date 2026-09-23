@@ -4,7 +4,11 @@ api
 !app/api
 !app/api/**
 
-# panel/ is the superseded standalone build of the SMM panel. The panel now
-# lives in this app under app/panel/ — this entry just makes sure a leftover
-# local copy of the old one can never be picked up by a deploy.
-panel
+# panel/ is the superseded standalone build of the SMM panel; the panel itself
+# now lives in this app under app/panel/.
+#
+# The leading slash is essential. .vercelignore follows .gitignore matching, so
+# a bare `panel` matches a segment at ANY depth — it silently excluded
+# app/panel/ from the deployment, and every panel route 404'd in production
+# while building fine locally. Anchor it to the repo root.
+/panel
