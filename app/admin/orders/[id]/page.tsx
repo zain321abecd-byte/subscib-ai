@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin, hasServiceRole } from "@/lib/supabase/admin";
 import { getAdminContext } from "@/lib/admin-auth";
 import StatusPill from "../../StatusPill";
 import OrderControls from "./OrderControls";
@@ -18,7 +18,7 @@ function fmtPKR(n: number | null | undefined) {
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await getSupabaseServer();
+  const supabase = hasServiceRole() ? getSupabaseAdmin() : await getSupabaseServer();
   const isUuid = /^[0-9a-f-]{36}$/i.test(id);
   const filterCol = isUuid ? "id" : "order_number";
   const { data, error } = await supabase.from("orders").select("*").eq(filterCol, id).maybeSingle();

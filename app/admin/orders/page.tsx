@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { getSupabaseAdmin, hasServiceRole } from "@/lib/supabase/admin";
 import StatusPill from "../StatusPill";
 import OrdersFilters from "./OrdersFilters";
 import type { OrderRow } from "@/lib/supabase/types";
@@ -24,7 +25,7 @@ export default async function OrdersAdminPage({
   const filter = (params.status || "all") as (typeof STATUSES)[number];
   const search = (params.q || "").trim();
 
-  const supabase = await getSupabaseServer();
+  const supabase = hasServiceRole() ? getSupabaseAdmin() : await getSupabaseServer();
   let query = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(200);
   if (filter !== "all") query = query.eq("status", filter);
   if (search) {

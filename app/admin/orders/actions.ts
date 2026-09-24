@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { getSupabaseAdmin, hasServiceRole } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/admin-auth";
 
 const VALID_STATUSES = ["pending", "paid", "delivered", "failed", "refunded", "cancelled"] as const;
@@ -13,7 +14,7 @@ export async function updateOrderStatus(formData: FormData): Promise<{ ok: false
   if (!id) return { ok: false, error: "Missing order id." };
   if (!VALID_STATUSES.includes(status as any)) return { ok: false, error: "Invalid status." };
 
-  const supabase = await getSupabaseServer();
+  const supabase = hasServiceRole() ? getSupabaseAdmin() : await getSupabaseServer();
   const update: Record<string, unknown> = { status };
   if (status === "delivered") update.delivered_at = new Date().toISOString();
 
@@ -32,7 +33,7 @@ export async function updateOrderNotes(formData: FormData): Promise<{ ok: false;
   const notes = String(formData.get("notes") || "");
   if (!id) return { ok: false, error: "Missing order id." };
 
-  const supabase = await getSupabaseServer();
+  const supabase = hasServiceRole() ? getSupabaseAdmin() : await getSupabaseServer();
   const { error } = await supabase.from("orders").update({ notes }).eq("id", id);
   if (error) return { ok: false, error: error.message };
 
