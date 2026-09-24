@@ -386,6 +386,7 @@ export class WhatsappAgentService implements OnModuleInit {
           Authorization: `Bearer ${agent.whatsappKey}`,
           'Content-Type': 'application/json',
         },
+        signal: AbortSignal.timeout(20000),
       });
 
       if (response.status === 204) return null;
@@ -436,7 +437,7 @@ export class WhatsappAgentService implements OnModuleInit {
     }
   }
 
-  async sendAgentReply(agent: AgentConfig, to: string, body: string, replyToId: string): Promise<void> {
+  async sendAgentReply(agent: AgentConfig, to: string, body: string, replyToId?: string): Promise<void> {
     let finalBody = body;
     if (finalBody.length > 4096) {
       finalBody = finalBody.substring(0, 4093) + '...';
@@ -445,19 +446,25 @@ export class WhatsappAgentService implements OnModuleInit {
     let retry = 0;
     while (retry < 3) {
       try {
+        const payload: any = {
+          messaging_product: 'whatsapp',
+          to,
+          type: 'text',
+          text: { body: finalBody },
+        };
+        // Attach context on first attempt only; if WhatsApp fails due to expired context, retry sends clean
+        if (replyToId && retry === 0) {
+          payload.context = { message_id: replyToId };
+        }
+
         const response = await fetch(`${this.baseUrl}/messages`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${agent.whatsappKey}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            messaging_product: 'whatsapp',
-            to,
-            type: 'text',
-            text: { body: finalBody },
-            context: { message_id: replyToId },
-          }),
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(15000),
         });
 
         if (response.status === 429) {
@@ -469,14 +476,23 @@ export class WhatsappAgentService implements OnModuleInit {
         if (!response.ok) {
           const text = await response.text();
           this.logger.error(`Error sending reply from "${agent.name}": ${response.status} ${text}`);
+          retry++;
+          if (retry < 3) {
+            await new Promise((r) => setTimeout(r, 1000));
+            continue;
+          }
           throw new Error(`Reply failed with status ${response.status}`);
         }
 
         this.logger.log(`Successfully sent reply from "${agent.name}" to ${to}`);
         return;
       } catch (err: any) {
-        this.logger.error(`Exception in sendAgentReply ("${agent.name}"): ${err.message}`);
-        throw err;
+        if (retry >= 2) {
+          this.logger.error(`Exception in sendAgentReply ("${agent.name}"): ${err.message}`);
+          throw err;
+        }
+        retry++;
+        await new Promise((r) => setTimeout(r, 1000));
       }
     }
   }

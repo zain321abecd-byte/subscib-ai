@@ -7,6 +7,7 @@ import { WhatsappAgentToolsService } from './whatsapp-agent-tools.service';
 export class WhatsappAgentWorker {
   private readonly logger = new Logger(WhatsappAgentWorker.name);
   private isPolling = false;
+  private lastPollStart = 0;
 
   constructor(
     private readonly agentService: WhatsappAgentService,
@@ -15,8 +16,17 @@ export class WhatsappAgentWorker {
 
   @Interval(4000)
   async poll() {
-    if (this.isPolling) return;
+    const now = Date.now();
+    if (this.isPolling) {
+      if (now - this.lastPollStart > 30000) {
+        this.logger.warn('Previous worker poll timed out (>30s). Force-resetting isPolling lock.');
+        this.isPolling = false;
+      } else {
+        return;
+      }
+    }
     this.isPolling = true;
+    this.lastPollStart = now;
 
     try {
       const runningAgents = this.agentService.getRunningAgents();
@@ -113,15 +123,15 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
         }
 
         const toolsConfig = [this.toolsService.getToolDeclarations()];
-        // Production models in priority order: gemini-1.5-flash has 1,500 free requests/day!
-        const CANDIDATE_MODELS = ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.6-flash'];
+        // gemini-3.6-flash is the active, supported model
+        const CANDIDATE_MODELS = ['gemini-3.6-flash'];
 
         let finalAiText = '';
         let lastErrCode: number | null = null;
         let lastErrMessage = '';
         let lastException = '';
 
-        // 4. Multi-model execution with automatic fallback
+        // 4. Execution Loop
         for (const modelName of CANDIDATE_MODELS) {
           const contents = JSON.parse(JSON.stringify(sanitizedContents));
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
@@ -140,6 +150,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
                   systemInstruction: { parts: [{ text: systemPrompt }] },
                   tools: toolsConfig,
                 }),
+                signal: AbortSignal.timeout(20000),
               });
 
               if (!geminiRes.ok) {
@@ -152,7 +163,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
                   lastErrMessage = errText;
                 }
                 this.logger.warn(`Gemini [${modelName}] error ${geminiRes.status} for "${agent.name}": ${lastErrMessage}`);
-                break; // Break inner loop to try next model in CANDIDATE_MODELS
+                break;
               }
 
               const geminiData = await geminiRes.json();
@@ -163,7 +174,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
               const functionCallPart = content.parts.find((p: any) => p.functionCall);
               if (functionCallPart && functionCallPart.functionCall) {
                 const call = functionCallPart.functionCall;
-                this.logger.log(`Agent "${agent.name}" [${modelName}] calling tool: ${call.name}`);
+                this.logger.log(`Agent "${agent.name}" calling tool: ${call.name}`);
 
                 const toolResult = await this.toolsService.executeTool(call.name, call.args || {});
 
@@ -222,21 +233,21 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
           }
 
           if (modelSucceeded && finalAiText.trim()) {
-            break; // Successfully generated response!
+            break;
           }
         }
 
-        // 5. If AI returned empty, return relevant and informative error
+        // 5. If AI returned empty, return relevant and informative error directly to WhatsApp
         if (!finalAiText.trim()) {
           if (lastErrCode === 429) {
-            const firstLine = lastErrMessage.split('\n')[0] || 'Quota limit reached.';
-            finalAiText = `⚠️ *SubscribAI Assistant Notice: Quota Exceeded (429)*\n${firstLine}\n\n*What to do:*\n• Please retry in 1 minute.\n• Or enter a Gemini API key with billing enabled in SubscribAI Admin > WhatsApp Agent > Edit Agent.`;
+            const firstLine = (lastErrMessage || 'Quota exceeded.').split('\n')[0];
+            finalAiText = `⚠️ *SubscribAI Assistant Notice: Quota Exceeded (429)*\n${firstLine}\n\n*How to resolve:*\n• Please retry your request in 1 minute.\n• Or enter a Gemini API key with billing enabled in SubscribAI Admin > *WhatsApp Agent* > *Edit Agent*.`;
           } else if (lastErrCode) {
-            finalAiText = `⚠️ *AI Service Error (${lastErrCode})*:\n${lastErrMessage.slice(0, 300)}\n\nPlease verify your API key and permissions in Admin > WhatsApp Agent.`;
+            finalAiText = `⚠️ *AI Service Error (${lastErrCode})*:\n${(lastErrMessage || 'Service unavailable').slice(0, 300)}\n\nPlease verify your API key in Admin > WhatsApp Agent.`;
           } else if (lastException) {
-            finalAiText = `⚠️ *Assistant System Error*:\n${lastException.slice(0, 300)}`;
+            finalAiText = `⚠️ *Assistant System Notice*:\nTemporary delay: ${lastException.slice(0, 200)}. Please try asking again.`;
           } else {
-            finalAiText = `Hello! *SubscribAI Assistant* (${agent.name}) received: "${msg.body.slice(0, 60)}". Please try asking again in a moment.`;
+            finalAiText = `Hello! *SubscribAI Assistant* (${agent.name}) received: "${(msg.body || '').slice(0, 60)}". Please try asking again in a moment.`;
           }
         }
 
@@ -249,13 +260,23 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
           finalAiText = finalAiText.substring(0, 3997) + '...';
         }
 
-        // 7. Send Reply & Append to History
+        // 7. Send Reply & Append to History (Guaranteed Delivery)
         try {
+          this.logger.log(`[Agent: ${agent.name}] Delivering reply to ${phone} (len=${finalAiText.length})...`);
           await this.agentService.sendAgentReply(agent, phone, finalAiText, msg.id);
           this.agentService.appendHistory(agent.id, phone, 'user', msg.body);
           this.agentService.appendHistory(agent.id, phone, 'model', finalAiText);
+          this.logger.log(`[Agent: ${agent.name}] Successfully delivered reply to ${phone}.`);
         } catch (sendErr: any) {
-          this.logger.error(`Failed to send reply to ${phone} from "${agent.name}": ${sendErr.message}`);
+          this.logger.error(`Failed to send reply with context to ${phone} from "${agent.name}": ${sendErr.message}. Trying direct send...`);
+          try {
+            await this.agentService.sendAgentReply(agent, phone, finalAiText);
+            this.agentService.appendHistory(agent.id, phone, 'user', msg.body);
+            this.agentService.appendHistory(agent.id, phone, 'model', finalAiText);
+            this.logger.log(`[Agent: ${agent.name}] Direct fallback reply delivered to ${phone}.`);
+          } catch (retryErr: any) {
+            this.logger.error(`Direct fallback reply to ${phone} also failed: ${retryErr.message}`);
+          }
         }
       }
     } catch (err: any) {
