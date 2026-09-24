@@ -241,6 +241,20 @@ export class WhatsappAgentToolsService {
             required: ['to', 'subject', 'body'],
           },
         },
+        {
+          name: 'export_customers_csv',
+          description:
+            'Export all customer subscription and sales database records into a CSV file. Always call this when asked for a CSV, spreadsheet, customer export, or sales export. It provides an instant direct download link and emails the CSV file with attachment.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              email_to: {
+                type: 'STRING',
+                description: 'Optional email address to send the CSV file to (defaults to admin email amirmehboob921@gmail.com)',
+              },
+            },
+          },
+        },
       ],
     };
   }
@@ -274,6 +288,8 @@ export class WhatsappAgentToolsService {
           return await this.searchCustomer(args.query);
         case 'send_email':
           return await this.sendEmail(args.to, args.subject, args.body);
+        case 'export_customers_csv':
+          return await this.exportCustomersCsv(args.email_to);
         default:
           return { error: `Tool ${name} is not implemented.` };
       }
@@ -630,6 +646,110 @@ export class WhatsappAgentToolsService {
         error: `Could not send email: ${err.message}`,
       };
     }
+  }
+
+  async generateCustomersCsv(): Promise<string> {
+    const { data: sales, error } = await this.supabase
+      .admin()
+      .from('subscription_sales')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    const escapeCsv = (val: any) => {
+      if (val === null || val === undefined) return '';
+      const str = String(val).trim();
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const headers = [
+      'Customer Name',
+      'Phone Number',
+      'Email',
+      'Product',
+      'Plan',
+      'Price',
+      'Currency',
+      'Duration (Days)',
+      'Payment Method',
+      'Status',
+      'Sale Date',
+      'Expiry Date',
+    ];
+
+    const rows = (sales || []).map((s) =>
+      [
+        escapeCsv(s.customer_name),
+        escapeCsv(s.customer_phone),
+        escapeCsv(s.customer_email),
+        escapeCsv(s.product_name),
+        escapeCsv(s.plan_name || 'Standard'),
+        escapeCsv(s.sale_price),
+        escapeCsv(s.currency || 'PKR'),
+        escapeCsv(s.duration_days || 30),
+        escapeCsv(s.payment_method || 'WhatsApp'),
+        escapeCsv(s.status || 'active'),
+        escapeCsv(s.created_at ? s.created_at.slice(0, 10) : ''),
+        escapeCsv(s.expiry_date || ''),
+      ].join(','),
+    );
+
+    return [headers.join(','), ...rows].join('\n');
+  }
+
+  async exportCustomersCsv(emailTo?: string) {
+    const csvContent = await this.generateCustomersCsv();
+    const rowsCount = csvContent.split('\n').length - 1;
+
+    const targetEmail = (emailTo || 'amirmehboob921@gmail.com').trim();
+    const apiUrl = process.env.API_URL || process.env.PAYFAST_PUBLIC_API_URL || 'https://subscribai-api.onrender.com';
+    const token = process.env.INTERNAL_API_TOKEN || '';
+    const downloadUrl = `${apiUrl}/whatsapp-agent/export-customers.csv?token=${token}`;
+
+    let emailSent = false;
+    let emailDetail = '';
+
+    try {
+      await this.emailService.sendEmail({
+        to: targetEmail,
+        subject: `SubscribAI - Customer & Sales CSV Export (${new Date().toLocaleDateString()})`,
+        text: `Attached is your complete SubscribAI customer and sales database export (${rowsCount} records).\n\nYou can also download it anytime here:\n${downloadUrl}`,
+        html: `<div style="font-family: Arial, sans-serif; font-size: 15px; color: #222; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4f46e5; margin-top: 0;">SubscribAI Customer Database Export</h2>
+          <p>Here is your complete customer and subscription sales CSV export with <strong>${rowsCount} records</strong>.</p>
+          <div style="margin: 20px 0;">
+            <a href="${downloadUrl}" style="background: #4f46e5; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+              Download Customers CSV
+            </a>
+          </div>
+          <p style="font-size: 13px; color: #666;">The CSV file is also attached to this email so you can open it directly in Excel.</p>
+        </div>`,
+        attachments: [
+          {
+            filename: 'subscribai_customers.csv',
+            content: Buffer.from(csvContent, 'utf-8'),
+          },
+        ],
+        emailType: 'agent_whatsapp_export',
+      });
+      emailSent = true;
+      emailDetail = `Emailed CSV file with attachment to ${targetEmail}`;
+    } catch (err: any) {
+      emailDetail = `Email delivery notice: ${err.message}`;
+    }
+
+    return {
+      success: true,
+      totalCustomers: rowsCount,
+      downloadUrl,
+      emailedTo: targetEmail,
+      emailSent,
+      message: `Generated complete CSV with ${rowsCount} customer records. ${emailDetail}. Direct download link: ${downloadUrl}`,
+    };
   }
 }
 

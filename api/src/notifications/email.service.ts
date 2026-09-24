@@ -10,6 +10,7 @@ type SendEmailInput = {
   replyTo?: string;
   emailType?: string;
   relatedOrderId?: string | null;
+  attachments?: Array<{ filename: string; content?: string | Buffer; path?: string }>;
 };
 
 /** Which transport the service will use for the current env. */
@@ -23,6 +24,7 @@ type ResendPayload = {
   html?: string;
   text?: string;
   reply_to?: string;
+  attachments?: Array<{ filename: string; content?: string | Buffer }>;
 };
 
 function activeProvider(): EmailProvider {
@@ -272,6 +274,7 @@ export class EmailService {
     html?: string;
     text?: string;
     replyTo?: string;
+    attachments?: Array<{ filename: string; content?: string | Buffer }>;
   }): Promise<{ messageId: string; response: string }> {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
@@ -285,6 +288,7 @@ export class EmailService {
       ...(input.html ? { html: input.html } : {}),
       ...(input.text ? { text: input.text } : {}),
       ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+      ...(input.attachments ? { attachments: input.attachments } : {}),
     };
 
     const res = await fetch("https://api.resend.com/emails", {
@@ -309,7 +313,7 @@ export class EmailService {
     };
   }
 
-  async sendEmail({ to, subject, text, html, replyTo, emailType = "transactional", relatedOrderId = null }: SendEmailInput) {
+  async sendEmail({ to, subject, text, html, replyTo, emailType = "transactional", relatedOrderId = null, attachments }: SendEmailInput) {
     const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER;
     if (!from) {
       this.logger.error("EMAIL_FROM / SMTP_FROM / SMTP_USER all empty — cannot determine 'from' address.");
@@ -349,6 +353,7 @@ export class EmailService {
           text: text || stripHtml(html || ""),
           html,
           replyTo: replyTo || process.env.EMAIL_REPLY_TO || undefined,
+          attachments,
         });
         messageId = result.messageId;
         responseText = result.response;
@@ -360,6 +365,7 @@ export class EmailService {
           text: text || stripHtml(html || ""),
           html,
           replyTo: replyTo || process.env.EMAIL_REPLY_TO || undefined,
+          attachments,
         });
         messageId = String(result.messageId || "");
         responseText = String(result.response || "");

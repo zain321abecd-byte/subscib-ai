@@ -6,15 +6,28 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { InternalOrAdminGuard } from '../notifications/internal-or-admin.guard';
 import { WhatsappAgentService } from './whatsapp-agent.service';
+import { WhatsappAgentToolsService } from './whatsapp-agent-tools.service';
 
 @Controller('whatsapp-agent')
 @UseGuards(InternalOrAdminGuard)
 export class WhatsappAgentController {
-  constructor(private readonly service: WhatsappAgentService) {}
+  constructor(
+    private readonly service: WhatsappAgentService,
+    private readonly toolsService: WhatsappAgentToolsService,
+  ) {}
+
+  @Get('export-customers.csv')
+  async exportCustomersCsvFile(@Res() res: any) {
+    const csv = await this.toolsService.generateCustomersCsv();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="subscribai_customers.csv"');
+    return res.send(csv);
+  }
 
   @Get('status')
   getStatus() {

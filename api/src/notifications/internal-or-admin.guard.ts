@@ -20,10 +20,14 @@ export class InternalOrAdminGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<AuthedRequest>();
 
-    // 1 — trusted server-to-server token.
+    // 1 — trusted server-to-server token (header or query param for direct downloads).
     const secret = process.env.INTERNAL_API_TOKEN;
     const provided = req.headers["x-internal-token"];
+    const queryToken = (req.query as any)?.token;
     if (secret && typeof provided === "string" && provided === secret) {
+      return true;
+    }
+    if (secret && typeof queryToken === "string" && queryToken === secret) {
       return true;
     }
 
