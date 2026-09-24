@@ -1,52 +1,105 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { InternalOrAdminGuard } from '../notifications/internal-or-admin.guard';
 import { WhatsappAgentService } from './whatsapp-agent.service';
-import { WhatsappAgentWorker } from './whatsapp-agent.worker';
 
 @Controller('whatsapp-agent')
 @UseGuards(InternalOrAdminGuard)
 export class WhatsappAgentController {
-  constructor(
-    private readonly service: WhatsappAgentService,
-    private readonly worker: WhatsappAgentWorker,
-  ) {}
+  constructor(private readonly service: WhatsappAgentService) {}
 
   @Get('status')
   getStatus() {
-    const serviceStatus = this.service.status();
-    return {
-      ...serviceStatus,
-      workerRunning: this.worker.getIsRunning(),
-    };
+    return this.service.status();
   }
+
+  @Get('agents')
+  listAgents() {
+    return this.service.listAgents();
+  }
+
+  @Post('agents')
+  async saveAgent(
+    @Body()
+    body: {
+      id?: string;
+      name: string;
+      whatsappKey: string;
+      geminiKey?: string;
+      role?: 'admin_assistant' | 'customer_support';
+      systemPrompt?: string;
+      enabled?: boolean;
+    },
+  ) {
+    const saved = await this.service.saveAgent(body);
+    return { success: true, agent: saved };
+  }
+
+  @Delete('agents/:id')
+  async deleteAgent(@Param('id') id: string) {
+    const ok = await this.service.deleteAgent(id);
+    return { success: ok };
+  }
+
+  @Post('agents/:id/start')
+  startAgent(@Param('id') id: string) {
+    this.service.startAgent(id);
+    return { success: true, running: true };
+  }
+
+  @Post('agents/:id/stop')
+  stopAgent(@Param('id') id: string) {
+    this.service.stopAgent(id);
+    return { success: true, running: false };
+  }
+
+  @Get('agents/:id/history')
+  getAgentHistory(@Param('id') id: string) {
+    return this.service.getAgentHistory(id);
+  }
+
+  // ── Backwards Compatibility Endpoints ─────────────────────────────────────
 
   @Post('config')
   async updateConfig(
     @Body() body: { whatsappAgentKey?: string; geminiApiKey?: string },
   ) {
     await this.service.setKeys(body);
-    const serviceStatus = this.service.status();
     return {
       success: true,
-      ...serviceStatus,
-      workerRunning: this.worker.getIsRunning(),
+      ...this.service.status(),
     };
   }
 
   @Post('start')
-  startWorker() {
-    this.worker.start();
+  startFirstAgent() {
+    const list = this.service.listAgents();
+    if (list.length > 0) {
+      this.service.startAgent(list[0].id);
+    }
     return { success: true, running: true };
   }
 
   @Post('stop')
-  stopWorker() {
-    this.worker.stop();
+  stopFirstAgent() {
+    const list = this.service.listAgents();
+    if (list.length > 0) {
+      this.service.stopAgent(list[0].id);
+    }
     return { success: true, running: false };
   }
 
   @Get('history')
-  getHistory() {
-    return this.worker.getHistory();
+  getFirstAgentHistory(@Query('agentId') agentId?: string) {
+    const targetId = agentId || this.service.listAgents()[0]?.id || 'default';
+    return this.service.getAgentHistory(targetId);
   }
 }

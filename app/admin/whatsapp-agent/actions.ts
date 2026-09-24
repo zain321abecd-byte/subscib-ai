@@ -4,11 +4,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { internalApi } from "@/lib/internal-api";
 
 /**
- * Server Actions for WhatsApp AI Agent administration.
- *
- * All mutations gate on `delivery:send` and call the NestJS backend via
- * the shared internal token. The agent is toggled (start/stop) and configured
- * from the admin panel; the backend worker does all polling + AI replies.
+ * Server Actions for WhatsApp AI Agent & Multi-Agent Administration.
  */
 
 export type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string };
@@ -18,9 +14,23 @@ function fail(err: unknown, fallback: string): { ok: false; error: string } {
   return { ok: false, error: message };
 }
 
-// ── status & config ───────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────
 
-export interface AgentStatus {
+export interface AgentRuntimeStatus {
+  id: string;
+  name: string;
+  role: "admin_assistant" | "customer_support";
+  hasWhatsappKey: boolean;
+  maskedWhatsappKey: string;
+  hasGeminiKey: boolean;
+  maskedGeminiKey: string;
+  systemPrompt?: string;
+  enabled: boolean;
+  workerRunning: boolean;
+  activeChatsCount: number;
+}
+
+export interface AgentStatusSummary {
   configured: boolean;
   hasWhatsappKey: boolean;
   maskedWhatsappKey?: string | null;
@@ -28,71 +38,112 @@ export interface AgentStatus {
   maskedGeminiKey?: string | null;
   enabled: boolean;
   workerRunning: boolean;
+  totalAgents: number;
+  runningAgentsCount: number;
+  agents: AgentRuntimeStatus[];
 }
 
-export interface SaveKeysInput {
-  whatsappAgentKey?: string;
-  geminiApiKey?: string;
+export interface SaveAgentInput {
+  id?: string;
+  name: string;
+  whatsappKey: string;
+  geminiKey?: string;
+  role?: "admin_assistant" | "customer_support";
+  systemPrompt?: string;
+  enabled?: boolean;
 }
-
-export async function getAgentStatus(): Promise<Result<AgentStatus>> {
-  try {
-    await requireAdmin("delivery:read");
-    const data = await internalApi<AgentStatus>("/whatsapp-agent/status");
-    return { ok: true, data };
-  } catch (err) {
-    return fail(err, "Could not fetch agent status.");
-  }
-}
-
-export async function saveAgentKeys(input: SaveKeysInput): Promise<Result<AgentStatus>> {
-  try {
-    await requireAdmin("delivery:send");
-    const data = await internalApi<AgentStatus>("/whatsapp-agent/config", {
-      method: "POST",
-      body: input,
-    });
-    return { ok: true, data };
-  } catch (err) {
-    return fail(err, "Could not save agent credentials.");
-  }
-}
-
-// ── start / stop ──────────────────────────────────────────────────────────
-
-export async function startAgent(): Promise<Result> {
-  try {
-    await requireAdmin("delivery:send");
-    await internalApi("/whatsapp-agent/start", { method: "POST" });
-    return { ok: true };
-  } catch (err) {
-    return fail(err, "Could not start the agent.");
-  }
-}
-
-export async function stopAgent(): Promise<Result> {
-  try {
-    await requireAdmin("delivery:send");
-    await internalApi("/whatsapp-agent/stop", { method: "POST" });
-    return { ok: true };
-  } catch (err) {
-    return fail(err, "Could not stop the agent.");
-  }
-}
-
-// ── history ───────────────────────────────────────────────────────────────
 
 export interface ConversationTurn {
   role: "user" | "model";
   text: string;
 }
 
-export async function getAgentHistory(): Promise<Result<Record<string, ConversationTurn[]>>> {
+// ── Status & Multi-Agent Actions ──────────────────────────────────────────
+
+export async function getAgentStatus(): Promise<Result<AgentStatusSummary>> {
   try {
     await requireAdmin("delivery:read");
-    const data = await internalApi<Record<string, ConversationTurn[]>>("/whatsapp-agent/history");
+    const data = await internalApi<AgentStatusSummary>("/whatsapp-agent/status");
+    return { ok: true, data };
+  } catch (err) {
+    return fail(err, "Could not fetch agent status.");
+  }
+}
+
+export async function listAgents(): Promise<Result<AgentRuntimeStatus[]>> {
+  try {
+    await requireAdmin("delivery:read");
+    const data = await internalApi<AgentRuntimeStatus[]>("/whatsapp-agent/agents");
+    return { ok: true, data };
+  } catch (err) {
+    return fail(err, "Could not list agents.");
+  }
+}
+
+export async function saveAgent(input: SaveAgentInput): Promise<Result<{ agent: AgentRuntimeStatus }>> {
+  try {
+    await requireAdmin("delivery:send");
+    const data = await internalApi<{ success: boolean; agent: AgentRuntimeStatus }>("/whatsapp-agent/agents", {
+      method: "POST",
+      body: input,
+    });
+    return { ok: true, data: { agent: data.agent } };
+  } catch (err) {
+    return fail(err, "Could not save agent.");
+  }
+}
+
+export async function deleteAgent(id: string): Promise<Result> {
+  try {
+    await requireAdmin("delivery:send");
+    await internalApi(`/whatsapp-agent/agents/${id}`, { method: "DELETE" });
+    return { ok: true };
+  } catch (err) {
+    return fail(err, "Could not delete agent.");
+  }
+}
+
+export async function startAgent(id?: string): Promise<Result> {
+  try {
+    await requireAdmin("delivery:send");
+    const path = id ? `/whatsapp-agent/agents/${id}/start` : "/whatsapp-agent/start";
+    await internalApi(path, { method: "POST" });
+    return { ok: true };
+  } catch (err) {
+    return fail(err, "Could not start agent.");
+  }
+}
+
+export async function stopAgent(id?: string): Promise<Result> {
+  try {
+    await requireAdmin("delivery:send");
+    const path = id ? `/whatsapp-agent/agents/${id}/stop` : "/whatsapp-agent/stop";
+    await internalApi(path, { method: "POST" });
+    return { ok: true };
+  } catch (err) {
+    return fail(err, "Could not stop agent.");
+  }
+}
+
+export async function getAgentHistory(agentId?: string): Promise<Result<Record<string, ConversationTurn[]>>> {
+  try {
+    await requireAdmin("delivery:read");
+    const path = agentId ? `/whatsapp-agent/agents/${agentId}/history` : "/whatsapp-agent/history";
+    const data = await internalApi<Record<string, ConversationTurn[]>>(path);
     return { ok: true, data };
   } catch (err) {
     return fail(err, "Could not fetch conversation history.");
   }
+}
+
+// Backward compatibility
+export async function saveAgentKeys(input: { whatsappAgentKey?: string; geminiApiKey?: string }): Promise<Result> {
+  const res = await saveAgent({
+    id: "default",
+    name: "Primary Business Assistant",
+    whatsappKey: input.whatsappAgentKey || "",
+    geminiKey: input.geminiApiKey,
+  });
+  if (!res.ok) return { ok: false, error: res.error };
+  return { ok: true };
 }
