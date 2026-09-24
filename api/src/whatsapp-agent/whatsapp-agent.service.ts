@@ -34,8 +34,10 @@ export interface AgentRuntimeStatus {
   role: 'admin_assistant' | 'customer_support';
   hasWhatsappKey: boolean;
   maskedWhatsappKey: string;
+  whatsappKey?: string;
   hasGeminiKey: boolean;
   maskedGeminiKey: string;
+  geminiKey?: string;
   systemPrompt?: string;
   enabled: boolean;
   workerRunning: boolean;
@@ -201,8 +203,10 @@ export class WhatsappAgentService implements OnModuleInit {
         role: ag.role,
         hasWhatsappKey: Boolean(ag.whatsappKey),
         maskedWhatsappKey: maskKey(ag.whatsappKey),
+        whatsappKey: ag.whatsappKey,
         hasGeminiKey: Boolean(gemKey),
         maskedGeminiKey: maskKey(gemKey),
+        geminiKey: gemKey,
         systemPrompt: ag.systemPrompt,
         enabled: ag.enabled,
         workerRunning: this.runningAgents.has(ag.id),
@@ -277,8 +281,10 @@ export class WhatsappAgentService implements OnModuleInit {
       role: config.role,
       hasWhatsappKey: true,
       maskedWhatsappKey: maskKey(config.whatsappKey),
+      whatsappKey: config.whatsappKey,
       hasGeminiKey: Boolean(resolvedGemKey),
       maskedGeminiKey: maskKey(resolvedGemKey),
+      geminiKey: resolvedGemKey,
       systemPrompt: config.systemPrompt,
       enabled: config.enabled,
       workerRunning: this.runningAgents.has(id),

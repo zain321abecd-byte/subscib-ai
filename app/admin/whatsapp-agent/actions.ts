@@ -22,8 +22,10 @@ export interface AgentRuntimeStatus {
   role: "admin_assistant" | "customer_support";
   hasWhatsappKey: boolean;
   maskedWhatsappKey: string;
+  whatsappKey?: string;
   hasGeminiKey: boolean;
   maskedGeminiKey: string;
+  geminiKey?: string;
   systemPrompt?: string;
   enabled: boolean;
   workerRunning: boolean;

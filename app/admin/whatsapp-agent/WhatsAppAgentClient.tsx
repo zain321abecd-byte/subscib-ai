@@ -205,8 +205,8 @@ export default function WhatsAppAgentClient() {
     setEditingAgent({
       id: ag.id,
       name: ag.name,
-      whatsappKey: "", // Keep blank if unchanged
-      geminiKey: "",
+      whatsappKey: ag.whatsappKey || "",
+      geminiKey: ag.geminiKey || "",
       role: ag.role,
       systemPrompt: ag.systemPrompt || "",
       enabled: ag.enabled,
@@ -596,8 +596,8 @@ export default function WhatsAppAgentClient() {
                   <label style={{ fontSize: 13, fontWeight: 600 }}>
                     WhatsApp Agent API Key {!editingAgent.id && <span style={{ color: "#ef4444" }}>*</span>}
                   </label>
-                  {editingAgent.id && (
-                    <span style={{ fontSize: 11, color: "var(--muted, #888)" }}>Leave blank to keep existing key</span>
+                  {editingAgent.id && editingAgent.whatsappKey && (
+                    <span style={{ fontSize: 11, color: "#10b981" }}>Key loaded — click eye to reveal</span>
                   )}
                 </div>
                 <div style={{ position: "relative" }}>
@@ -605,7 +605,7 @@ export default function WhatsAppAgentClient() {
                     type={showWaKey ? "text" : "password"}
                     value={editingAgent.whatsappKey}
                     onChange={(e) => setEditingAgent((prev) => ({ ...prev, whatsappKey: e.target.value }))}
-                    placeholder={editingAgent.id ? "Leave blank to keep current key" : "Paste your WhatsApp Agent Key"}
+                    placeholder="Paste your WhatsApp Agent Key"
                     style={{ ...inputStyle, paddingRight: 40 }}
                   />
                   <button
@@ -633,9 +633,14 @@ export default function WhatsAppAgentClient() {
 
               {/* Gemini API Key */}
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
-                  Gemini API Key <span style={{ color: "var(--muted, #888)", fontWeight: 400 }}>(Optional - uses global key if empty)</span>
-                </label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600 }}>
+                    Gemini API Key <span style={{ color: "var(--muted, #888)", fontWeight: 400 }}>(Optional - uses global key if empty)</span>
+                  </label>
+                  {editingAgent.id && editingAgent.geminiKey && (
+                    <span style={{ fontSize: 11, color: "#10b981" }}>Key loaded — click eye to reveal</span>
+                  )}
+                </div>
                 <div style={{ position: "relative" }}>
                   <input
                     type={showGemKey ? "text" : "password"}

@@ -75,15 +75,32 @@ You can look up products with list_products and check orders with list_orders.
 Keep responses friendly, helpful, and concise. Use WhatsApp formatting: *bold*, _italic_, \`code\`.
 ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
 
-        // 3. Prepare Gemini Contents & Tools
-        const contents: any[] = previousTurns.map((t) => ({
-          role: t.role,
-          parts: [{ text: t.text }],
-        }));
-        contents.push({
-          role: 'user',
-          parts: [{ text: msg.body }],
-        });
+        // 3. Sanitize and prepare contents with strict user/model alternation
+        const sanitizedContents: any[] = [];
+        for (const turn of previousTurns) {
+          if (!turn.text || !turn.text.trim()) continue;
+          const last = sanitizedContents[sanitizedContents.length - 1];
+          if (last && last.role === turn.role) {
+            last.parts[0].text += '\n' + turn.text.trim();
+          } else {
+            sanitizedContents.push({
+              role: turn.role,
+              parts: [{ text: turn.text.trim() }],
+            });
+          }
+        }
+        while (sanitizedContents.length > 0 && sanitizedContents[0].role !== 'user') {
+          sanitizedContents.shift();
+        }
+        const lastSanitized = sanitizedContents[sanitizedContents.length - 1];
+        if (lastSanitized && lastSanitized.role === 'user') {
+          lastSanitized.parts[0].text += '\n' + (msg.body || '').trim();
+        } else {
+          sanitizedContents.push({
+            role: 'user',
+            parts: [{ text: (msg.body || '').trim() }],
+          });
+        }
 
         const geminiKey = this.agentService.getGeminiKeyForAgent(agent);
         if (!geminiKey) {
@@ -93,75 +110,117 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
         }
 
         const toolsConfig = [this.toolsService.getToolDeclarations()];
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiKey}`;
+        // Production models in priority order: gemini-1.5-flash has 1,500 free requests/day!
+        const CANDIDATE_MODELS = ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.6-flash'];
 
-        // 4. Multi-turn Tool Calling Execution Loop
         let finalAiText = '';
-        let iteration = 0;
-        const maxIterations = 4;
+        let lastErrCode: number | null = null;
 
-        try {
-          while (iteration < maxIterations) {
-            iteration++;
-            const geminiRes = await fetch(geminiUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents,
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                tools: toolsConfig,
-              }),
-            });
+        // 4. Multi-model execution with automatic fallback
+        for (const modelName of CANDIDATE_MODELS) {
+          const contents = JSON.parse(JSON.stringify(sanitizedContents));
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
+          let iteration = 0;
+          const maxIterations = 4;
+          let modelSucceeded = false;
 
-            if (!geminiRes.ok) {
-              const errText = await geminiRes.text();
-              this.logger.error(`Gemini API error for "${agent.name}": ${geminiRes.status} ${errText}`);
-              break;
-            }
-
-            const geminiData = await geminiRes.json();
-            const candidate = geminiData.candidates?.[0];
-            const content = candidate?.content;
-            if (!content || !content.parts) break;
-
-            const functionCallPart = content.parts.find((p: any) => p.functionCall);
-            if (functionCallPart && functionCallPart.functionCall) {
-              const call = functionCallPart.functionCall;
-              this.logger.log(`Agent "${agent.name}" calling tool: ${call.name}`);
-
-              const toolResult = await this.toolsService.executeTool(call.name, call.args || {});
-
-              // Feed function call and result back into contents
-              contents.push(content);
-              contents.push({
-                role: 'user',
-                parts: [
-                  {
-                    functionResponse: {
-                      name: call.name,
-                      response: { output: toolResult },
-                    },
-                  },
-                ],
+          try {
+            while (iteration < maxIterations) {
+              iteration++;
+              const geminiRes = await fetch(geminiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents,
+                  systemInstruction: { parts: [{ text: systemPrompt }] },
+                  tools: toolsConfig,
+                }),
               });
-              // Continue loop to let Gemini generate answer with tool result
-              continue;
-            }
 
-            // Normal text answer returned
-            const textPart = content.parts.find((p: any) => p.text);
-            if (textPart && textPart.text) {
-              finalAiText = textPart.text;
+              if (!geminiRes.ok) {
+                lastErrCode = geminiRes.status;
+                const errText = await geminiRes.text();
+                this.logger.warn(`Gemini [${modelName}] error ${geminiRes.status} for "${agent.name}": ${errText}`);
+                break; // Break inner loop to try next model in CANDIDATE_MODELS
+              }
+
+              const geminiData = await geminiRes.json();
+              const candidate = geminiData.candidates?.[0];
+              const content = candidate?.content;
+              if (!content || !content.parts) break;
+
+              const functionCallPart = content.parts.find((p: any) => p.functionCall);
+              if (functionCallPart && functionCallPart.functionCall) {
+                const call = functionCallPart.functionCall;
+                this.logger.log(`Agent "${agent.name}" [${modelName}] calling tool: ${call.name}`);
+
+                const toolResult = await this.toolsService.executeTool(call.name, call.args || {});
+
+                // Preserve thoughtSignature and id if provided by model
+                const modelTurnParts: any = {
+                  functionCall: {
+                    name: call.name,
+                    args: call.args || {},
+                    ...(call.id ? { id: call.id } : {}),
+                  },
+                };
+                if (functionCallPart.thoughtSignature) {
+                  modelTurnParts.thoughtSignature = functionCallPart.thoughtSignature;
+                }
+
+                contents.push({
+                  role: 'model',
+                  parts: [modelTurnParts],
+                });
+
+                const funcRespPart: any = {
+                  functionResponse: {
+                    name: call.name,
+                    ...(call.id ? { id: call.id } : {}),
+                    response: { output: toolResult },
+                  },
+                };
+                if (functionCallPart.thoughtSignature) {
+                  funcRespPart.thoughtSignature = functionCallPart.thoughtSignature;
+                }
+
+                contents.push({
+                  role: 'user',
+                  parts: [funcRespPart],
+                });
+                continue;
+              }
+
+              // Extract text parts (excluding thinking/thought tags)
+              const textParts = content.parts.filter((p: any) => p.text && !p.thought);
+              if (textParts.length > 0) {
+                finalAiText = textParts.map((p: any) => p.text).join('\n');
+              } else {
+                const anyText = content.parts.find((p: any) => p.text);
+                if (anyText) finalAiText = anyText.text;
+              }
+
+              if (finalAiText.trim()) {
+                modelSucceeded = true;
+                break;
+              }
             }
-            break;
+          } catch (modelErr: any) {
+            this.logger.error(`Exception calling model ${modelName} for "${agent.name}": ${modelErr.message}`);
           }
-        } catch (gemErr: any) {
-          this.logger.error(`Exception during Gemini loop for "${agent.name}": ${gemErr.message}`);
+
+          if (modelSucceeded && finalAiText.trim()) {
+            break; // Successfully generated response!
+          }
         }
 
-        // 5. Fallback if AI returned empty
+        // 5. Fallback if AI quota was exhausted or returned empty
         if (!finalAiText.trim()) {
-          finalAiText = `Hello! *SubscribAI Assistant* here. We received your message: "${msg.body.slice(0, 50)}". How can we assist you with our AI subscription services today?`;
+          if (lastErrCode === 429) {
+            finalAiText = `Hello! *SubscribAI Assistant* here. I am temporarily experiencing high traffic (AI quota limit reached). Please retry in 1 minute, or contact support at support@subscribai.com.`;
+          } else {
+            finalAiText = `Hello! *SubscribAI Assistant* here. We received your message: "${msg.body.slice(0, 50)}". How can we assist you with our AI subscription services today?`;
+          }
         }
 
         // 6. Format for WhatsApp
