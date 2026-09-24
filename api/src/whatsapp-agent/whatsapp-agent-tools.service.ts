@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { EmailService } from '../notifications/email.service';
 
 export interface ToolDefinition {
   name: string;
@@ -15,7 +16,10 @@ export interface ToolDefinition {
 export class WhatsappAgentToolsService {
   private readonly logger = new Logger(WhatsappAgentToolsService.name);
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly emailService: EmailService,
+  ) {}
 
   /**
    * Gemini Tool Declarations for full assistant operations
@@ -214,6 +218,29 @@ export class WhatsappAgentToolsService {
             required: ['query'],
           },
         },
+        {
+          name: 'send_email',
+          description:
+            'Send an email to a customer, admin, or any recipient. Call this whenever the user asks to send an email, email a customer, or test email sending.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              to: {
+                type: 'STRING',
+                description: 'Recipient email address (e.g. customer@example.com or amirmehboob921@gmail.com)',
+              },
+              subject: {
+                type: 'STRING',
+                description: 'Subject line of the email',
+              },
+              body: {
+                type: 'STRING',
+                description: 'The body/message content of the email',
+              },
+            },
+            required: ['to', 'subject', 'body'],
+          },
+        },
       ],
     };
   }
@@ -245,6 +272,8 @@ export class WhatsappAgentToolsService {
           return await this.getUpcomingRenewals(args.days_ahead || 7);
         case 'search_customer':
           return await this.searchCustomer(args.query);
+        case 'send_email':
+          return await this.sendEmail(args.to, args.subject, args.body);
         default:
           return { error: `Tool ${name} is not implemented.` };
       }
@@ -562,4 +591,45 @@ export class WhatsappAgentToolsService {
       orders: ordersRes.data || [],
     };
   }
+
+  private async sendEmail(to: string, subject: string, body: string) {
+    const cleanTo = (to || '').trim();
+    const cleanSubj = (subject || '').trim();
+    const cleanBody = (body || '').trim();
+
+    if (!cleanTo || !cleanSubj || !cleanBody) {
+      throw new Error('Recipient email (to), subject, and body are required.');
+    }
+
+    try {
+      const res = await this.emailService.sendEmail({
+        to: cleanTo,
+        subject: cleanSubj,
+        text: cleanBody,
+        html: `<div style="font-family: Arial, sans-serif; font-size: 15px; color: #222; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4f46e5; margin-top: 0;">SubscribAI</h2>
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+            ${cleanBody.replace(/\n/g, '<br/>')}
+          </div>
+          <p style="font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 10px;">
+            Sent by SubscribAI Assistant on WhatsApp.
+          </p>
+        </div>`,
+        emailType: 'agent_whatsapp',
+      });
+
+      return {
+        success: true,
+        message: `Email successfully sent to ${cleanTo} with subject "${cleanSubj}"!`,
+        result: res,
+      };
+    } catch (err: any) {
+      this.logger.error(`Failed to send email to ${cleanTo}: ${err.message}`);
+      return {
+        success: false,
+        error: `Could not send email: ${err.message}`,
+      };
+    }
+  }
 }
+
