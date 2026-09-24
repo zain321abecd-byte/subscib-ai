@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getAgentStatus,
+  saveAgentKeys,
   startAgent,
   stopAgent,
   getAgentHistory,
@@ -49,6 +50,18 @@ const btnPrimary: React.CSSProperties = {
   transition: "opacity 0.15s",
 };
 
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  background: "var(--input, #0f0f23)",
+  color: "var(--foreground, #e0e0e0)",
+  border: "1px solid var(--border, #ffffff20)",
+  borderRadius: 8,
+  padding: "10px 14px",
+  fontSize: 14,
+  outline: "none",
+  boxSizing: "border-box",
+};
+
 const msgBubble = (isUser: boolean): React.CSSProperties => ({
   maxWidth: "80%",
   padding: "10px 14px",
@@ -69,20 +82,36 @@ export default function WhatsAppAgentClient() {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
+
+  // Key configuration state
+  const [showConfigPanel, setShowConfigPanel] = useState(false);
+  const [whatsappKeyInput, setWhatsappKeyInput] = useState("");
+  const [geminiKeyInput, setGeminiKeyInput] = useState("");
+  const [showWhatsappKey, setShowWhatsappKey] = useState(false);
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [savingKeys, setSavingKeys] = useState(false);
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchStatus = useCallback(async () => {
     const res = await getAgentStatus();
-    if (res.ok && res.data) setStatus(res.data);
-    else setError(res.ok ? "" : res.error);
+    if (res.ok && res.data) {
+      setStatus(res.data);
+      // If not configured yet, automatically open config panel
+      if (!res.data.configured) {
+        setShowConfigPanel(true);
+      }
+    } else {
+      setError(res.ok ? "" : res.error);
+    }
   }, []);
 
   const fetchHistory = useCallback(async () => {
     const res = await getAgentHistory();
     if (res.ok && res.data) {
       setHistory(res.data);
-      // Auto-select first phone if none selected
       if (!selectedPhone) {
         const phones = Object.keys(res.data);
         if (phones.length > 0) setSelectedPhone(phones[0]);
@@ -90,7 +119,6 @@ export default function WhatsAppAgentClient() {
     }
   }, [selectedPhone]);
 
-  // Initial load + polling
   useEffect(() => {
     (async () => {
       await Promise.all([fetchStatus(), fetchHistory()]);
@@ -109,10 +137,46 @@ export default function WhatsAppAgentClient() {
     if (!status) return;
     setToggling(true);
     setError("");
+    setSuccessMsg("");
     const res = status.workerRunning ? await stopAgent() : await startAgent();
-    if (!res.ok) setError(res.error);
+    if (!res.ok) {
+      setError(res.error);
+    } else {
+      setSuccessMsg(status.workerRunning ? "Agent stopped." : "Agent started successfully!");
+    }
     await fetchStatus();
     setToggling(false);
+  }
+
+  async function handleSaveKeys(e: React.FormEvent) {
+    e.preventDefault();
+    if (!whatsappKeyInput && !geminiKeyInput && !status?.hasWhatsappKey) {
+      setError("Please enter a WhatsApp Agent API Key.");
+      return;
+    }
+
+    setSavingKeys(true);
+    setError("");
+    setSuccessMsg("");
+
+    const payload: { whatsappAgentKey?: string; geminiApiKey?: string } = {};
+    if (whatsappKeyInput.trim()) payload.whatsappAgentKey = whatsappKeyInput.trim();
+    if (geminiKeyInput.trim()) payload.geminiApiKey = geminiKeyInput.trim();
+
+    const res = await saveAgentKeys(payload);
+    setSavingKeys(false);
+
+    if (res.ok && res.data) {
+      setStatus(res.data);
+      setWhatsappKeyInput("");
+      setGeminiKeyInput("");
+      setSuccessMsg("API Keys saved successfully! Agent is now configured.");
+      if (res.data.configured) {
+        setShowConfigPanel(false);
+      }
+    } else {
+      setError(res.error || "Failed to save API keys.");
+    }
   }
 
   const phones = Object.keys(history);
@@ -143,6 +207,25 @@ export default function WhatsAppAgentClient() {
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            onClick={() => setShowConfigPanel((prev) => !prev)}
+            style={{
+              padding: "8px 14px",
+              background: "var(--card, #1a1a2e)",
+              color: "var(--foreground, #e0e0e0)",
+              border: "1px solid var(--border, #ffffff20)",
+              borderRadius: 8,
+              fontSize: 13,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontWeight: 500,
+            }}
+          >
+            <i className="fa-solid fa-key" style={{ color: "#f59e0b" }} />
+            {showConfigPanel ? "Close Key Settings" : "Configure Keys"}
+          </button>
           <span style={badge(status?.workerRunning ?? false)}>
             <span style={dot(status?.workerRunning ?? false)} />
             {status?.workerRunning ? "Running" : "Stopped"}
@@ -157,11 +240,34 @@ export default function WhatsAppAgentClient() {
         </div>
       )}
 
-      {/* Status + Controls */}
+      {successMsg && (
+        <div style={{ ...card, background: "#10b98115", border: "1px solid #10b98140", color: "#10b981", fontSize: 14 }}>
+          <i className="fa-solid fa-circle-check" style={{ marginRight: 6 }} />
+          {successMsg}
+        </div>
+      )}
+
+      {/* Status Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
         <div style={card}>
-          <div style={{ fontSize: 12, color: "var(--muted, #888)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
-            Configuration
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <span style={{ fontSize: 12, color: "var(--muted, #888)", textTransform: "uppercase", letterSpacing: 1 }}>
+              Configuration
+            </span>
+            <button
+              onClick={() => setShowConfigPanel(true)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#3b82f6",
+                fontSize: 12,
+                cursor: "pointer",
+                padding: 0,
+                textDecoration: "underline",
+              }}
+            >
+              {status?.configured ? "Edit Key" : "Add Key"}
+            </button>
           </div>
           <div style={{ fontSize: 16, fontWeight: 600 }}>
             {status?.configured ? (
@@ -170,8 +276,23 @@ export default function WhatsAppAgentClient() {
               <span style={{ color: "#f59e0b" }}><i className="fa-solid fa-triangle-exclamation" /> Not configured</span>
             )}
           </div>
-          <div style={{ fontSize: 12, color: "var(--muted, #888)", marginTop: 4 }}>
-            {status?.configured ? "WHATSAPP_AGENT_KEY is set" : "Set WHATSAPP_AGENT_KEY in env"}
+          <div style={{ fontSize: 12, color: "var(--muted, #888)", marginTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
+            <div>
+              WA Key:{" "}
+              {status?.hasWhatsappKey ? (
+                <span style={{ color: "#10b981", fontFamily: "monospace" }}>{status.maskedWhatsappKey || "Set"}</span>
+              ) : (
+                <span style={{ color: "#ef4444" }}>Missing</span>
+              )}
+            </div>
+            <div>
+              Gemini AI:{" "}
+              {status?.hasGeminiKey ? (
+                <span style={{ color: "#10b981", fontFamily: "monospace" }}>{status.maskedGeminiKey || "Set"}</span>
+              ) : (
+                <span style={{ color: "var(--muted, #888)" }}>Optional (or via env)</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -209,8 +330,187 @@ export default function WhatsAppAgentClient() {
               <><i className="fa-solid fa-play" style={{ marginRight: 6 }} /> Start Agent</>
             )}
           </button>
+          {!status?.configured && (
+            <div style={{ fontSize: 11, color: "#f59e0b", marginTop: 6, textAlign: "center" }}>
+              Add your WhatsApp Agent Key below to enable
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Key Configuration Form Panel */}
+      {showConfigPanel && (
+        <div style={{ ...card, border: "1px solid #3b82f640", background: "var(--card, #16162a)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="fa-solid fa-key" style={{ color: "#f59e0b" }} />
+                Agent API Credentials
+              </h2>
+              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--muted, #888)" }}>
+                Add your keys here. They are securely encrypted and saved to the database.
+              </p>
+            </div>
+            {status?.configured && (
+              <button
+                type="button"
+                onClick={() => setShowConfigPanel(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--muted, #888)",
+                  cursor: "pointer",
+                  fontSize: 16,
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleSaveKeys} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* WhatsApp Agent Key */}
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <label style={{ fontSize: 13, fontWeight: 600 }}>
+                  WhatsApp Agent API Key <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                {status?.hasWhatsappKey && (
+                  <span style={{ fontSize: 12, color: "#10b981", fontWeight: 500 }}>
+                    <i className="fa-solid fa-check" style={{ marginRight: 4 }} />
+                    Active ({status.maskedWhatsappKey})
+                  </span>
+                )}
+              </div>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showWhatsappKey ? "text" : "password"}
+                  value={whatsappKeyInput}
+                  onChange={(e) => setWhatsappKeyInput(e.target.value)}
+                  placeholder={status?.hasWhatsappKey ? "Leave blank to keep current key, or paste new key" : "Paste your WhatsApp Agent key"}
+                  style={{ ...inputStyle, paddingRight: 40 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsappKey((prev) => !prev)}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    color: "var(--muted, #888)",
+                    cursor: "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  <i className={showWhatsappKey ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
+                </button>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted, #888)", marginTop: 4 }}>
+                From WhatsApp &gt; Settings &gt; Agents &gt; your agent key.
+              </div>
+            </div>
+
+            {/* Gemini API Key */}
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <label style={{ fontSize: 13, fontWeight: 600 }}>
+                  Gemini API Key <span style={{ color: "var(--muted, #888)", fontWeight: 400 }}>(for AI responses)</span>
+                </label>
+                {status?.hasGeminiKey && (
+                  <span style={{ fontSize: 12, color: "#10b981", fontWeight: 500 }}>
+                    <i className="fa-solid fa-check" style={{ marginRight: 4 }} />
+                    Active ({status.maskedGeminiKey})
+                  </span>
+                )}
+              </div>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showGeminiKey ? "text" : "password"}
+                  value={geminiKeyInput}
+                  onChange={(e) => setGeminiKeyInput(e.target.value)}
+                  placeholder={status?.hasGeminiKey ? "Leave blank to keep current key, or paste new key" : "Paste your Gemini API key (optional if set in env)"}
+                  style={{ ...inputStyle, paddingRight: 40 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowGeminiKey((prev) => !prev)}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    color: "var(--muted, #888)",
+                    cursor: "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  <i className={showGeminiKey ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
+                </button>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted, #888)", marginTop: 4 }}>
+                Get a free key from{" "}
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: "#3b82f6", textDecoration: "underline" }}
+                >
+                  Google AI Studio
+                </a>
+                .
+              </div>
+            </div>
+
+            {/* Submit & Cancel */}
+            <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+              <button
+                type="submit"
+                disabled={savingKeys || (!whatsappKeyInput.trim() && !geminiKeyInput.trim())}
+                style={{
+                  ...btnPrimary,
+                  background: "#25D366",
+                  color: "#000",
+                  fontWeight: 700,
+                  opacity: savingKeys || (!whatsappKeyInput.trim() && !geminiKeyInput.trim()) ? 0.5 : 1,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                {savingKeys ? (
+                  <>Saving…</>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-save" /> Save Credentials
+                  </>
+                )}
+              </button>
+              {status?.configured && (
+                <button
+                  type="button"
+                  onClick={() => setShowConfigPanel(false)}
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: 8,
+                    border: "1px solid var(--border, #ffffff20)",
+                    background: "transparent",
+                    color: "var(--foreground, #e0e0e0)",
+                    cursor: "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Conversation History */}
       <div style={card}>

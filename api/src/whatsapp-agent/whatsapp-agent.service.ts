@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import * as crypto from 'crypto';
+import { SupabaseService } from '../supabase/supabase.service';
 
 export interface WhatsappAgentUpdate {
   id: string;
@@ -11,13 +13,146 @@ export interface WhatsappAgentPollResponse {
   next_offset: number;
 }
 
+function getEncryptionKey(): Buffer {
+  const secret = process.env.JWT_SECRET || process.env.INTERNAL_API_TOKEN || 'subscribai-agent-secret-salt';
+  return crypto.createHash('sha256').update(secret).digest();
+}
+
+function encryptSecret(text: string): string {
+  try {
+    const key = getEncryptionKey();
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    let enc = cipher.update(text, 'utf8', 'hex');
+    enc += cipher.final('hex');
+    const tag = cipher.getAuthTag().toString('hex');
+    return `enc:${iv.toString('hex')}:${tag}:${enc}`;
+  } catch {
+    return text;
+  }
+}
+
+function decryptSecret(payload: string): string {
+  try {
+    if (!payload || !payload.startsWith('enc:')) return payload;
+    const parts = payload.split(':');
+    if (parts.length !== 4) return payload;
+    const [, ivHex, tagHex, encHex] = parts;
+    const key = getEncryptionKey();
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+    decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+    let dec = decipher.update(encHex, 'hex', 'utf8');
+    dec += decipher.final('utf8');
+    return dec;
+  } catch {
+    return payload;
+  }
+}
+
+function maskKey(key: string): string {
+  if (!key) return '';
+  if (key.length <= 8) return '••••••••';
+  return `${key.slice(0, 4)}••••••••${key.slice(-4)}`;
+}
+
 @Injectable()
-export class WhatsappAgentService {
+export class WhatsappAgentService implements OnModuleInit {
   private readonly logger = new Logger(WhatsappAgentService.name);
   private readonly baseUrl = 'https://api.whatsapp.com/agent/v1';
 
+  private whatsappAgentKey: string | null = null;
+  private geminiApiKey: string | null = null;
+
+  constructor(private readonly supabase: SupabaseService) {}
+
+  async onModuleInit() {
+    await this.loadPersistedKeys();
+  }
+
+  private async loadPersistedKeys() {
+    try {
+      const { data, error } = await this.supabase
+        .admin()
+        .from('site_settings')
+        .select('key, value')
+        .in('key', ['_sec_whatsapp_agent_key', '_sec_gemini_api_key']);
+
+      if (!error && data) {
+        for (const row of data) {
+          if (row.key === '_sec_whatsapp_agent_key' && row.value) {
+            const dec = decryptSecret(row.value);
+            if (dec) {
+              this.whatsappAgentKey = dec;
+              process.env.WHATSAPP_AGENT_KEY = dec;
+            }
+          }
+          if (row.key === '_sec_gemini_api_key' && row.value) {
+            const dec = decryptSecret(row.value);
+            if (dec) {
+              this.geminiApiKey = dec;
+              process.env.GEMINI_API_KEY = dec;
+            }
+          }
+        }
+        if (this.whatsappAgentKey) {
+          this.logger.log('WhatsApp Agent key loaded from persistent settings.');
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not load persisted agent keys: ${err.message}`);
+    }
+  }
+
+  getWhatsappKey(): string {
+    return (this.whatsappAgentKey || process.env.WHATSAPP_AGENT_KEY || '').trim();
+  }
+
+  getGeminiKey(): string {
+    return (this.geminiApiKey || process.env.GEMINI_API_KEY || '').trim();
+  }
+
+  async setKeys(input: { whatsappAgentKey?: string; geminiApiKey?: string }) {
+    if (input.whatsappAgentKey !== undefined) {
+      const clean = (input.whatsappAgentKey || '').trim();
+      this.whatsappAgentKey = clean || null;
+      if (clean) process.env.WHATSAPP_AGENT_KEY = clean;
+      else delete process.env.WHATSAPP_AGENT_KEY;
+
+      await this.supabase
+        .admin()
+        .from('site_settings')
+        .upsert(
+          {
+            key: '_sec_whatsapp_agent_key',
+            value: clean ? encryptSecret(clean) : '',
+          },
+          { onConflict: 'key' },
+        );
+    }
+
+    if (input.geminiApiKey !== undefined) {
+      const clean = (input.geminiApiKey || '').trim();
+      this.geminiApiKey = clean || null;
+      if (clean) process.env.GEMINI_API_KEY = clean;
+      else delete process.env.GEMINI_API_KEY;
+
+      await this.supabase
+        .admin()
+        .from('site_settings')
+        .upsert(
+          {
+            key: '_sec_gemini_api_key',
+            value: clean ? encryptSecret(clean) : '',
+          },
+          { onConflict: 'key' },
+        );
+    }
+
+    this.logger.log('WhatsApp Agent credentials updated from admin request.');
+  }
+
   private getHeaders(): Record<string, string> {
-    const key = process.env.WHATSAPP_AGENT_KEY;
+    const key = this.getWhatsappKey();
     if (!key) {
       throw new Error('WHATSAPP_AGENT_KEY is not set');
     }
@@ -159,9 +294,14 @@ export class WhatsappAgentService {
   }
 
   status() {
-    const key = process.env.WHATSAPP_AGENT_KEY;
+    const waKey = this.getWhatsappKey();
+    const gemKey = this.getGeminiKey();
     return {
-      configured: !!key,
+      configured: Boolean(waKey),
+      hasWhatsappKey: Boolean(waKey),
+      maskedWhatsappKey: waKey ? maskKey(waKey) : null,
+      hasGeminiKey: Boolean(gemKey),
+      maskedGeminiKey: gemKey ? maskKey(gemKey) : null,
       enabled: process.env.WHATSAPP_AGENT_ENABLED === 'true',
     };
   }

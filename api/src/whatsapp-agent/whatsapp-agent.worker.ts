@@ -29,6 +29,10 @@ export class WhatsappAgentWorker implements OnModuleInit {
 
   start() {
     if (this.isRunning) return;
+    const waKey = this.agentService.getWhatsappKey();
+    if (!waKey) {
+      throw new Error('WhatsApp Agent Key is not configured. Please add the key first.');
+    }
     this.isRunning = true;
     this.logger.log('WhatsApp Agent worker started.');
   }
@@ -106,7 +110,7 @@ If you don't know something specific about an order, ask the customer for their 
           parts: [{ text: msg.body }]
         });
 
-        const geminiKey = process.env.GEMINI_API_KEY;
+        const geminiKey = this.agentService.getGeminiKey();
         if (!geminiKey) {
           this.logger.error('GEMINI_API_KEY is not set. Cannot generate reply.');
           continue;

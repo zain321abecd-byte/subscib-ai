@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { InternalOrAdminGuard } from '../notifications/internal-or-admin.guard';
 import { WhatsappAgentService } from './whatsapp-agent.service';
 import { WhatsappAgentWorker } from './whatsapp-agent.worker';
@@ -15,6 +15,19 @@ export class WhatsappAgentController {
   getStatus() {
     const serviceStatus = this.service.status();
     return {
+      ...serviceStatus,
+      workerRunning: this.worker.getIsRunning(),
+    };
+  }
+
+  @Post('config')
+  async updateConfig(
+    @Body() body: { whatsappAgentKey?: string; geminiApiKey?: string },
+  ) {
+    await this.service.setKeys(body);
+    const serviceStatus = this.service.status();
+    return {
+      success: true,
       ...serviceStatus,
       workerRunning: this.worker.getIsRunning(),
     };
