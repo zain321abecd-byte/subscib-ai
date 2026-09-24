@@ -166,7 +166,12 @@ export default function WhatsAppAgentClient() {
     const res = await saveAgentKeys(payload);
     setSavingKeys(false);
 
-    if (res.ok && res.data) {
+    if (!res.ok) {
+      setError(res.error || "Failed to save API keys.");
+      return;
+    }
+
+    if (res.data) {
       setStatus(res.data);
       setWhatsappKeyInput("");
       setGeminiKeyInput("");
@@ -174,8 +179,6 @@ export default function WhatsAppAgentClient() {
       if (res.data.configured) {
         setShowConfigPanel(false);
       }
-    } else {
-      setError(res.error || "Failed to save API keys.");
     }
   }
 
