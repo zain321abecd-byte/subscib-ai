@@ -20,9 +20,38 @@ export interface ConversationTurn {
 
 export interface AgentReminderConfig {
   dailyBriefingEnabled?: boolean;
+  dailyBriefingTime?: string;
+  dailyBriefingIncludeSales?: boolean;
+  dailyBriefingIncludeOrders?: boolean;
+  dailyBriefingIncludeRenewals?: boolean;
   renewalsWatchdogEnabled?: boolean;
+  renewalsDaysAhead?: number;
   stuckOrdersAlertEnabled?: boolean;
+  stuckOrdersHours?: number;
+  stockAlertEnabled?: boolean;
+  stockDaysAhead?: number;
   targetPhone?: string;
+}
+
+export interface AgentSecurityConfig {
+  adminPhones?: string[];
+  requireConfirmation?: boolean;
+  confirmationTtlMinutes?: number;
+}
+
+export interface AgentToolsConfig {
+  salesEnabled?: boolean;
+  ordersEnabled?: boolean;
+  productsEnabled?: boolean;
+  accountBookEnabled?: boolean;
+  couponsEnabled?: boolean;
+  stockEnabled?: boolean;
+  reportsEnabled?: boolean;
+}
+
+export interface AgentReportsConfig {
+  defaultEmail?: string;
+  autoEmailCsv?: boolean;
 }
 
 export interface AgentConfig {
@@ -37,6 +66,9 @@ export interface AgentConfig {
   role: 'admin_assistant' | 'customer_support';
   adminPhones?: string[];
   reminders?: AgentReminderConfig;
+  security?: AgentSecurityConfig;
+  tools?: AgentToolsConfig;
+  reports?: AgentReportsConfig;
   systemPrompt?: string;
   enabled: boolean;
 }
@@ -60,6 +92,9 @@ export interface AgentRuntimeStatus {
   adminPhones?: string[];
   adminPhonesStr?: string;
   reminders?: AgentReminderConfig;
+  security?: AgentSecurityConfig;
+  tools?: AgentToolsConfig;
+  reports?: AgentReportsConfig;
   systemPrompt?: string;
   enabled: boolean;
   workerRunning: boolean;
@@ -244,8 +279,34 @@ export class WhatsappAgentService implements OnModuleInit {
         adminPhonesStr: adminPhones.join(', '),
         reminders: ag.reminders || {
           dailyBriefingEnabled: true,
+          dailyBriefingTime: '09:00',
+          dailyBriefingIncludeSales: true,
+          dailyBriefingIncludeOrders: true,
+          dailyBriefingIncludeRenewals: true,
           renewalsWatchdogEnabled: true,
+          renewalsDaysAhead: 2,
           stuckOrdersAlertEnabled: true,
+          stuckOrdersHours: 4,
+          stockAlertEnabled: true,
+          stockDaysAhead: 14,
+        },
+        security: ag.security || {
+          adminPhones,
+          requireConfirmation: true,
+          confirmationTtlMinutes: 5,
+        },
+        tools: ag.tools || {
+          salesEnabled: true,
+          ordersEnabled: true,
+          productsEnabled: true,
+          accountBookEnabled: true,
+          couponsEnabled: true,
+          stockEnabled: true,
+          reportsEnabled: true,
+        },
+        reports: ag.reports || {
+          defaultEmail: 'amirmehboob921@gmail.com',
+          autoEmailCsv: true,
         },
         systemPrompt: ag.systemPrompt,
         enabled: ag.enabled,
@@ -261,12 +322,13 @@ export class WhatsappAgentService implements OnModuleInit {
 
   isAdminPhone(agent: AgentConfig, phone: string): boolean {
     if (agent.role !== 'admin_assistant') return false;
-    if (!agent.adminPhones || agent.adminPhones.length === 0) {
+    const allowed = agent.security?.adminPhones || agent.adminPhones;
+    if (!allowed || allowed.length === 0) {
       // If whitelist is not configured, permit all for backwards compatibility
       return true;
     }
     const cleanPhone = phone.replace(/[^0-9]/g, '');
-    return agent.adminPhones.some((p) => {
+    return allowed.some((p) => {
       const cleanAdmin = p.replace(/[^0-9]/g, '');
       return cleanAdmin.length >= 7 && (cleanPhone.endsWith(cleanAdmin) || cleanAdmin.endsWith(cleanPhone));
     });
@@ -284,6 +346,9 @@ export class WhatsappAgentService implements OnModuleInit {
     role?: 'admin_assistant' | 'customer_support';
     adminPhones?: string[] | string;
     reminders?: AgentReminderConfig;
+    security?: AgentSecurityConfig;
+    tools?: AgentToolsConfig;
+    reports?: AgentReportsConfig;
     systemPrompt?: string;
     enabled?: boolean;
   }): Promise<AgentRuntimeStatus> {
@@ -316,15 +381,52 @@ export class WhatsappAgentService implements OnModuleInit {
           .map((p) => p.trim())
           .filter(Boolean);
       }
+    } else if (input.security?.adminPhones) {
+      adminPhones = input.security.adminPhones;
     }
+
+    const security: AgentSecurityConfig = {
+      adminPhones: adminPhones || [],
+      requireConfirmation: input.security?.requireConfirmation !== undefined ? input.security.requireConfirmation : (existing?.security?.requireConfirmation ?? true),
+      confirmationTtlMinutes: input.security?.confirmationTtlMinutes || existing?.security?.confirmationTtlMinutes || 5,
+    };
 
     const reminders: AgentReminderConfig = {
       ...(existing?.reminders || {
         dailyBriefingEnabled: true,
+        dailyBriefingTime: '09:00',
+        dailyBriefingIncludeSales: true,
+        dailyBriefingIncludeOrders: true,
+        dailyBriefingIncludeRenewals: true,
         renewalsWatchdogEnabled: true,
+        renewalsDaysAhead: 2,
         stuckOrdersAlertEnabled: true,
+        stuckOrdersHours: 4,
+        stockAlertEnabled: true,
+        stockDaysAhead: 14,
       }),
       ...(input.reminders || {}),
+    };
+
+    const tools: AgentToolsConfig = {
+      ...(existing?.tools || {
+        salesEnabled: true,
+        ordersEnabled: true,
+        productsEnabled: true,
+        accountBookEnabled: true,
+        couponsEnabled: true,
+        stockEnabled: true,
+        reportsEnabled: true,
+      }),
+      ...(input.tools || {}),
+    };
+
+    const reports: AgentReportsConfig = {
+      ...(existing?.reports || {
+        defaultEmail: 'amirmehboob921@gmail.com',
+        autoEmailCsv: true,
+      }),
+      ...(input.reports || {}),
     };
 
     const config: AgentConfig = {
@@ -339,6 +441,9 @@ export class WhatsappAgentService implements OnModuleInit {
       role: input.role || existing?.role || 'admin_assistant',
       adminPhones,
       reminders,
+      security,
+      tools,
+      reports,
       systemPrompt: input.systemPrompt !== undefined ? input.systemPrompt : existing?.systemPrompt,
       enabled: input.enabled !== undefined ? input.enabled : (existing ? existing.enabled : true),
     };
@@ -386,6 +491,9 @@ export class WhatsappAgentService implements OnModuleInit {
       adminPhones: config.adminPhones || [],
       adminPhonesStr: (config.adminPhones || []).join(', '),
       reminders: config.reminders,
+      security: config.security,
+      tools: config.tools,
+      reports: config.reports,
       systemPrompt: config.systemPrompt,
       enabled: config.enabled,
       workerRunning: this.runningAgents.has(id),

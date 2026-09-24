@@ -56,6 +56,9 @@ export class WhatsappAgentController {
       role?: 'admin_assistant' | 'customer_support';
       adminPhones?: string[] | string;
       reminders?: AgentReminderConfig;
+      security?: any;
+      tools?: any;
+      reports?: any;
       systemPrompt?: string;
       enabled?: boolean;
     },

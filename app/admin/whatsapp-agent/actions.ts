@@ -18,9 +18,38 @@ function fail(err: unknown, fallback: string): { ok: false; error: string } {
 
 export interface AgentReminderConfig {
   dailyBriefingEnabled?: boolean;
+  dailyBriefingTime?: string;
+  dailyBriefingIncludeSales?: boolean;
+  dailyBriefingIncludeOrders?: boolean;
+  dailyBriefingIncludeRenewals?: boolean;
   renewalsWatchdogEnabled?: boolean;
+  renewalsDaysAhead?: number;
   stuckOrdersAlertEnabled?: boolean;
+  stuckOrdersHours?: number;
+  stockAlertEnabled?: boolean;
+  stockDaysAhead?: number;
   targetPhone?: string;
+}
+
+export interface AgentSecurityConfig {
+  adminPhones?: string[];
+  requireConfirmation?: boolean;
+  confirmationTtlMinutes?: number;
+}
+
+export interface AgentToolsConfig {
+  salesEnabled?: boolean;
+  ordersEnabled?: boolean;
+  productsEnabled?: boolean;
+  accountBookEnabled?: boolean;
+  couponsEnabled?: boolean;
+  stockEnabled?: boolean;
+  reportsEnabled?: boolean;
+}
+
+export interface AgentReportsConfig {
+  defaultEmail?: string;
+  autoEmailCsv?: boolean;
 }
 
 export interface AgentRuntimeStatus {
@@ -42,6 +71,9 @@ export interface AgentRuntimeStatus {
   adminPhones?: string[];
   adminPhonesStr?: string;
   reminders?: AgentReminderConfig;
+  security?: AgentSecurityConfig;
+  tools?: AgentToolsConfig;
+  reports?: AgentReportsConfig;
   systemPrompt?: string;
   enabled: boolean;
   workerRunning: boolean;
@@ -73,6 +105,9 @@ export interface SaveAgentInput {
   role?: "admin_assistant" | "customer_support";
   adminPhones?: string[] | string;
   reminders?: AgentReminderConfig;
+  security?: AgentSecurityConfig;
+  tools?: AgentToolsConfig;
+  reports?: AgentReportsConfig;
   systemPrompt?: string;
   enabled?: boolean;
 }
