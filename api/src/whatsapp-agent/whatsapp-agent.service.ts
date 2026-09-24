@@ -18,6 +18,13 @@ export interface ConversationTurn {
   text: string;
 }
 
+export interface AgentReminderConfig {
+  dailyBriefingEnabled?: boolean;
+  renewalsWatchdogEnabled?: boolean;
+  stuckOrdersAlertEnabled?: boolean;
+  targetPhone?: string;
+}
+
 export interface AgentConfig {
   id: string;
   name: string;
@@ -28,6 +35,8 @@ export interface AgentConfig {
   anthropicBaseUrl?: string;
   anthropicModel?: string;
   role: 'admin_assistant' | 'customer_support';
+  adminPhones?: string[];
+  reminders?: AgentReminderConfig;
   systemPrompt?: string;
   enabled: boolean;
 }
@@ -48,6 +57,9 @@ export interface AgentRuntimeStatus {
   anthropicKey?: string;
   anthropicBaseUrl?: string;
   anthropicModel?: string;
+  adminPhones?: string[];
+  adminPhonesStr?: string;
+  reminders?: AgentReminderConfig;
   systemPrompt?: string;
   enabled: boolean;
   workerRunning: boolean;
@@ -210,6 +222,7 @@ export class WhatsappAgentService implements OnModuleInit {
       const anthBaseUrl = ag.anthropicBaseUrl || process.env.ANTHROPIC_BASE_URL || 'https://api.mwapi.dev/v1';
       const anthModel = ag.anthropicModel || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
       const aiProvider = ag.aiProvider || (anthKey ? 'claude' : 'gemini');
+      const adminPhones = ag.adminPhones || [];
 
       return {
         id: ag.id,
@@ -227,6 +240,13 @@ export class WhatsappAgentService implements OnModuleInit {
         anthropicKey: anthKey,
         anthropicBaseUrl: anthBaseUrl,
         anthropicModel: anthModel,
+        adminPhones,
+        adminPhonesStr: adminPhones.join(', '),
+        reminders: ag.reminders || {
+          dailyBriefingEnabled: true,
+          renewalsWatchdogEnabled: true,
+          stuckOrdersAlertEnabled: true,
+        },
         systemPrompt: ag.systemPrompt,
         enabled: ag.enabled,
         workerRunning: this.runningAgents.has(ag.id),
@@ -239,6 +259,19 @@ export class WhatsappAgentService implements OnModuleInit {
     return this.agents.get(id);
   }
 
+  isAdminPhone(agent: AgentConfig, phone: string): boolean {
+    if (agent.role !== 'admin_assistant') return false;
+    if (!agent.adminPhones || agent.adminPhones.length === 0) {
+      // If whitelist is not configured, permit all for backwards compatibility
+      return true;
+    }
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    return agent.adminPhones.some((p) => {
+      const cleanAdmin = p.replace(/[^0-9]/g, '');
+      return cleanAdmin.length >= 7 && (cleanPhone.endsWith(cleanAdmin) || cleanAdmin.endsWith(cleanPhone));
+    });
+  }
+
   async saveAgent(input: {
     id?: string;
     name: string;
@@ -249,6 +282,8 @@ export class WhatsappAgentService implements OnModuleInit {
     anthropicBaseUrl?: string;
     anthropicModel?: string;
     role?: 'admin_assistant' | 'customer_support';
+    adminPhones?: string[] | string;
+    reminders?: AgentReminderConfig;
     systemPrompt?: string;
     enabled?: boolean;
   }): Promise<AgentRuntimeStatus> {
@@ -271,6 +306,27 @@ export class WhatsappAgentService implements OnModuleInit {
     const anthropicModel = input.anthropicModel !== undefined ? input.anthropicModel.trim() : existing?.anthropicModel;
     const aiProvider = input.aiProvider || existing?.aiProvider || (anthropicKey || process.env.ANTHROPIC_API_KEY ? 'claude' : 'gemini');
 
+    let adminPhones: string[] | undefined = existing?.adminPhones;
+    if (input.adminPhones !== undefined) {
+      if (Array.isArray(input.adminPhones)) {
+        adminPhones = input.adminPhones.map((p) => p.trim()).filter(Boolean);
+      } else if (typeof input.adminPhones === 'string') {
+        adminPhones = input.adminPhones
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean);
+      }
+    }
+
+    const reminders: AgentReminderConfig = {
+      ...(existing?.reminders || {
+        dailyBriefingEnabled: true,
+        renewalsWatchdogEnabled: true,
+        stuckOrdersAlertEnabled: true,
+      }),
+      ...(input.reminders || {}),
+    };
+
     const config: AgentConfig = {
       id,
       name: input.name?.trim() || existing?.name || 'WhatsApp Assistant',
@@ -281,6 +337,8 @@ export class WhatsappAgentService implements OnModuleInit {
       anthropicBaseUrl: anthropicBaseUrl || undefined,
       anthropicModel: anthropicModel || undefined,
       role: input.role || existing?.role || 'admin_assistant',
+      adminPhones,
+      reminders,
       systemPrompt: input.systemPrompt !== undefined ? input.systemPrompt : existing?.systemPrompt,
       enabled: input.enabled !== undefined ? input.enabled : (existing ? existing.enabled : true),
     };
@@ -325,6 +383,9 @@ export class WhatsappAgentService implements OnModuleInit {
       anthropicKey: resolvedAnthKey,
       anthropicBaseUrl: config.anthropicBaseUrl || process.env.ANTHROPIC_BASE_URL || 'https://api.mwapi.dev/v1',
       anthropicModel: config.anthropicModel || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
+      adminPhones: config.adminPhones || [],
+      adminPhonesStr: (config.adminPhones || []).join(', '),
+      reminders: config.reminders,
       systemPrompt: config.systemPrompt,
       enabled: config.enabled,
       workerRunning: this.runningAgents.has(id),

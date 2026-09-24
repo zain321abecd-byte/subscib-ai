@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Interval } from '@nestjs/schedule';
+import { Cron, Interval } from '@nestjs/schedule';
 import { WhatsappAgentService, AgentConfig } from './whatsapp-agent.service';
 import { WhatsappAgentToolsService } from './whatsapp-agent-tools.service';
 
@@ -56,30 +56,118 @@ export class WhatsappAgentWorker {
         await this.agentService.markAgentRead(agent, msg.id);
 
         const phone = msg.from;
+
+        // 2. Security / Whitelist Check for Admin Assistant
+        if (agent.role === 'admin_assistant' && !this.agentService.isAdminPhone(agent, phone)) {
+          this.logger.warn(`Unauthorized access attempt to admin agent "${agent.name}" from ${phone}`);
+          await this.agentService.sendAgentReply(
+            agent,
+            phone,
+            `⛔ *Access Denied*\nYour number (${phone}) is not authorized for Admin Assistant operations. Please whitelist your number in SubscribAI Admin > WhatsApp Agent.`,
+            msg.id,
+          );
+          continue;
+        }
+
+        // 3. Check for Two-Step Confirmation / Cancellation Commands (ACT-XXXX)
+        const trimmedText = (msg.body || '').trim();
+        const confirmMatch =
+          trimmedText.match(/^(?:confirm|yes)\s+(ACT-[A-Z0-9]+)$/i) ||
+          trimmedText.match(/^(ACT-[A-Z0-9]+)$/i);
+        const cancelMatch = trimmedText.match(/^(?:cancel|no|abort)\s+(ACT-[A-Z0-9]+)$/i);
+
+        if (confirmMatch) {
+          const actionId = confirmMatch[1].toUpperCase();
+          this.logger.log(`[Agent: ${agent.name}] User ${phone} confirmed action: ${actionId}`);
+          const result = await this.toolsService.confirmAction(actionId, phone);
+          let replyText = '';
+          if (result.success) {
+            const detail =
+              typeof result.result === 'object' && result.result?.message
+                ? result.result.message
+                : typeof result.result === 'string'
+                  ? result.result
+                  : JSON.stringify(result.result);
+            replyText = `✅ *Action Confirmed & Executed!*\n\n${detail}`;
+          } else {
+            replyText = `⚠️ *Action Failed or Expired:*\n${result.error || 'Unknown error'}`;
+          }
+          await this.agentService.sendAgentReply(agent, phone, replyText, msg.id);
+          this.agentService.appendHistory(agent.id, phone, 'user', msg.body);
+          this.agentService.appendHistory(agent.id, phone, 'model', replyText);
+          continue;
+        }
+
+        if (cancelMatch) {
+          const actionId = cancelMatch[1].toUpperCase();
+          this.logger.log(`[Agent: ${agent.name}] User ${phone} cancelled action: ${actionId}`);
+          const cancelled = this.toolsService.cancelAction(actionId, phone);
+          const replyText = cancelled
+            ? `🚫 *Action Cancelled*\nAction \`${actionId}\` has been discarded.`
+            : `⚠️ Action \`${actionId}\` was not found or was already expired.`;
+          await this.agentService.sendAgentReply(agent, phone, replyText, msg.id);
+          this.agentService.appendHistory(agent.id, phone, 'user', msg.body);
+          this.agentService.appendHistory(agent.id, phone, 'model', replyText);
+          continue;
+        }
+
         const previousTurns = this.agentService.getHistoryTurns(agent.id, phone);
 
-        // 2. Build Assistant System Prompt
+        // 4. Build Assistant System Prompt with Full Business Tools
         const systemPrompt =
           agent.role === 'admin_assistant'
             ? `You are the SubscribAI Executive AI Assistant on WhatsApp.
-You have FULL ACCESS to live store database tools to help the admin run the business:
-- Check sales statistics & revenue (get_sales_summary)
-- List or search customer sales records (list_sales)
-- Add/record new subscription sales (record_sale)
-- Check order stats and breakdown (get_orders_summary)
-- Search & list recent orders (list_orders)
-- Update order statuses to paid/delivered/cancelled (update_order_status)
-- Check products and inventory pricing (list_products)
-- Update product prices or in-stock status (update_product)
-- Check upcoming customer subscription renewals (get_upcoming_renewals)
-- Look up customer history across orders & sales (search_customer)
-- Export customer & sales database to a CSV file (export_customers_csv) - generates a direct download link and emails the .csv attachment!
-- Send emails directly to customers, teammates, or yourself (send_email)
+You have FULL ACCESS to live store database tools to help the admin automate and manage the entire business:
 
-ALWAYS use the provided tools whenever asked for data, when instructed to add/update anything, send an email, or export a CSV.
-When the user asks for a CSV (e.g. "send me a csv of all customers"): IMMEDIATELY call export_customers_csv. Never say you cannot attach files or ask for confirmation—execute it and provide the direct download link and email status!
-Keep responses concise, professional, and friendly.
-Use WhatsApp formatting: *bold*, _italic_, \`code\`. Never use markdown # headings or **double asterisks**.
+📊 SALES & REVENUE:
+- get_sales_summary: Check sales & revenue stats (periods: today, yesterday, this_week, this_month, all_time)
+- list_sales: List or search customer sales records
+- record_sale: Add/record a new customer subscription sale
+- delete_sale: Soft-delete a sale (moves to audit ledger, requires two-step confirmation)
+- list_deleted_sales: View soft-deleted sales audit trail
+- restore_sale: Restore a deleted sale back to active ledger (requires confirmation)
+
+📦 ORDERS & FULFILLMENT:
+- get_orders_summary: Order count and status breakdown
+- list_orders: Search recent web orders by number (#1002), customer, email, status
+- update_order_status: Mark order as paid, delivered, or cancelled
+
+🛍️ PRODUCTS & INVENTORY:
+- list_products: Check products, pricing, stock availability
+- update_product: Update product price or mark in/out of stock
+
+🔔 RENEWALS & CUSTOMERS:
+- get_upcoming_renewals: Subscriptions expiring soon (default 7 days)
+- search_customer: Customer 360 lookup across sales & orders by name/phone/email
+
+📚 ACCOUNT BOOK (PAYABLES & RECEIVABLES):
+- get_account_book_summary: Total payables (owed to vendors) vs receivables (owed by customers) and net balance
+- list_payables: List vendor bills / payables
+- record_payable: Add a new bill you owe to a vendor/supplier
+- update_payable_payment: Record payment made to vendor (requires confirmation)
+- list_receivables: List invoices / customer receivables
+- record_receivable: Record money a customer owes you
+- update_receivable_payment: Record payment collected from customer (requires confirmation)
+
+🎟️ COUPONS & PROMOS:
+- list_coupons: View all active/inactive discount codes and usage
+- create_coupon: Create new percent or fixed discount code (requires confirmation)
+- toggle_coupon: Activate or deactivate a coupon (requires confirmation)
+
+🏢 SUPPLIER STOCK:
+- list_stock_items: View supplier inventory, licenses, and accounts
+- get_expiring_stock: Supplier stock expiring within N days
+
+📄 REPORTS & EXPORTS:
+- generate_report: Generate executive reports (sales_report, renewals_report, account_book_report, inventory_report, profit_loss_report) and email them as formatted documents with CSV attachment!
+- export_customers_csv: Export customer database to CSV with instant download link and email attachment
+- send_email: Send emails directly to customers or teammates
+
+CRITICAL INSTRUCTIONS:
+1. ALWAYS execute tools immediately when requested. When asked for reports or exports, generate them directly!
+2. When performing destructive actions (delete sale, coupon creation, recording payments), explain the pending confirmation ID (e.g. ACT-XXXX) to the user and prompt them to reply "CONFIRM ACT-XXXX".
+3. Keep responses concise, professional, structured, and friendly.
+4. Format for WhatsApp: *bold*, _italic_, \`code\`. Never use markdown # headers or **double asterisks**.
 ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`
             : `You are the SubscribAI Customer Support Assistant on WhatsApp.
 Help customers with information on AI subscription products, prices, order inquiries, and technical support.
@@ -87,7 +175,7 @@ You can look up products with list_products and check orders with list_orders.
 Keep responses friendly, helpful, and concise. Use WhatsApp formatting: *bold*, _italic_, \`code\`.
 ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
 
-        // 3. Sanitize and prepare contents with strict user/model alternation
+        // 5. Sanitize and prepare contents with strict user/model alternation
         const sanitizedContents: any[] = [];
         for (const turn of previousTurns) {
           if (!turn.text || !turn.text.trim()) continue;
@@ -118,7 +206,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
         const geminiKey = this.agentService.getGeminiKeyForAgent(agent);
 
         if (!anthropicConfig.key && !geminiKey) {
-          const keyErr = `No AI API key is configured for agent "${agent.name}". Please open SubscribAI Admin > WhatsApp Agent > Edit Agent and set your Claude (MWAPI) or Gemini API key.`;
+          const keyErr = `No AI API key configured for agent "${agent.name}". Please open SubscribAI Admin > WhatsApp Agent > Edit Agent and set your Claude (MWAPI) or Gemini API key.`;
           this.logger.error(keyErr);
           await this.sendFallback(agent, phone, msg.body, msg.id, keyErr);
           continue;
@@ -129,7 +217,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
         let lastErrMessage = '';
         let lastException = '';
 
-        // 4. Try Claude Engine first if selected or if Claude key is present
+        // 6. Try Claude Engine first if selected or if Claude key is present
         const preferClaude = anthropicConfig.provider === 'claude' && Boolean(anthropicConfig.key);
 
         if (preferClaude) {
@@ -141,6 +229,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
               previousTurns,
               msg.body,
               anthropicConfig,
+              phone,
             );
 
             if (claudeRes.text && claudeRes.text.trim()) {
@@ -157,7 +246,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
           }
         }
 
-        // 5. Fallback to Gemini if Claude was skipped or failed and Gemini key is configured
+        // 7. Fallback to Gemini if Claude was skipped or failed and Gemini key is configured
         if (!finalAiText.trim() && geminiKey) {
           this.logger.log(`[Agent: ${agent.name}] Invoking Gemini engine fallback...`);
           const toolsConfig = [this.toolsService.getToolDeclarations()];
@@ -167,7 +256,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
             const contents = JSON.parse(JSON.stringify(sanitizedContents));
             const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
             let iteration = 0;
-            const maxIterations = 4;
+            const maxIterations = 5;
             let modelSucceeded = false;
 
             try {
@@ -207,7 +296,11 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
                   const call = functionCallPart.functionCall;
                   this.logger.log(`Agent "${agent.name}" calling tool: ${call.name}`);
 
-                  const toolResult = await this.toolsService.executeTool(call.name, call.args || {});
+                  const toolResult = await this.toolsService.executeTool(
+                    call.name,
+                    call.args || {},
+                    { agentId: agent.id, phone },
+                  );
 
                   // Preserve thoughtSignature and id if provided by model
                   const modelTurnParts: any = {
@@ -269,7 +362,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
           }
         }
 
-        // 6. If AI returned empty, return relevant and informative error directly to WhatsApp
+        // 8. Error handling fallback to WhatsApp
         if (!finalAiText.trim()) {
           if (lastErrCode === 429) {
             const firstLine = (lastErrMessage || 'Quota exceeded.').split('\n')[0];
@@ -283,7 +376,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
           }
         }
 
-        // 6. Format for WhatsApp
+        // 9. Format for WhatsApp
         finalAiText = finalAiText.replace(/^#+\s*(.*)$/gm, '*$1*');
         finalAiText = finalAiText.replace(/\*\*(.*?)\*\*/g, '*$1*');
         finalAiText = finalAiText.replace(/#/g, '');
@@ -292,7 +385,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
           finalAiText = finalAiText.substring(0, 3997) + '...';
         }
 
-        // 7. Send Reply & Append to History (Guaranteed Delivery)
+        // 10. Send Reply & Append to History
         try {
           this.logger.log(`[Agent: ${agent.name}] Delivering reply to ${phone} (len=${finalAiText.length})...`);
           await this.agentService.sendAgentReply(agent, phone, finalAiText, msg.id);
@@ -327,6 +420,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
     previousTurns: Array<{ role: 'user' | 'model'; text: string }>,
     userMsgBody: string,
     anthropicConfig: { key: string; baseUrl: string; model: string },
+    userPhone?: string,
   ): Promise<{ text: string; error?: string; status?: number }> {
     const claudeMessages: any[] = [];
 
@@ -403,7 +497,11 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
         const toolResultBlocks: any[] = [];
         for (const toolUse of toolUseBlocks) {
           this.logger.log(`Claude Agent "${agent.name}" executing tool: ${toolUse.name}`);
-          const result = await this.toolsService.executeTool(toolUse.name, toolUse.input || {});
+          const result = await this.toolsService.executeTool(
+            toolUse.name,
+            toolUse.input || {},
+            { agentId: agent.id, phone: userPhone },
+          );
           toolResultBlocks.push({
             type: 'tool_result',
             tool_use_id: toolUse.id,
@@ -432,5 +530,114 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
       ? `⚠️ *SubscribAI Assistant (${agent.name}) Notice*:\n${customError}`
       : `Hello! *SubscribAI Assistant* (${agent.name}) received: "${text.slice(0, 50)}". An agent will assist you shortly.`;
     await this.agentService.sendAgentReply(agent, phone, fallback, replyToId);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ── PROACTIVE CRON REMINDERS (Milestone 4) ────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+
+  @Cron('0 9 * * *') // Daily at 9:00 AM
+  async runDailyBriefingCron() {
+    const agents = this.agentService
+      .getRunningAgents()
+      .filter((a) => a.role === 'admin_assistant' && a.reminders?.dailyBriefingEnabled !== false);
+
+    for (const agent of agents) {
+      const target = agent.reminders?.targetPhone || agent.adminPhones?.[0];
+      if (!target) continue;
+
+      try {
+        this.logger.log(`[Cron: 9 AM] Sending daily briefing to ${target} via "${agent.name}"`);
+        const yesterday = await this.toolsService.executeTool('get_sales_summary', { period: 'yesterday' });
+        const orders = await this.toolsService.executeTool('get_orders_summary', {});
+        const renewals = await this.toolsService.executeTool('get_upcoming_renewals', { days_ahead: 1 });
+
+        const text =
+          `☀️ *SubscribAI Morning Briefing*\n\n` +
+          `📅 *Yesterday's Sales:*\n` +
+          `• Count: ${yesterday.totalSalesCount || 0} subscriptions\n` +
+          `• Volume: PKR ${(yesterday.totalRevenuePkr || 0).toLocaleString()} | $${yesterday.totalRevenueUsd || 0}\n\n` +
+          `📦 *Orders Status:*\n` +
+          `• Pending: ${orders.statusBreakdown?.pending || 0}\n` +
+          `• Paid: ${orders.statusBreakdown?.paid || 0}\n` +
+          `• Delivered: ${orders.statusBreakdown?.delivered || 0}\n\n` +
+          `🔔 *Renewals Due Today:* ${renewals.count || 0}\n\n` +
+          `_Ask me "send sales report" or reply with any command to manage your business!_`;
+
+        await this.agentService.sendAgentReply(agent, target, text);
+      } catch (err: any) {
+        this.logger.error(`Error in daily briefing cron for "${agent.name}": ${err.message}`);
+      }
+    }
+  }
+
+  @Cron('0 11 * * *') // Daily at 11:00 AM
+  async runRenewalWatchdogCron() {
+    const agents = this.agentService
+      .getRunningAgents()
+      .filter((a) => a.role === 'admin_assistant' && a.reminders?.renewalsWatchdogEnabled !== false);
+
+    for (const agent of agents) {
+      const target = agent.reminders?.targetPhone || agent.adminPhones?.[0];
+      if (!target) continue;
+
+      try {
+        const renewals = await this.toolsService.executeTool('get_upcoming_renewals', { days_ahead: 2 });
+        if (!renewals.count || renewals.count === 0) continue;
+
+        this.logger.log(`[Cron: 11 AM] Sending renewal watchdog (${renewals.count} renewals) to ${target}`);
+        const listSnippet = (renewals.expiringSubscriptions || [])
+          .slice(0, 5)
+          .map((r: any) => `• *${r.customer_name}* (${r.product_name}) — Exp: ${r.expiry_date} [${r.customer_phone}]`)
+          .join('\n');
+
+        const text =
+          `🔔 *SubscribAI Renewal Watchdog (Next 48 Hours)*\n\n` +
+          `*${renewals.count} customer subscription(s)* expiring within 48 hours:\n\n` +
+          `${listSnippet}\n\n` +
+          `_Reply "generate renewals report" or ask me to message customers._`;
+
+        await this.agentService.sendAgentReply(agent, target, text);
+      } catch (err: any) {
+        this.logger.error(`Error in renewal watchdog cron for "${agent.name}": ${err.message}`);
+      }
+    }
+  }
+
+  @Cron('0 */4 * * *') // Every 4 hours
+  async runStuckOrdersAlertCron() {
+    const agents = this.agentService
+      .getRunningAgents()
+      .filter((a) => a.role === 'admin_assistant' && a.reminders?.stuckOrdersAlertEnabled !== false);
+
+    for (const agent of agents) {
+      const target = agent.reminders?.targetPhone || agent.adminPhones?.[0];
+      if (!target) continue;
+
+      try {
+        const ordersRes = await this.toolsService.executeTool('list_orders', { status: 'pending', limit: 15 });
+        const pendingOrders = ordersRes.orders || [];
+        const fourHoursAgo = Date.now() - 4 * 60 * 60 * 1000;
+        const stuck = pendingOrders.filter((o: any) => new Date(o.created_at).getTime() < fourHoursAgo);
+
+        if (stuck.length === 0) continue;
+
+        this.logger.log(`[Cron: 4h] Sending stuck orders alert (${stuck.length} stuck) to ${target}`);
+        const listSnippet = stuck
+          .slice(0, 5)
+          .map((o: any) => `• #${o.order_number} (${o.customer_name || 'Guest'}) — PKR ${o.subtotal_pkr || 0}`)
+          .join('\n');
+
+        const text =
+          `⚠️ *SubscribAI Stuck Orders Alert*\n\n` +
+          `*${stuck.length} order(s)* have been pending for > 4 hours:\n\n` +
+          `${listSnippet}\n\n` +
+          `_Reply "update order #NUMBER to paid/delivered" to update._`;
+
+        await this.agentService.sendAgentReply(agent, target, text);
+      } catch (err: any) {
+        this.logger.error(`Error in stuck orders alert cron: ${err.message}`);
+      }
+    }
   }
 }

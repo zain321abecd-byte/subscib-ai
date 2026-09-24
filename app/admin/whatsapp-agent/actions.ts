@@ -16,6 +16,13 @@ function fail(err: unknown, fallback: string): { ok: false; error: string } {
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
+export interface AgentReminderConfig {
+  dailyBriefingEnabled?: boolean;
+  renewalsWatchdogEnabled?: boolean;
+  stuckOrdersAlertEnabled?: boolean;
+  targetPhone?: string;
+}
+
 export interface AgentRuntimeStatus {
   id: string;
   name: string;
@@ -32,6 +39,9 @@ export interface AgentRuntimeStatus {
   anthropicKey?: string;
   anthropicBaseUrl?: string;
   anthropicModel?: string;
+  adminPhones?: string[];
+  adminPhonesStr?: string;
+  reminders?: AgentReminderConfig;
   systemPrompt?: string;
   enabled: boolean;
   workerRunning: boolean;
@@ -61,6 +71,8 @@ export interface SaveAgentInput {
   anthropicBaseUrl?: string;
   anthropicModel?: string;
   role?: "admin_assistant" | "customer_support";
+  adminPhones?: string[] | string;
+  reminders?: AgentReminderConfig;
   systemPrompt?: string;
   enabled?: boolean;
 }
@@ -145,6 +157,44 @@ export async function getAgentHistory(agentId?: string): Promise<Result<Record<s
     return { ok: true, data };
   } catch (err) {
     return fail(err, "Could not fetch conversation history.");
+  }
+}
+
+// ── Manual Proactive Reminder Triggers ────────────────────────────────────
+
+export async function triggerBriefingAction(): Promise<Result<{ message: string }>> {
+  try {
+    await requireAdmin("delivery:send");
+    const data = await internalApi<{ success: boolean; message: string }>("/whatsapp-agent/trigger-briefing", {
+      method: "POST",
+    });
+    return { ok: true, data };
+  } catch (err) {
+    return fail(err, "Could not trigger morning briefing.");
+  }
+}
+
+export async function triggerRenewalWatchdogAction(): Promise<Result<{ message: string }>> {
+  try {
+    await requireAdmin("delivery:send");
+    const data = await internalApi<{ success: boolean; message: string }>("/whatsapp-agent/trigger-renewal-watchdog", {
+      method: "POST",
+    });
+    return { ok: true, data };
+  } catch (err) {
+    return fail(err, "Could not trigger renewal watchdog.");
+  }
+}
+
+export async function triggerStuckOrdersAction(): Promise<Result<{ message: string }>> {
+  try {
+    await requireAdmin("delivery:send");
+    const data = await internalApi<{ success: boolean; message: string }>("/whatsapp-agent/trigger-stuck-orders", {
+      method: "POST",
+    });
+    return { ok: true, data };
+  } catch (err) {
+    return fail(err, "Could not trigger stuck orders check.");
   }
 }
 

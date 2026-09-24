@@ -10,8 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { InternalOrAdminGuard } from '../notifications/internal-or-admin.guard';
-import { WhatsappAgentService } from './whatsapp-agent.service';
+import { WhatsappAgentService, AgentReminderConfig } from './whatsapp-agent.service';
 import { WhatsappAgentToolsService } from './whatsapp-agent-tools.service';
+import { WhatsappAgentWorker } from './whatsapp-agent.worker';
 
 @Controller('whatsapp-agent')
 @UseGuards(InternalOrAdminGuard)
@@ -19,6 +20,7 @@ export class WhatsappAgentController {
   constructor(
     private readonly service: WhatsappAgentService,
     private readonly toolsService: WhatsappAgentToolsService,
+    private readonly worker: WhatsappAgentWorker,
   ) {}
 
   @Get('export-customers.csv')
@@ -52,6 +54,8 @@ export class WhatsappAgentController {
       anthropicBaseUrl?: string;
       anthropicModel?: string;
       role?: 'admin_assistant' | 'customer_support';
+      adminPhones?: string[] | string;
+      reminders?: AgentReminderConfig;
       systemPrompt?: string;
       enabled?: boolean;
     },
@@ -81,6 +85,26 @@ export class WhatsappAgentController {
   @Get('agents/:id/history')
   getAgentHistory(@Param('id') id: string) {
     return this.service.getAgentHistory(id);
+  }
+
+  // ── Manual Proactive Reminder Triggers (Test / On-Demand) ────────────────
+
+  @Post('trigger-briefing')
+  async triggerBriefing() {
+    await this.worker.runDailyBriefingCron();
+    return { success: true, message: 'Daily briefing triggered.' };
+  }
+
+  @Post('trigger-renewal-watchdog')
+  async triggerRenewalWatchdog() {
+    await this.worker.runRenewalWatchdogCron();
+    return { success: true, message: 'Renewal watchdog triggered.' };
+  }
+
+  @Post('trigger-stuck-orders')
+  async triggerStuckOrders() {
+    await this.worker.runStuckOrdersAlertCron();
+    return { success: true, message: 'Stuck orders check triggered.' };
   }
 
   // ── Backwards Compatibility Endpoints ─────────────────────────────────────

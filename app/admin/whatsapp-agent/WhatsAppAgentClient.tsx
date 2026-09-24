@@ -9,10 +9,14 @@ import {
   startAgent,
   stopAgent,
   getAgentHistory,
+  triggerBriefingAction,
+  triggerRenewalWatchdogAction,
+  triggerStuckOrdersAction,
   type AgentRuntimeStatus,
   type AgentStatusSummary,
   type ConversationTurn,
   type SaveAgentInput,
+  type AgentReminderConfig,
 } from "./actions";
 
 // ── Styles ───────────────────────────────────────────────────────────────
@@ -55,6 +59,13 @@ const btnPrimary: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
+};
+
+const btnSecondary: React.CSSProperties = {
+  ...btnPrimary,
+  background: "transparent",
+  border: "1px solid var(--border, #ffffff20)",
+  color: "var(--foreground, #e0e0e0)",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -192,6 +203,36 @@ export default function WhatsAppAgentClient() {
     setActionLoading(false);
   }
 
+  async function handleTriggerBriefing() {
+    setActionLoading(true);
+    setError("");
+    setSuccessMsg("");
+    const res = await triggerBriefingAction();
+    setActionLoading(false);
+    if (res.ok) setSuccessMsg(res.data?.message || "Morning briefing sent to target WhatsApp number!");
+    else setError(res.error);
+  }
+
+  async function handleTriggerRenewalWatchdog() {
+    setActionLoading(true);
+    setError("");
+    setSuccessMsg("");
+    const res = await triggerRenewalWatchdogAction();
+    setActionLoading(false);
+    if (res.ok) setSuccessMsg(res.data?.message || "Renewal watchdog triggered!");
+    else setError(res.error);
+  }
+
+  async function handleTriggerStuckOrders() {
+    setActionLoading(true);
+    setError("");
+    setSuccessMsg("");
+    const res = await triggerStuckOrdersAction();
+    setActionLoading(false);
+    if (res.ok) setSuccessMsg(res.data?.message || "Stuck orders check triggered!");
+    else setError(res.error);
+  }
+
   function openCreateModal() {
     setEditingAgent({
       name: "",
@@ -202,6 +243,13 @@ export default function WhatsAppAgentClient() {
       anthropicBaseUrl: "https://api.mwapi.dev/v1",
       anthropicModel: "claude-sonnet-4-6",
       role: "admin_assistant",
+      adminPhones: "",
+      reminders: {
+        dailyBriefingEnabled: true,
+        renewalsWatchdogEnabled: true,
+        stuckOrdersAlertEnabled: true,
+        targetPhone: "",
+      },
       systemPrompt: "",
       enabled: true,
     });
@@ -222,6 +270,13 @@ export default function WhatsAppAgentClient() {
       anthropicBaseUrl: ag.anthropicBaseUrl || "https://api.mwapi.dev/v1",
       anthropicModel: ag.anthropicModel || "claude-sonnet-4-6",
       role: ag.role,
+      adminPhones: ag.adminPhonesStr || (ag.adminPhones || []).join(", "),
+      reminders: ag.reminders || {
+        dailyBriefingEnabled: true,
+        renewalsWatchdogEnabled: true,
+        stuckOrdersAlertEnabled: true,
+        targetPhone: "",
+      },
       systemPrompt: ag.systemPrompt || "",
       enabled: ag.enabled,
     });
@@ -290,7 +345,62 @@ export default function WhatsAppAgentClient() {
             Autonomous business agents with full database tool execution &amp; multi-agent support
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <button
+            onClick={handleTriggerBriefing}
+            disabled={actionLoading}
+            title="Send 9 AM Morning Performance Briefing to WhatsApp immediately"
+            style={{
+              ...btnSecondary,
+              fontSize: 12,
+              padding: "7px 12px",
+              borderColor: "#38bdf840",
+              color: "#38bdf8",
+            }}
+          >
+            <i className="fa-solid fa-sun" /> Test Briefing
+          </button>
+          <button
+            onClick={handleTriggerRenewalWatchdog}
+            disabled={actionLoading}
+            title="Check expiring subscriptions in next 48 hours and send WhatsApp alert"
+            style={{
+              ...btnSecondary,
+              fontSize: 12,
+              padding: "7px 12px",
+              borderColor: "#f59e0b40",
+              color: "#f59e0b",
+            }}
+          >
+            <i className="fa-solid fa-bell" /> Test Renewals Alert
+          </button>
+          <button
+            onClick={handleTriggerStuckOrders}
+            disabled={actionLoading}
+            title="Check for orders pending > 4 hours"
+            style={{
+              ...btnSecondary,
+              fontSize: 12,
+              padding: "7px 12px",
+              borderColor: "#ef444440",
+              color: "#ef4444",
+            }}
+          >
+            <i className="fa-solid fa-triangle-exclamation" /> Check Stuck Orders
+          </button>
+          <a
+            href="https://subscribai-api.onrender.com/whatsapp-agent/export-customers.csv?token=327f860297ccec31bb1df9c1a500b1815e76d7d09604534ea7aa10d5f0f5cadc"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              ...btnSecondary,
+              fontSize: 12,
+              padding: "7px 12px",
+              textDecoration: "none",
+            }}
+          >
+            <i className="fa-solid fa-file-csv" /> Export CSV
+          </a>
           <button
             onClick={openCreateModal}
             style={{
@@ -614,6 +724,99 @@ export default function WhatsAppAgentClient() {
                   </option>
                 </select>
               </div>
+
+              {/* Admin Phone Whitelist (Security) */}
+              {editingAgent.role === "admin_assistant" && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600 }}>
+                      Admin WhatsApp Phone Whitelist
+                    </label>
+                    <span style={{ fontSize: 11, color: "var(--muted, #888)" }}>Security Access Lock</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={typeof editingAgent.adminPhones === "string" ? editingAgent.adminPhones : (editingAgent.adminPhones || []).join(", ")}
+                    onChange={(e) => setEditingAgent((prev) => ({ ...prev, adminPhones: e.target.value }))}
+                    placeholder="e.g. +923001234567, 923123456789"
+                    style={inputStyle}
+                  />
+                  <div style={{ fontSize: 11, color: "var(--muted, #888)", marginTop: 4 }}>
+                    Comma-separated. Only these numbers can run administrative commands (delete sales, create coupons, record payments). Leave blank to allow any number.
+                  </div>
+                </div>
+              )}
+
+              {/* Proactive Automation Reminders */}
+              {editingAgent.role === "admin_assistant" && (
+                <div style={{ border: "1px solid var(--border, #ffffff15)", borderRadius: 8, padding: 14, background: "rgba(255,255,255,0.02)" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 6, color: "#38bdf8" }}>
+                    <i className="fa-solid fa-clock-rotate-left" /> Proactive Automated Reminders (Crons)
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        style={{ marginTop: 2 }}
+                        checked={editingAgent.reminders?.dailyBriefingEnabled !== false}
+                        onChange={(e) => setEditingAgent((prev) => ({
+                          ...prev,
+                          reminders: { ...prev.reminders, dailyBriefingEnabled: e.target.checked },
+                        }))}
+                      />
+                      <span>
+                        <strong style={{ color: "#e0e0e0" }}>☀️ 9:00 AM Morning Executive Briefing</strong><br />
+                        <span style={{ color: "var(--muted, #888)" }}>Sends daily summary of yesterday sales, today renewals due, and pending orders.</span>
+                      </span>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        style={{ marginTop: 2 }}
+                        checked={editingAgent.reminders?.renewalsWatchdogEnabled !== false}
+                        onChange={(e) => setEditingAgent((prev) => ({
+                          ...prev,
+                          reminders: { ...prev.reminders, renewalsWatchdogEnabled: e.target.checked },
+                        }))}
+                      />
+                      <span>
+                        <strong style={{ color: "#e0e0e0" }}>🔔 11:00 AM 48-Hour Renewal Watchdog</strong><br />
+                        <span style={{ color: "var(--muted, #888)" }}>Alerts on customer subscriptions expiring in the next 48 hours.</span>
+                      </span>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        style={{ marginTop: 2 }}
+                        checked={editingAgent.reminders?.stuckOrdersAlertEnabled !== false}
+                        onChange={(e) => setEditingAgent((prev) => ({
+                          ...prev,
+                          reminders: { ...prev.reminders, stuckOrdersAlertEnabled: e.target.checked },
+                        }))}
+                      />
+                      <span>
+                        <strong style={{ color: "#e0e0e0" }}>⚠️ Stuck Orders Alert</strong><br />
+                        <span style={{ color: "var(--muted, #888)" }}>Runs every 4 hours. Notifies you if any web order remains pending &gt; 4 hours.</span>
+                      </span>
+                    </label>
+                    <div style={{ marginTop: 4, paddingTop: 8, borderTop: "1px solid var(--border, #ffffff10)" }}>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted, #888)", display: "block", marginBottom: 4 }}>
+                        Target WhatsApp Number for Reminders (Optional - defaults to first admin phone):
+                      </label>
+                      <input
+                        type="text"
+                        value={editingAgent.reminders?.targetPhone || ""}
+                        onChange={(e) => setEditingAgent((prev) => ({
+                          ...prev,
+                          reminders: { ...prev.reminders, targetPhone: e.target.value },
+                        }))}
+                        placeholder="+923001234567"
+                        style={{ ...inputStyle, padding: "7px 12px", fontSize: 12 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* WhatsApp Agent Key */}
               <div>
