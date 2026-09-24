@@ -101,12 +101,17 @@ export default function WhatsAppAgentClient() {
     name: "",
     whatsappKey: "",
     geminiKey: "",
+    aiProvider: "claude",
+    anthropicKey: "",
+    anthropicBaseUrl: "https://api.mwapi.dev/v1",
+    anthropicModel: "claude-sonnet-4-6",
     role: "admin_assistant",
     systemPrompt: "",
     enabled: true,
   });
   const [showWaKey, setShowWaKey] = useState(false);
   const [showGemKey, setShowGemKey] = useState(false);
+  const [showAnthropicKey, setShowAnthropicKey] = useState(false);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -192,12 +197,17 @@ export default function WhatsAppAgentClient() {
       name: "",
       whatsappKey: "",
       geminiKey: "",
+      aiProvider: "claude",
+      anthropicKey: "sk-71a97e5f71dd85bfcebe2f74f9fe554254ca7867c0ce0d1f3df78f4f73566a99",
+      anthropicBaseUrl: "https://api.mwapi.dev/v1",
+      anthropicModel: "claude-sonnet-4-6",
       role: "admin_assistant",
       systemPrompt: "",
       enabled: true,
     });
     setShowWaKey(false);
     setShowGemKey(false);
+    setShowAnthropicKey(false);
     setModalOpen(true);
   }
 
@@ -207,12 +217,17 @@ export default function WhatsAppAgentClient() {
       name: ag.name,
       whatsappKey: ag.whatsappKey || "",
       geminiKey: ag.geminiKey || "",
+      aiProvider: ag.aiProvider || "claude",
+      anthropicKey: ag.anthropicKey || (ag.hasAnthropicKey ? "sk-71a97e5f71dd85bfcebe2f74f9fe554254ca7867c0ce0d1f3df78f4f73566a99" : ""),
+      anthropicBaseUrl: ag.anthropicBaseUrl || "https://api.mwapi.dev/v1",
+      anthropicModel: ag.anthropicModel || "claude-sonnet-4-6",
       role: ag.role,
       systemPrompt: ag.systemPrompt || "",
       enabled: ag.enabled,
     });
     setShowWaKey(false);
     setShowGemKey(false);
+    setShowAnthropicKey(false);
     setModalOpen(true);
   }
 
@@ -360,14 +375,24 @@ export default function WhatsAppAgentClient() {
                       </span>
                     </div>
 
-                    <div style={{ fontSize: 12, color: "var(--muted, #888)", display: "flex", flexDirection: "column", gap: 4, marginTop: 10 }}>
+                    <div style={{ fontSize: 12, color: "var(--muted, #888)", display: "flex", flexDirection: "column", gap: 5, marginTop: 10 }}>
                       <div>
                         WA Key: <span style={{ fontFamily: "monospace", color: "#10b981" }}>{ag.maskedWhatsappKey || "None"}</span>
                       </div>
-                      <div>
-                        Gemini AI:{" "}
-                        <span style={{ fontFamily: "monospace", color: ag.hasGeminiKey ? "#10b981" : "#f59e0b" }}>
-                          {ag.maskedGeminiKey || "Active"}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        AI Engine:{" "}
+                        <span
+                          style={{
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            background: ag.aiProvider === "gemini" ? "#3b82f620" : "#8b5cf620",
+                            color: ag.aiProvider === "gemini" ? "#60a5fa" : "#c084fc",
+                            border: `1px solid ${ag.aiProvider === "gemini" ? "#3b82f640" : "#8b5cf640"}`,
+                          }}
+                        >
+                          {ag.aiProvider === "gemini" ? "Google Gemini" : `Claude (${ag.anthropicModel || "sonnet-4-6"})`}
                         </span>
                       </div>
                       <div>
@@ -631,43 +656,173 @@ export default function WhatsAppAgentClient() {
                 </div>
               </div>
 
-              {/* Gemini API Key */}
+              {/* AI Engine Selection */}
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600 }}>
-                    Gemini API Key <span style={{ color: "var(--muted, #888)", fontWeight: 400 }}>(Optional - uses global key if empty)</span>
-                  </label>
-                  {editingAgent.id && editingAgent.geminiKey && (
-                    <span style={{ fontSize: 11, color: "#10b981" }}>Key loaded — click eye to reveal</span>
-                  )}
-                </div>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type={showGemKey ? "text" : "password"}
-                    value={editingAgent.geminiKey || ""}
-                    onChange={(e) => setEditingAgent((prev) => ({ ...prev, geminiKey: e.target.value }))}
-                    placeholder="Leave blank to use default Gemini key"
-                    style={{ ...inputStyle, paddingRight: 40 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowGemKey((prev) => !prev)}
+                <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, display: "block" }}>
+                  AI Engine
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div
+                    onClick={() => setEditingAgent((prev) => ({ ...prev, aiProvider: "claude" }))}
                     style={{
-                      position: "absolute",
-                      right: 10,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "none",
-                      border: "none",
-                      color: "var(--muted, #888)",
+                      padding: "12px 14px",
+                      borderRadius: 8,
+                      border: editingAgent.aiProvider !== "gemini" ? "2px solid #8b5cf6" : "1px solid var(--border, #ffffff20)",
+                      background: editingAgent.aiProvider !== "gemini" ? "#8b5cf615" : "transparent",
                       cursor: "pointer",
-                      fontSize: 14,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
                     }}
                   >
-                    <i className={showGemKey ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
-                  </button>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: "#c084fc" }}>
+                        <i className="fa-solid fa-bolt" style={{ marginRight: 6 }} /> Claude (MWAPI)
+                      </span>
+                      {editingAgent.aiProvider !== "gemini" && (
+                        <i className="fa-solid fa-circle-check" style={{ color: "#8b5cf6" }} />
+                      )}
+                    </div>
+                    <span style={{ fontSize: 11, color: "var(--muted, #888)" }}>
+                      Recommended • Fast &amp; Quota-Free
+                    </span>
+                  </div>
+
+                  <div
+                    onClick={() => setEditingAgent((prev) => ({ ...prev, aiProvider: "gemini" }))}
+                    style={{
+                      padding: "12px 14px",
+                      borderRadius: 8,
+                      border: editingAgent.aiProvider === "gemini" ? "2px solid #3b82f6" : "1px solid var(--border, #ffffff20)",
+                      background: editingAgent.aiProvider === "gemini" ? "#3b82f615" : "transparent",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: "#60a5fa" }}>
+                        <i className="fa-solid fa-sparkles" style={{ marginRight: 6 }} /> Google Gemini
+                      </span>
+                      {editingAgent.aiProvider === "gemini" && (
+                        <i className="fa-solid fa-circle-check" style={{ color: "#3b82f6" }} />
+                      )}
+                    </div>
+                    <span style={{ fontSize: 11, color: "var(--muted, #888)" }}>
+                      gemini-3.6-flash • Google AI Studio
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              {/* If Claude Engine */}
+              {editingAgent.aiProvider !== "gemini" ? (
+                <>
+                  {/* Claude / MWAPI API Key */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <label style={{ fontSize: 13, fontWeight: 600 }}>
+                        Claude / MWAPI API Key <span style={{ color: "var(--muted, #888)", fontWeight: 400 }}>(Default loaded from env)</span>
+                      </label>
+                      {editingAgent.anthropicKey && (
+                        <span style={{ fontSize: 11, color: "#10b981" }}>Key loaded — click eye to reveal</span>
+                      )}
+                    </div>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type={showAnthropicKey ? "text" : "password"}
+                        value={editingAgent.anthropicKey || ""}
+                        onChange={(e) => setEditingAgent((prev) => ({ ...prev, anthropicKey: e.target.value }))}
+                        placeholder="sk-71a9... or leave blank to use default gateway key"
+                        style={{ ...inputStyle, paddingRight: 40 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAnthropicKey((prev) => !prev)}
+                        style={{
+                          position: "absolute",
+                          right: 10,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          color: "var(--muted, #888)",
+                          cursor: "pointer",
+                          fontSize: 14,
+                        }}
+                      >
+                        <i className={showAnthropicKey ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
+                        Claude Model
+                      </label>
+                      <input
+                        type="text"
+                        value={editingAgent.anthropicModel || "claude-sonnet-4-6"}
+                        onChange={(e) => setEditingAgent((prev) => ({ ...prev, anthropicModel: e.target.value }))}
+                        placeholder="claude-sonnet-4-6"
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
+                        Gateway Base URL
+                      </label>
+                      <input
+                        type="text"
+                        value={editingAgent.anthropicBaseUrl || "https://api.mwapi.dev/v1"}
+                        onChange={(e) => setEditingAgent((prev) => ({ ...prev, anthropicBaseUrl: e.target.value }))}
+                        placeholder="https://api.mwapi.dev/v1"
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Gemini API Key */
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600 }}>
+                      Gemini API Key <span style={{ color: "var(--muted, #888)", fontWeight: 400 }}>(Optional - uses global key if empty)</span>
+                    </label>
+                    {editingAgent.id && editingAgent.geminiKey && (
+                      <span style={{ fontSize: 11, color: "#10b981" }}>Key loaded — click eye to reveal</span>
+                    )}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showGemKey ? "text" : "password"}
+                      value={editingAgent.geminiKey || ""}
+                      onChange={(e) => setEditingAgent((prev) => ({ ...prev, geminiKey: e.target.value }))}
+                      placeholder="Leave blank to use default Gemini key"
+                      style={{ ...inputStyle, paddingRight: 40 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGemKey((prev) => !prev)}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        color: "var(--muted, #888)",
+                        cursor: "pointer",
+                        fontSize: 14,
+                      }}
+                    >
+                      <i className={showGemKey ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Custom System Prompt */}
               <div>

@@ -26,6 +26,12 @@ export interface AgentRuntimeStatus {
   hasGeminiKey: boolean;
   maskedGeminiKey: string;
   geminiKey?: string;
+  aiProvider?: "claude" | "gemini";
+  hasAnthropicKey?: boolean;
+  maskedAnthropicKey?: string;
+  anthropicKey?: string;
+  anthropicBaseUrl?: string;
+  anthropicModel?: string;
   systemPrompt?: string;
   enabled: boolean;
   workerRunning: boolean;
@@ -50,6 +56,10 @@ export interface SaveAgentInput {
   name: string;
   whatsappKey: string;
   geminiKey?: string;
+  aiProvider?: "claude" | "gemini";
+  anthropicKey?: string;
+  anthropicBaseUrl?: string;
+  anthropicModel?: string;
   role?: "admin_assistant" | "customer_support";
   systemPrompt?: string;
   enabled?: boolean;

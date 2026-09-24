@@ -12,6 +12,16 @@ export interface ToolDefinition {
   };
 }
 
+export interface ClaudeToolDefinition {
+  name: string;
+  description: string;
+  input_schema: {
+    type: 'object';
+    properties: Record<string, any>;
+    required?: string[];
+  };
+}
+
 @Injectable()
 export class WhatsappAgentToolsService {
   private readonly logger = new Logger(WhatsappAgentToolsService.name);
@@ -260,7 +270,45 @@ export class WhatsappAgentToolsService {
   }
 
   /**
-   * Execute any tool requested by Gemini
+   * Anthropic Claude Tool Declarations (converts Gemini function declarations to input_schema format)
+   */
+  getClaudeTools(): ClaudeToolDefinition[] {
+    const { functionDeclarations } = this.getToolDeclarations();
+    return functionDeclarations.map((fn) => {
+      const rawProps = fn.parameters?.properties || {};
+      const convertedProps: Record<string, any> = {};
+
+      for (const [propName, propVal] of Object.entries(rawProps)) {
+        const typeStr = (propVal.type || 'string').toLowerCase();
+        let schemaType = 'string';
+        if (typeStr === 'integer') schemaType = 'integer';
+        else if (typeStr === 'number') schemaType = 'number';
+        else if (typeStr === 'boolean') schemaType = 'boolean';
+        else if (typeStr === 'array') schemaType = 'array';
+        else if (typeStr === 'object') schemaType = 'object';
+
+        convertedProps[propName] = {
+          ...propVal,
+          type: schemaType,
+        };
+      }
+
+      return {
+        name: fn.name,
+        description: fn.description,
+        input_schema: {
+          type: 'object',
+          properties: convertedProps,
+          ...(fn.parameters?.required && fn.parameters.required.length > 0
+            ? { required: fn.parameters.required }
+            : {}),
+        },
+      };
+    });
+  }
+
+  /**
+   * Execute any tool requested by Gemini or Claude
    */
   async executeTool(name: string, args: Record<string, any>): Promise<any> {
     this.logger.log(`Executing tool: ${name} with args: ${JSON.stringify(args)}`);

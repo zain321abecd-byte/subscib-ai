@@ -47,6 +47,10 @@ export class WhatsappAgentController {
       name: string;
       whatsappKey: string;
       geminiKey?: string;
+      aiProvider?: 'claude' | 'gemini';
+      anthropicKey?: string;
+      anthropicBaseUrl?: string;
+      anthropicModel?: string;
       role?: 'admin_assistant' | 'customer_support';
       systemPrompt?: string;
       enabled?: boolean;

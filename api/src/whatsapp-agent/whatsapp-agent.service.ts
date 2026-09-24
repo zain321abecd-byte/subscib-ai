@@ -23,6 +23,10 @@ export interface AgentConfig {
   name: string;
   whatsappKey: string;
   geminiKey?: string;
+  aiProvider?: 'claude' | 'gemini';
+  anthropicKey?: string;
+  anthropicBaseUrl?: string;
+  anthropicModel?: string;
   role: 'admin_assistant' | 'customer_support';
   systemPrompt?: string;
   enabled: boolean;
@@ -38,6 +42,12 @@ export interface AgentRuntimeStatus {
   hasGeminiKey: boolean;
   maskedGeminiKey: string;
   geminiKey?: string;
+  aiProvider?: 'claude' | 'gemini';
+  hasAnthropicKey: boolean;
+  maskedAnthropicKey: string;
+  anthropicKey?: string;
+  anthropicBaseUrl?: string;
+  anthropicModel?: string;
   systemPrompt?: string;
   enabled: boolean;
   workerRunning: boolean;
@@ -196,6 +206,10 @@ export class WhatsappAgentService implements OnModuleInit {
       const histMap = this.agentHistories.get(ag.id);
       const activeChatsCount = histMap ? histMap.size : 0;
       const gemKey = ag.geminiKey || this.globalGeminiKey || process.env.GEMINI_API_KEY || '';
+      const anthKey = ag.anthropicKey || process.env.ANTHROPIC_API_KEY || '';
+      const anthBaseUrl = ag.anthropicBaseUrl || process.env.ANTHROPIC_BASE_URL || 'https://api.mwapi.dev/v1';
+      const anthModel = ag.anthropicModel || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
+      const aiProvider = ag.aiProvider || (anthKey ? 'claude' : 'gemini');
 
       return {
         id: ag.id,
@@ -207,6 +221,12 @@ export class WhatsappAgentService implements OnModuleInit {
         hasGeminiKey: Boolean(gemKey),
         maskedGeminiKey: maskKey(gemKey),
         geminiKey: gemKey,
+        aiProvider,
+        hasAnthropicKey: Boolean(anthKey),
+        maskedAnthropicKey: maskKey(anthKey),
+        anthropicKey: anthKey,
+        anthropicBaseUrl: anthBaseUrl,
+        anthropicModel: anthModel,
         systemPrompt: ag.systemPrompt,
         enabled: ag.enabled,
         workerRunning: this.runningAgents.has(ag.id),
@@ -224,6 +244,10 @@ export class WhatsappAgentService implements OnModuleInit {
     name: string;
     whatsappKey: string;
     geminiKey?: string;
+    aiProvider?: 'claude' | 'gemini';
+    anthropicKey?: string;
+    anthropicBaseUrl?: string;
+    anthropicModel?: string;
     role?: 'admin_assistant' | 'customer_support';
     systemPrompt?: string;
     enabled?: boolean;
@@ -242,11 +266,20 @@ export class WhatsappAgentService implements OnModuleInit {
       process.env.GEMINI_API_KEY = geminiKey;
     }
 
+    const anthropicKey = input.anthropicKey !== undefined ? input.anthropicKey.trim() : existing?.anthropicKey;
+    const anthropicBaseUrl = input.anthropicBaseUrl !== undefined ? input.anthropicBaseUrl.trim() : existing?.anthropicBaseUrl;
+    const anthropicModel = input.anthropicModel !== undefined ? input.anthropicModel.trim() : existing?.anthropicModel;
+    const aiProvider = input.aiProvider || existing?.aiProvider || (anthropicKey || process.env.ANTHROPIC_API_KEY ? 'claude' : 'gemini');
+
     const config: AgentConfig = {
       id,
       name: input.name?.trim() || existing?.name || 'WhatsApp Assistant',
       whatsappKey,
       geminiKey: geminiKey || undefined,
+      aiProvider,
+      anthropicKey: anthropicKey || undefined,
+      anthropicBaseUrl: anthropicBaseUrl || undefined,
+      anthropicModel: anthropicModel || undefined,
       role: input.role || existing?.role || 'admin_assistant',
       systemPrompt: input.systemPrompt !== undefined ? input.systemPrompt : existing?.systemPrompt,
       enabled: input.enabled !== undefined ? input.enabled : (existing ? existing.enabled : true),
@@ -270,10 +303,11 @@ export class WhatsappAgentService implements OnModuleInit {
       }, { onConflict: 'key' });
     }
 
-    this.logger.log(`Saved agent "${config.name}" (${config.id}). Running: ${this.runningAgents.has(id)}`);
+    this.logger.log(`Saved agent "${config.name}" (${config.id}) [AI: ${config.aiProvider}]. Running: ${this.runningAgents.has(id)}`);
 
     const histMap = this.agentHistories.get(id);
     const resolvedGemKey = config.geminiKey || this.globalGeminiKey || process.env.GEMINI_API_KEY || '';
+    const resolvedAnthKey = config.anthropicKey || process.env.ANTHROPIC_API_KEY || '';
 
     return {
       id: config.id,
@@ -285,6 +319,12 @@ export class WhatsappAgentService implements OnModuleInit {
       hasGeminiKey: Boolean(resolvedGemKey),
       maskedGeminiKey: maskKey(resolvedGemKey),
       geminiKey: resolvedGemKey,
+      aiProvider: config.aiProvider,
+      hasAnthropicKey: Boolean(resolvedAnthKey),
+      maskedAnthropicKey: maskKey(resolvedAnthKey),
+      anthropicKey: resolvedAnthKey,
+      anthropicBaseUrl: config.anthropicBaseUrl || process.env.ANTHROPIC_BASE_URL || 'https://api.mwapi.dev/v1',
+      anthropicModel: config.anthropicModel || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
       systemPrompt: config.systemPrompt,
       enabled: config.enabled,
       workerRunning: this.runningAgents.has(id),
@@ -369,6 +409,19 @@ export class WhatsappAgentService implements OnModuleInit {
 
   getGeminiKeyForAgent(agent: AgentConfig): string {
     return (agent.geminiKey || this.globalGeminiKey || process.env.GEMINI_API_KEY || '').trim();
+  }
+
+  getAnthropicConfigForAgent(agent: AgentConfig): {
+    provider: 'claude' | 'gemini';
+    key: string;
+    baseUrl: string;
+    model: string;
+  } {
+    const key = (agent.anthropicKey || process.env.ANTHROPIC_API_KEY || '').trim();
+    const baseUrl = (agent.anthropicBaseUrl || process.env.ANTHROPIC_BASE_URL || 'https://api.mwapi.dev/v1').trim().replace(/\/+$/, '');
+    const model = (agent.anthropicModel || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6').trim();
+    const provider = agent.aiProvider || (key ? 'claude' : 'gemini');
+    return { provider, key, baseUrl, model };
   }
 
   async pollAgentUpdates(agent: AgentConfig): Promise<WhatsappAgentPollResponse | null> {

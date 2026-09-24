@@ -114,134 +114,166 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
           });
         }
 
+        const anthropicConfig = this.agentService.getAnthropicConfigForAgent(agent);
         const geminiKey = this.agentService.getGeminiKeyForAgent(agent);
-        if (!geminiKey) {
-          const keyErr = `Gemini API key is not configured for agent "${agent.name}". Please open SubscribAI Admin > WhatsApp Agent > Edit Agent and set your Gemini API key.`;
+
+        if (!anthropicConfig.key && !geminiKey) {
+          const keyErr = `No AI API key is configured for agent "${agent.name}". Please open SubscribAI Admin > WhatsApp Agent > Edit Agent and set your Claude (MWAPI) or Gemini API key.`;
           this.logger.error(keyErr);
           await this.sendFallback(agent, phone, msg.body, msg.id, keyErr);
           continue;
         }
-
-        const toolsConfig = [this.toolsService.getToolDeclarations()];
-        // gemini-3.6-flash is the active, supported model
-        const CANDIDATE_MODELS = ['gemini-3.6-flash'];
 
         let finalAiText = '';
         let lastErrCode: number | null = null;
         let lastErrMessage = '';
         let lastException = '';
 
-        // 4. Execution Loop
-        for (const modelName of CANDIDATE_MODELS) {
-          const contents = JSON.parse(JSON.stringify(sanitizedContents));
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
-          let iteration = 0;
-          const maxIterations = 4;
-          let modelSucceeded = false;
+        // 4. Try Claude Engine first if selected or if Claude key is present
+        const preferClaude = anthropicConfig.provider === 'claude' && Boolean(anthropicConfig.key);
 
+        if (preferClaude) {
           try {
-            while (iteration < maxIterations) {
-              iteration++;
-              const geminiRes = await fetch(geminiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  contents,
-                  systemInstruction: { parts: [{ text: systemPrompt }] },
-                  tools: toolsConfig,
-                }),
-                signal: AbortSignal.timeout(20000),
-              });
+            this.logger.log(`[Agent: ${agent.name}] Calling Claude engine (${anthropicConfig.model}) via ${anthropicConfig.baseUrl}...`);
+            const claudeRes = await this.executeClaudeLoop(
+              agent,
+              systemPrompt,
+              previousTurns,
+              msg.body,
+              anthropicConfig,
+            );
 
-              if (!geminiRes.ok) {
-                lastErrCode = geminiRes.status;
-                const errText = await geminiRes.text();
-                try {
-                  const parsed = JSON.parse(errText);
-                  lastErrMessage = parsed.error?.message || errText;
-                } catch {
-                  lastErrMessage = errText;
-                }
-                this.logger.warn(`Gemini [${modelName}] error ${geminiRes.status} for "${agent.name}": ${lastErrMessage}`);
-                break;
-              }
-
-              const geminiData = await geminiRes.json();
-              const candidate = geminiData.candidates?.[0];
-              const content = candidate?.content;
-              if (!content || !content.parts) break;
-
-              const functionCallPart = content.parts.find((p: any) => p.functionCall);
-              if (functionCallPart && functionCallPart.functionCall) {
-                const call = functionCallPart.functionCall;
-                this.logger.log(`Agent "${agent.name}" calling tool: ${call.name}`);
-
-                const toolResult = await this.toolsService.executeTool(call.name, call.args || {});
-
-                // Preserve thoughtSignature and id if provided by model
-                const modelTurnParts: any = {
-                  functionCall: {
-                    name: call.name,
-                    args: call.args || {},
-                    ...(call.id ? { id: call.id } : {}),
-                  },
-                };
-                if (functionCallPart.thoughtSignature) {
-                  modelTurnParts.thoughtSignature = functionCallPart.thoughtSignature;
-                }
-
-                contents.push({
-                  role: 'model',
-                  parts: [modelTurnParts],
-                });
-
-                const funcRespPart: any = {
-                  functionResponse: {
-                    name: call.name,
-                    ...(call.id ? { id: call.id } : {}),
-                    response: { output: toolResult },
-                  },
-                };
-                if (functionCallPart.thoughtSignature) {
-                  funcRespPart.thoughtSignature = functionCallPart.thoughtSignature;
-                }
-
-                contents.push({
-                  role: 'user',
-                  parts: [funcRespPart],
-                });
-                continue;
-              }
-
-              // Extract text parts (excluding thinking/thought tags)
-              const textParts = content.parts.filter((p: any) => p.text && !p.thought);
-              if (textParts.length > 0) {
-                finalAiText = textParts.map((p: any) => p.text).join('\n');
-              } else {
-                const anyText = content.parts.find((p: any) => p.text);
-                if (anyText) finalAiText = anyText.text;
-              }
-
-              if (finalAiText.trim()) {
-                modelSucceeded = true;
-                break;
-              }
+            if (claudeRes.text && claudeRes.text.trim()) {
+              finalAiText = claudeRes.text.trim();
+              this.logger.log(`[Agent: ${agent.name}] Claude responded successfully (${finalAiText.length} chars).`);
+            } else if (claudeRes.status) {
+              lastErrCode = claudeRes.status;
+              lastErrMessage = claudeRes.error || '';
+              this.logger.warn(`Claude engine returned status ${claudeRes.status} for "${agent.name}".`);
             }
-          } catch (modelErr: any) {
-            lastException = modelErr.message || String(modelErr);
-            this.logger.error(`Exception calling model ${modelName} for "${agent.name}": ${modelErr.message}`);
-          }
-
-          if (modelSucceeded && finalAiText.trim()) {
-            break;
+          } catch (claudeErr: any) {
+            lastException = claudeErr.message || String(claudeErr);
+            this.logger.error(`Exception in Claude engine for "${agent.name}": ${claudeErr.message}`);
           }
         }
 
-        // 5. If AI returned empty, return relevant and informative error directly to WhatsApp
+        // 5. Fallback to Gemini if Claude was skipped or failed and Gemini key is configured
+        if (!finalAiText.trim() && geminiKey) {
+          this.logger.log(`[Agent: ${agent.name}] Invoking Gemini engine fallback...`);
+          const toolsConfig = [this.toolsService.getToolDeclarations()];
+          const CANDIDATE_MODELS = ['gemini-3.6-flash'];
+
+          for (const modelName of CANDIDATE_MODELS) {
+            const contents = JSON.parse(JSON.stringify(sanitizedContents));
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
+            let iteration = 0;
+            const maxIterations = 4;
+            let modelSucceeded = false;
+
+            try {
+              while (iteration < maxIterations) {
+                iteration++;
+                const geminiRes = await fetch(geminiUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    contents,
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    tools: toolsConfig,
+                  }),
+                  signal: AbortSignal.timeout(20000),
+                });
+
+                if (!geminiRes.ok) {
+                  lastErrCode = geminiRes.status;
+                  const errText = await geminiRes.text();
+                  try {
+                    const parsed = JSON.parse(errText);
+                    lastErrMessage = parsed.error?.message || errText;
+                  } catch {
+                    lastErrMessage = errText;
+                  }
+                  this.logger.warn(`Gemini [${modelName}] error ${geminiRes.status} for "${agent.name}": ${lastErrMessage}`);
+                  break;
+                }
+
+                const geminiData = await geminiRes.json();
+                const candidate = geminiData.candidates?.[0];
+                const content = candidate?.content;
+                if (!content || !content.parts) break;
+
+                const functionCallPart = content.parts.find((p: any) => p.functionCall);
+                if (functionCallPart && functionCallPart.functionCall) {
+                  const call = functionCallPart.functionCall;
+                  this.logger.log(`Agent "${agent.name}" calling tool: ${call.name}`);
+
+                  const toolResult = await this.toolsService.executeTool(call.name, call.args || {});
+
+                  // Preserve thoughtSignature and id if provided by model
+                  const modelTurnParts: any = {
+                    functionCall: {
+                      name: call.name,
+                      args: call.args || {},
+                      ...(call.id ? { id: call.id } : {}),
+                    },
+                  };
+                  if (functionCallPart.thoughtSignature) {
+                    modelTurnParts.thoughtSignature = functionCallPart.thoughtSignature;
+                  }
+
+                  contents.push({
+                    role: 'model',
+                    parts: [modelTurnParts],
+                  });
+
+                  const funcRespPart: any = {
+                    functionResponse: {
+                      name: call.name,
+                      ...(call.id ? { id: call.id } : {}),
+                      response: { output: toolResult },
+                    },
+                  };
+                  if (functionCallPart.thoughtSignature) {
+                    funcRespPart.thoughtSignature = functionCallPart.thoughtSignature;
+                  }
+
+                  contents.push({
+                    role: 'user',
+                    parts: [funcRespPart],
+                  });
+                  continue;
+                }
+
+                // Extract text parts (excluding thinking/thought tags)
+                const textParts = content.parts.filter((p: any) => p.text && !p.thought);
+                if (textParts.length > 0) {
+                  finalAiText = textParts.map((p: any) => p.text).join('\n');
+                } else {
+                  const anyText = content.parts.find((p: any) => p.text);
+                  if (anyText) finalAiText = anyText.text;
+                }
+
+                if (finalAiText.trim()) {
+                  modelSucceeded = true;
+                  break;
+                }
+              }
+            } catch (modelErr: any) {
+              lastException = modelErr.message || String(modelErr);
+              this.logger.error(`Exception calling Gemini model ${modelName} for "${agent.name}": ${modelErr.message}`);
+            }
+
+            if (modelSucceeded && finalAiText.trim()) {
+              break;
+            }
+          }
+        }
+
+        // 6. If AI returned empty, return relevant and informative error directly to WhatsApp
         if (!finalAiText.trim()) {
           if (lastErrCode === 429) {
             const firstLine = (lastErrMessage || 'Quota exceeded.').split('\n')[0];
-            finalAiText = `⚠️ *SubscribAI Assistant Notice: Quota Exceeded (429)*\n${firstLine}\n\n*How to resolve:*\n• Please retry your request in 1 minute.\n• Or enter a Gemini API key with billing enabled in SubscribAI Admin > *WhatsApp Agent* > *Edit Agent*.`;
+            finalAiText = `⚠️ *SubscribAI Assistant Notice: Quota Exceeded (429)*\n${firstLine}\n\n*How to resolve:*\n• Claude AI Gateway is recommended! Go to SubscribAI Admin > *WhatsApp Agent* > *Edit Agent* and enable Claude (MWAPI).\n• Or retry in 1 minute.`;
           } else if (lastErrCode) {
             finalAiText = `⚠️ *AI Service Error (${lastErrCode})*:\n${(lastErrMessage || 'Service unavailable').slice(0, 300)}\n\nPlease verify your API key in Admin > WhatsApp Agent.`;
           } else if (lastException) {
@@ -287,6 +319,112 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
         this.logger.error(`Exception polling agent "${agent.name}": ${err.message}`);
       }
     }
+  }
+
+  private async executeClaudeLoop(
+    agent: AgentConfig,
+    systemPrompt: string,
+    previousTurns: Array<{ role: 'user' | 'model'; text: string }>,
+    userMsgBody: string,
+    anthropicConfig: { key: string; baseUrl: string; model: string },
+  ): Promise<{ text: string; error?: string; status?: number }> {
+    const claudeMessages: any[] = [];
+
+    for (const turn of previousTurns) {
+      if (!turn.text || !turn.text.trim()) continue;
+      const role = turn.role === 'model' ? 'assistant' : 'user';
+      const last = claudeMessages[claudeMessages.length - 1];
+      if (last && last.role === role) {
+        last.content += '\n' + turn.text.trim();
+      } else {
+        claudeMessages.push({
+          role,
+          content: turn.text.trim(),
+        });
+      }
+    }
+
+    while (claudeMessages.length > 0 && claudeMessages[0].role !== 'user') {
+      claudeMessages.shift();
+    }
+
+    const lastMsg = claudeMessages[claudeMessages.length - 1];
+    if (lastMsg && lastMsg.role === 'user') {
+      lastMsg.content += '\n' + (userMsgBody || '').trim();
+    } else {
+      claudeMessages.push({
+        role: 'user',
+        content: (userMsgBody || '').trim(),
+      });
+    }
+
+    const tools = this.toolsService.getClaudeTools();
+    const endpoint = `${anthropicConfig.baseUrl}/messages`;
+    let iteration = 0;
+    const maxIterations = 5;
+
+    while (iteration < maxIterations) {
+      iteration++;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'x-api-key': anthropicConfig.key,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: anthropicConfig.model,
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: claudeMessages,
+          tools,
+        }),
+        signal: AbortSignal.timeout(25000),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        this.logger.warn(`Claude [${anthropicConfig.model}] error ${res.status}: ${errText}`);
+        return { text: '', error: errText, status: res.status };
+      }
+
+      const data = await res.json();
+      const contentBlocks: any[] = Array.isArray(data.content) ? data.content : [];
+
+      const toolUseBlocks = contentBlocks.filter((b: any) => b.type === 'tool_use');
+
+      if (toolUseBlocks.length > 0) {
+        claudeMessages.push({
+          role: 'assistant',
+          content: contentBlocks,
+        });
+
+        const toolResultBlocks: any[] = [];
+        for (const toolUse of toolUseBlocks) {
+          this.logger.log(`Claude Agent "${agent.name}" executing tool: ${toolUse.name}`);
+          const result = await this.toolsService.executeTool(toolUse.name, toolUse.input || {});
+          toolResultBlocks.push({
+            type: 'tool_result',
+            tool_use_id: toolUse.id,
+            content: typeof result === 'string' ? result : JSON.stringify(result),
+          });
+        }
+
+        claudeMessages.push({
+          role: 'user',
+          content: toolResultBlocks,
+        });
+
+        continue;
+      }
+
+      const textBlocks = contentBlocks.filter((b: any) => b.type === 'text' && b.text);
+      const finalText = textBlocks.map((b: any) => b.text).join('\n').trim();
+      return { text: finalText };
+    }
+
+    return { text: '' };
   }
 
   private async sendFallback(agent: AgentConfig, phone: string, text: string, replyToId: string, customError?: string) {
