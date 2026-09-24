@@ -15,6 +15,7 @@ import { ContentModule } from "./content/content.module";
 import { UsersAdminModule } from "./users-admin/users-admin.module";
 import { PortalModule } from "./portal/portal.module";
 import { DeliveryModule } from "./delivery/delivery.module";
+import { WhatsappAgentModule } from "./whatsapp-agent/whatsapp-agent.module";
 
 @Module({
   imports: [
@@ -43,6 +44,8 @@ import { DeliveryModule } from "./delivery/delivery.module";
     PortalModule,
     // Phase 8 — subscription delivery automation (WhatsApp templates + log)
     DeliveryModule,
+    // Phase 9 — WhatsApp AI Agent
+    WhatsappAgentModule,
   ],
 })
 export class AppModule {}

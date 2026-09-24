@@ -75,6 +75,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
       },
       { href: "/admin/delivery", label: "Delivery Messages", icon: "fa-paper-plane", permission: "delivery:read" },
       { href: "/admin/whatsapp", label: "Send by WhatsApp", icon: "fa-comment-sms", permission: "delivery:read" },
+      { href: "/admin/whatsapp-agent", label: "WhatsApp AI Agent", icon: "fa-robot", permission: "delivery:read" },
       { href: "/admin/coupons", label: "Promo Codes", icon: "fa-ticket",         permission: "settings:read" },
       { href: "/admin/traffic", label: "Traffic", icon: "fa-chart-line",     permission: "analytics:view" },
     ],
