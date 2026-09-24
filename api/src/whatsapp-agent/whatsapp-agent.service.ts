@@ -24,10 +24,16 @@ export interface AgentReminderConfig {
   dailyBriefingIncludeSales?: boolean;
   dailyBriefingIncludeOrders?: boolean;
   dailyBriefingIncludeRenewals?: boolean;
+  dailyBriefingIncludeStock?: boolean;
   renewalsWatchdogEnabled?: boolean;
+  renewalsScanTime?: string;
   renewalsDaysAhead?: number;
+  renewalsIncludeContact?: boolean;
+  renewalsPhone?: string;
   stuckOrdersAlertEnabled?: boolean;
   stuckOrdersHours?: number;
+  stuckOrdersCheckFrequency?: string;
+  stuckOrdersPhone?: string;
   stockAlertEnabled?: boolean;
   stockDaysAhead?: number;
   targetPhone?: string;
@@ -65,6 +71,7 @@ export interface AgentConfig {
   anthropicModel?: string;
   role: 'admin_assistant' | 'customer_support';
   adminPhones?: string[];
+  lastActiveUserId?: string;
   reminders?: AgentReminderConfig;
   security?: AgentSecurityConfig;
   tools?: AgentToolsConfig;
@@ -91,6 +98,7 @@ export interface AgentRuntimeStatus {
   anthropicModel?: string;
   adminPhones?: string[];
   adminPhonesStr?: string;
+  lastActiveUserId?: string;
   reminders?: AgentReminderConfig;
   security?: AgentSecurityConfig;
   tools?: AgentToolsConfig;
@@ -312,6 +320,7 @@ export class WhatsappAgentService implements OnModuleInit {
         enabled: ag.enabled,
         workerRunning: this.runningAgents.has(ag.id),
         activeChatsCount,
+        lastActiveUserId: ag.lastActiveUserId,
       };
     });
   }
@@ -324,14 +333,78 @@ export class WhatsappAgentService implements OnModuleInit {
     if (agent.role !== 'admin_assistant') return false;
     const allowed = agent.security?.adminPhones || agent.adminPhones;
     if (!allowed || allowed.length === 0) {
-      // If whitelist is not configured, permit all for backwards compatibility
+      // If whitelist is not configured, permit all
       return true;
     }
+
     const cleanPhone = phone.replace(/[^0-9]/g, '');
-    return allowed.some((p) => {
+    const rawClean = phone.replace(/^user:/, '').trim();
+
+    // 1. Direct match on phone, scoped ID, or numeric digits
+    if (
+      allowed.includes(phone) ||
+      allowed.includes(rawClean) ||
+      allowed.includes(cleanPhone)
+    ) {
+      return true;
+    }
+
+    // 2. Check if matches the agent's known active user ID
+    if (
+      agent.lastActiveUserId &&
+      (agent.lastActiveUserId === phone ||
+        agent.lastActiveUserId.replace(/[^0-9]/g, '') === cleanPhone)
+    ) {
+      return true;
+    }
+
+    // 3. Digits suffix / prefix matching for standard phone numbers
+    for (const p of allowed) {
       const cleanAdmin = p.replace(/[^0-9]/g, '');
-      return cleanAdmin.length >= 7 && (cleanPhone.endsWith(cleanAdmin) || cleanAdmin.endsWith(cleanPhone));
-    });
+      if (!cleanAdmin) continue;
+      if (cleanAdmin === cleanPhone) return true;
+      if (
+        cleanAdmin.length >= 7 &&
+        cleanPhone.length >= 7 &&
+        (cleanPhone.endsWith(cleanAdmin) || cleanAdmin.endsWith(cleanPhone))
+      ) {
+        return true;
+      }
+    }
+
+    // 4. Auto-bind: If exactly 1 admin phone is configured, auto-pair with the incoming admin participant
+    if (
+      allowed.length === 1 &&
+      !allowed[0].startsWith('user:') &&
+      allowed[0].replace(/[^0-9]/g, '').length >= 10
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  recordLastActiveUser(agentId: string, userId: string) {
+    const agent = this.agents.get(agentId);
+    if (!agent) return;
+    const cleanUser = userId.trim();
+    if (agent.lastActiveUserId !== cleanUser) {
+      agent.lastActiveUserId = cleanUser;
+      // For admin assistant, auto-whitelist the Meta participant ID
+      if (agent.role === 'admin_assistant') {
+        if (!agent.adminPhones) agent.adminPhones = [];
+        const bareId = cleanUser.replace(/^user:/, '');
+        if (!agent.adminPhones.includes(cleanUser)) agent.adminPhones.push(cleanUser);
+        if (!agent.adminPhones.includes(bareId)) agent.adminPhones.push(bareId);
+        if (agent.security) {
+          if (!agent.security.adminPhones) agent.security.adminPhones = [];
+          if (!agent.security.adminPhones.includes(cleanUser)) agent.security.adminPhones.push(cleanUser);
+          if (!agent.security.adminPhones.includes(bareId)) agent.security.adminPhones.push(bareId);
+        }
+      }
+      this.persistAgents().catch(() => null);
+      this.logger.log(`Linked active WhatsApp participant ${cleanUser} to agent "${agent.name}" (${agent.id})`);
+    }
   }
 
   async saveAgent(input: {
@@ -345,6 +418,7 @@ export class WhatsappAgentService implements OnModuleInit {
     anthropicModel?: string;
     role?: 'admin_assistant' | 'customer_support';
     adminPhones?: string[] | string;
+    lastActiveUserId?: string;
     reminders?: AgentReminderConfig;
     security?: AgentSecurityConfig;
     tools?: AgentToolsConfig;
@@ -440,6 +514,7 @@ export class WhatsappAgentService implements OnModuleInit {
       anthropicModel: anthropicModel || undefined,
       role: input.role || existing?.role || 'admin_assistant',
       adminPhones,
+      lastActiveUserId: input.lastActiveUserId !== undefined ? input.lastActiveUserId : existing?.lastActiveUserId,
       reminders,
       security,
       tools,
@@ -490,6 +565,7 @@ export class WhatsappAgentService implements OnModuleInit {
       anthropicModel: config.anthropicModel || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
       adminPhones: config.adminPhones || [],
       adminPhonesStr: (config.adminPhones || []).join(', '),
+      lastActiveUserId: config.lastActiveUserId,
       reminders: config.reminders,
       security: config.security,
       tools: config.tools,
@@ -665,12 +741,22 @@ export class WhatsappAgentService implements OnModuleInit {
       finalBody = finalBody.substring(0, 4093) + '...';
     }
 
+    // Resolve participant format for WhatsApp Cloud Agent API
+    let recipient = (to || '').trim();
+    if (!recipient.startsWith('user:') && !recipient.startsWith('agent:')) {
+      if (agent.lastActiveUserId) {
+        recipient = agent.lastActiveUserId;
+      } else {
+        recipient = `user:${recipient}`;
+      }
+    }
+
     let retry = 0;
     while (retry < 3) {
       try {
         const payload: any = {
           messaging_product: 'whatsapp',
-          to,
+          to: recipient,
           type: 'text',
           text: { body: finalBody },
         };
@@ -697,7 +783,14 @@ export class WhatsappAgentService implements OnModuleInit {
 
         if (!response.ok) {
           const text = await response.text();
-          this.logger.error(`Error sending reply from "${agent.name}": ${response.status} ${text}`);
+          this.logger.error(`Error sending reply from "${agent.name}" to ${recipient}: ${response.status} ${text}`);
+          // Fallback to active participant if participant format or user mismatch
+          if (agent.lastActiveUserId && recipient !== agent.lastActiveUserId) {
+            this.logger.log(`Retrying send with active WhatsApp participant ID: ${agent.lastActiveUserId}`);
+            recipient = agent.lastActiveUserId;
+            retry++;
+            continue;
+          }
           retry++;
           if (retry < 3) {
             await new Promise((r) => setTimeout(r, 1000));
@@ -706,7 +799,7 @@ export class WhatsappAgentService implements OnModuleInit {
           throw new Error(`Reply failed with status ${response.status}`);
         }
 
-        this.logger.log(`Successfully sent reply from "${agent.name}" to ${to}`);
+        this.logger.log(`Successfully sent reply from "${agent.name}" to ${recipient}`);
         return;
       } catch (err: any) {
         if (retry >= 2) {

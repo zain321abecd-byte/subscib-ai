@@ -22,10 +22,16 @@ export interface AgentReminderConfig {
   dailyBriefingIncludeSales?: boolean;
   dailyBriefingIncludeOrders?: boolean;
   dailyBriefingIncludeRenewals?: boolean;
+  dailyBriefingIncludeStock?: boolean;
   renewalsWatchdogEnabled?: boolean;
+  renewalsScanTime?: string;
   renewalsDaysAhead?: number;
+  renewalsIncludeContact?: boolean;
+  renewalsPhone?: string;
   stuckOrdersAlertEnabled?: boolean;
   stuckOrdersHours?: number;
+  stuckOrdersCheckFrequency?: string;
+  stuckOrdersPhone?: string;
   stockAlertEnabled?: boolean;
   stockDaysAhead?: number;
   targetPhone?: string;
@@ -70,6 +76,7 @@ export interface AgentRuntimeStatus {
   anthropicModel?: string;
   adminPhones?: string[];
   adminPhonesStr?: string;
+  lastActiveUserId?: string;
   reminders?: AgentReminderConfig;
   security?: AgentSecurityConfig;
   tools?: AgentToolsConfig;
@@ -104,6 +111,7 @@ export interface SaveAgentInput {
   anthropicModel?: string;
   role?: "admin_assistant" | "customer_support";
   adminPhones?: string[] | string;
+  lastActiveUserId?: string;
   reminders?: AgentReminderConfig;
   security?: AgentSecurityConfig;
   tools?: AgentToolsConfig;

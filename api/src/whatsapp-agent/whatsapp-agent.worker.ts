@@ -57,13 +57,16 @@ export class WhatsappAgentWorker {
 
         const phone = msg.from;
 
+        // Auto-record active user ID and link with agent
+        this.agentService.recordLastActiveUser(agent.id, phone);
+
         // 2. Security / Whitelist Check for Admin Assistant
         if (agent.role === 'admin_assistant' && !this.agentService.isAdminPhone(agent, phone)) {
           this.logger.warn(`Unauthorized access attempt to admin agent "${agent.name}" from ${phone}`);
           await this.agentService.sendAgentReply(
             agent,
             phone,
-            `⛔ *Access Denied*\nYour number (${phone}) is not authorized for Admin Assistant operations. Please whitelist your number in SubscribAI Admin > WhatsApp Agent.`,
+            `⛔ *Access Denied*\nYour WhatsApp participant ID (${phone}) is not authorized for Admin Assistant operations. Please add \`${phone}\` to your Admin Phone Whitelist in SubscribAI Admin > WhatsApp Agent > Security & Whitelist.`,
             msg.id,
           );
           continue;
@@ -543,28 +546,46 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
       .filter((a) => a.role === 'admin_assistant' && a.reminders?.dailyBriefingEnabled !== false);
 
     for (const agent of agents) {
-      const target = agent.reminders?.targetPhone || agent.adminPhones?.[0];
+      const target = agent.reminders?.targetPhone || agent.lastActiveUserId || agent.adminPhones?.[0];
       if (!target) continue;
 
       try {
         this.logger.log(`[Cron: 9 AM] Sending daily briefing to ${target} via "${agent.name}"`);
-        const yesterday = await this.toolsService.executeTool('get_sales_summary', { period: 'yesterday' });
-        const orders = await this.toolsService.executeTool('get_orders_summary', {});
-        const renewals = await this.toolsService.executeTool('get_upcoming_renewals', { days_ahead: 1 });
+        const includeSales = agent.reminders?.dailyBriefingIncludeSales !== false;
+        const includeOrders = agent.reminders?.dailyBriefingIncludeOrders !== false;
+        const includeRenewals = agent.reminders?.dailyBriefingIncludeRenewals !== false;
+        const includeStock = Boolean(agent.reminders?.dailyBriefingIncludeStock);
 
-        const text =
-          `☀️ *SubscribAI Morning Briefing*\n\n` +
-          `📅 *Yesterday's Sales:*\n` +
-          `• Count: ${yesterday.totalSalesCount || 0} subscriptions\n` +
-          `• Volume: PKR ${(yesterday.totalRevenuePkr || 0).toLocaleString()} | $${yesterday.totalRevenueUsd || 0}\n\n` +
-          `📦 *Orders Status:*\n` +
-          `• Pending: ${orders.statusBreakdown?.pending || 0}\n` +
-          `• Paid: ${orders.statusBreakdown?.paid || 0}\n` +
-          `• Delivered: ${orders.statusBreakdown?.delivered || 0}\n\n` +
-          `🔔 *Renewals Due Today:* ${renewals.count || 0}\n\n` +
-          `_Ask me "send sales report" or reply with any command to manage your business!_`;
+        let body = `☀️ *SubscribAI Morning Executive Briefing*\n\n`;
 
-        await this.agentService.sendAgentReply(agent, target, text);
+        if (includeSales) {
+          const yesterday = await this.toolsService.executeTool('get_sales_summary', { period: 'yesterday' });
+          body += `📅 *Yesterday's Sales & Revenue:*\n` +
+            `• Volume: PKR ${(yesterday.totalRevenuePkr || 0).toLocaleString()} | $${yesterday.totalRevenueUsd || 0}\n` +
+            `• Subscriptions: ${yesterday.totalSalesCount || 0} active sales\n\n`;
+        }
+
+        if (includeOrders) {
+          const orders = await this.toolsService.executeTool('get_orders_summary', {});
+          body += `📦 *Store Orders Status Breakdown:*\n` +
+            `• Pending Fulfillment: *${orders.statusBreakdown?.pending || 0}*\n` +
+            `• Paid / In Process: ${orders.statusBreakdown?.paid || 0}\n` +
+            `• Completed & Delivered: ${orders.statusBreakdown?.delivered || 0}\n\n`;
+        }
+
+        if (includeRenewals) {
+          const renewals = await this.toolsService.executeTool('get_upcoming_renewals', { days_ahead: 1 });
+          body += `🔔 *Renewals Due Today:* ${renewals.count || 0}\n\n`;
+        }
+
+        if (includeStock) {
+          const expiringStock = await this.toolsService.executeTool('get_expiring_stock', { days_ahead: 14 });
+          body += `🏢 *Supplier Stock Expiring Soon (<14d):* ${expiringStock.count || 0}\n\n`;
+        }
+
+        body += `_💡 Reply "send sales report", "check renewals", or any executive command!_`;
+
+        await this.agentService.sendAgentReply(agent, target, body);
       } catch (err: any) {
         this.logger.error(`Error in daily briefing cron for "${agent.name}": ${err.message}`);
       }
@@ -572,30 +593,41 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
   }
 
   @Cron('0 11 * * *') // Daily at 11:00 AM
-  async runRenewalWatchdogCron() {
+  async runRenewalWatchdogCron(isManual = false) {
     const agents = this.agentService
       .getRunningAgents()
       .filter((a) => a.role === 'admin_assistant' && a.reminders?.renewalsWatchdogEnabled !== false);
 
     for (const agent of agents) {
-      const target = agent.reminders?.targetPhone || agent.adminPhones?.[0];
+      const target = agent.reminders?.renewalsPhone || agent.reminders?.targetPhone || agent.lastActiveUserId || agent.adminPhones?.[0];
       if (!target) continue;
 
       try {
-        const renewals = await this.toolsService.executeTool('get_upcoming_renewals', { days_ahead: 2 });
-        if (!renewals.count || renewals.count === 0) continue;
+        const daysAhead = agent.reminders?.renewalsDaysAhead || 2;
+        const renewals = await this.toolsService.executeTool('get_upcoming_renewals', { days_ahead: daysAhead });
+
+        if (!renewals.count || renewals.count === 0) {
+          if (isManual) {
+            const text =
+              `🔔 *SubscribAI Renewal Watchdog*\n\n` +
+              `✅ *All Clear!* No customer subscriptions are expiring within the next ${daysAhead} day${daysAhead > 1 ? 's' : ''}.\n\n` +
+              `_Reply "check renewals" or "generate renewals report" anytime._`;
+            await this.agentService.sendAgentReply(agent, target, text);
+          }
+          continue;
+        }
 
         this.logger.log(`[Cron: 11 AM] Sending renewal watchdog (${renewals.count} renewals) to ${target}`);
         const listSnippet = (renewals.expiringSubscriptions || [])
-          .slice(0, 5)
-          .map((r: any) => `• *${r.customer_name}* (${r.product_name}) — Exp: ${r.expiry_date} [${r.customer_phone}]`)
+          .slice(0, 6)
+          .map((r: any) => `• *${r.customer_name}* (${r.product_name}) — Exp: ${r.expiry_date} [📱 ${r.customer_phone}]`)
           .join('\n');
 
         const text =
-          `🔔 *SubscribAI Renewal Watchdog (Next 48 Hours)*\n\n` +
-          `*${renewals.count} customer subscription(s)* expiring within 48 hours:\n\n` +
+          `🔔 *SubscribAI Renewal Watchdog (Next ${daysAhead} Day${daysAhead > 1 ? 's' : ''})*\n\n` +
+          `*${renewals.count} customer subscription(s)* expiring within ${daysAhead * 24} hours:\n\n` +
           `${listSnippet}\n\n` +
-          `_Reply "generate renewals report" or ask me to message customers._`;
+          `_Reply "generate renewals report" or ask me to message customers directly._`;
 
         await this.agentService.sendAgentReply(agent, target, text);
       } catch (err: any) {
@@ -605,34 +637,43 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
   }
 
   @Cron('0 */4 * * *') // Every 4 hours
-  async runStuckOrdersAlertCron() {
+  async runStuckOrdersAlertCron(isManual = false) {
     const agents = this.agentService
       .getRunningAgents()
       .filter((a) => a.role === 'admin_assistant' && a.reminders?.stuckOrdersAlertEnabled !== false);
 
     for (const agent of agents) {
-      const target = agent.reminders?.targetPhone || agent.adminPhones?.[0];
+      const target = agent.reminders?.stuckOrdersPhone || agent.reminders?.targetPhone || agent.lastActiveUserId || agent.adminPhones?.[0];
       if (!target) continue;
 
       try {
-        const ordersRes = await this.toolsService.executeTool('list_orders', { status: 'pending', limit: 15 });
+        const stuckHours = agent.reminders?.stuckOrdersHours || 4;
+        const ordersRes = await this.toolsService.executeTool('list_orders', { status: 'pending', limit: 20 });
         const pendingOrders = ordersRes.orders || [];
-        const fourHoursAgo = Date.now() - 4 * 60 * 60 * 1000;
-        const stuck = pendingOrders.filter((o: any) => new Date(o.created_at).getTime() < fourHoursAgo);
+        const thresholdMs = Date.now() - stuckHours * 60 * 60 * 1000;
+        const stuck = pendingOrders.filter((o: any) => new Date(o.created_at).getTime() < thresholdMs);
 
-        if (stuck.length === 0) continue;
+        if (stuck.length === 0) {
+          if (isManual) {
+            const text =
+              `📦 *SubscribAI Stuck Orders Check*\n\n` +
+              `✅ *All Clear!* No orders have been pending for > ${stuckHours} hour${stuckHours > 1 ? 's' : ''}. Fulfillment is 100% on schedule!`;
+            await this.agentService.sendAgentReply(agent, target, text);
+          }
+          continue;
+        }
 
-        this.logger.log(`[Cron: 4h] Sending stuck orders alert (${stuck.length} stuck) to ${target}`);
+        this.logger.log(`[Cron: ${stuckHours}h] Sending stuck orders alert (${stuck.length} stuck) to ${target}`);
         const listSnippet = stuck
           .slice(0, 5)
-          .map((o: any) => `• #${o.order_number} (${o.customer_name || 'Guest'}) — PKR ${o.subtotal_pkr || 0}`)
+          .map((o: any) => `• Order #${o.order_number} (${o.customer_name || 'Guest'}) — PKR ${o.subtotal_pkr || 0}`)
           .join('\n');
 
         const text =
           `⚠️ *SubscribAI Stuck Orders Alert*\n\n` +
-          `*${stuck.length} order(s)* have been pending for > 4 hours:\n\n` +
+          `*${stuck.length} order(s)* have been pending for > ${stuckHours} hour${stuckHours > 1 ? 's' : ''}:\n\n` +
           `${listSnippet}\n\n` +
-          `_Reply "update order #NUMBER to paid/delivered" to update._`;
+          `_Reply "update order #NUMBER to paid/delivered" to update fulfillment status._`;
 
         await this.agentService.sendAgentReply(agent, target, text);
       } catch (err: any) {

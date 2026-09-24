@@ -22,83 +22,106 @@ import {
   type AgentReportsConfig,
 } from "./actions";
 
-// ── Styles & Design System ────────────────────────────────────────────────
+// ── Apple Design System Tokens ───────────────────────────────────────────────
 
-const card: React.CSSProperties = {
-  background: "linear-gradient(180deg, rgba(26, 26, 46, 0.95) 0%, rgba(18, 18, 34, 0.95) 100%)",
-  borderRadius: 14,
-  padding: "20px 24px",
+const surfaceCard: React.CSSProperties = {
+  background: "rgba(255, 255, 255, 0.03)",
+  backdropFilter: "blur(24px) saturate(180%)",
+  WebkitBackdropFilter: "blur(24px) saturate(180%)",
+  borderRadius: 20,
+  padding: "22px 24px",
   border: "1px solid rgba(255, 255, 255, 0.08)",
-  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
+  boxShadow: "0 12px 36px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.08)",
 };
 
-const badge = (active: boolean): React.CSSProperties => ({
+const badgeStyle = (active: boolean): React.CSSProperties => ({
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  padding: "4px 10px",
+  padding: "3px 10px",
   borderRadius: 999,
   fontSize: 12,
-  fontWeight: 600,
-  background: active ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
-  color: active ? "#10b981" : "#ef4444",
-  border: `1px solid ${active ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
+  fontWeight: 500,
+  background: active ? "rgba(52, 199, 89, 0.14)" : "rgba(255, 69, 58, 0.14)",
+  color: active ? "#30D158" : "#FF453A",
+  border: `1px solid ${active ? "rgba(52, 199, 89, 0.28)" : "rgba(255, 69, 58, 0.28)"}`,
 });
 
-const dot = (active: boolean): React.CSSProperties => ({
-  width: 7,
-  height: 7,
+const dotStyle = (active: boolean): React.CSSProperties => ({
+  width: 6,
+  height: 6,
   borderRadius: "50%",
-  background: active ? "#10b981" : "#ef4444",
-  boxShadow: active ? "0 0 8px #10b981" : "none",
-  animation: active ? "pulse 2s infinite" : "none",
+  background: active ? "#30D158" : "#FF453A",
+  boxShadow: active ? "0 0 8px rgba(48, 209, 88, 0.8)" : "none",
+  animation: active ? "pulse 2.4s ease-in-out infinite" : "none",
 });
 
 const btnPrimary: React.CSSProperties = {
-  padding: "9px 16px",
-  borderRadius: 8,
-  border: "none",
-  fontWeight: 600,
+  padding: "8px 18px",
+  borderRadius: 999,
+  border: "1px solid rgba(255, 255, 255, 0.2)",
+  fontWeight: 500,
   fontSize: 13,
   cursor: "pointer",
-  transition: "all 0.15s ease",
+  transition: "all 0.2s cubic-bezier(0.25, 1, 0.5, 1)",
   display: "inline-flex",
   alignItems: "center",
   gap: 7,
+  background: "linear-gradient(180deg, #34C759 0%, #28B14C 100%)",
+  color: "#FFFFFF",
+  boxShadow: "0 2px 10px rgba(52, 199, 89, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25)",
 };
 
 const btnSecondary: React.CSSProperties = {
-  ...btnPrimary,
-  background: "rgba(255, 255, 255, 0.05)",
-  border: "1px solid rgba(255, 255, 255, 0.12)",
-  color: "var(--foreground, #e0e0e0)",
+  padding: "8px 16px",
+  borderRadius: 999,
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  fontWeight: 500,
+  fontSize: 12.5,
+  cursor: "pointer",
+  transition: "all 0.2s cubic-bezier(0.25, 1, 0.5, 1)",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  background: "rgba(255, 255, 255, 0.07)",
+  color: "#F5F5F7",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.06)",
 };
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  background: "rgba(15, 15, 30, 0.8)",
-  color: "var(--foreground, #e0e0e0)",
-  border: "1px solid rgba(255, 255, 255, 0.12)",
-  borderRadius: 8,
-  padding: "9px 13px",
-  fontSize: 13,
+  background: "rgba(255, 255, 255, 0.045)",
+  color: "#F5F5F7",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  borderRadius: 12,
+  padding: "10px 14px",
+  fontSize: 13.5,
   outline: "none",
   boxSizing: "border-box",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  transition: "all 0.2s cubic-bezier(0.25, 1, 0.5, 1)",
 };
 
 const msgBubble = (isUser: boolean): React.CSSProperties => ({
   maxWidth: "75%",
-  padding: "10px 14px",
-  borderRadius: 12,
-  fontSize: 13,
+  padding: "11px 16px",
+  borderRadius: 18,
+  fontSize: 13.5,
   lineHeight: 1.5,
-  background: isUser ? "linear-gradient(135deg, #059669 0%, #10b981 100%)" : "rgba(30, 30, 50, 0.9)",
-  color: isUser ? "#fff" : "var(--foreground, #e0e0e0)",
+  background: isUser
+    ? "linear-gradient(180deg, #34C759 0%, #28B14C 100%)"
+    : "rgba(255, 255, 255, 0.07)",
+  color: "#FFFFFF",
   alignSelf: isUser ? "flex-end" : "flex-start",
-  border: isUser ? "none" : "1px solid rgba(255, 255, 255, 0.08)",
+  border: isUser ? "1px solid rgba(255, 255, 255, 0.2)" : "1px solid rgba(255, 255, 255, 0.08)",
   whiteSpace: "pre-wrap" as const,
   wordBreak: "break-word" as const,
-  boxShadow: isUser ? "0 2px 10px rgba(16, 185, 129, 0.2)" : "0 2px 8px rgba(0, 0, 0, 0.2)",
+  boxShadow: isUser
+    ? "0 3px 12px rgba(52, 199, 89, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25)"
+    : "0 3px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
 });
 
 export default function WhatsAppAgentClient() {
@@ -115,9 +138,9 @@ export default function WhatsAppAgentClient() {
   const [successMsg, setSuccessMsg] = useState("");
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
 
-  // Modal / Form state for Add/Edit Agent
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState<"general" | "reminders" | "security" | "tools" | "reports">("general");
+  // ── Page View State (Fleet Hub vs Full Configuration Page) ────────────────
+  const [activeView, setActiveView] = useState<"fleet" | "configure">("fleet");
+  const [configTab, setConfigTab] = useState<"general" | "reminders" | "security" | "tools" | "reports">("general");
 
   const [editingAgent, setEditingAgent] = useState<SaveAgentInput>({
     name: "",
@@ -164,97 +187,109 @@ export default function WhatsAppAgentClient() {
     const res = await getAgentHistory(selectedAgentId);
     if (res.ok && res.data) {
       setHistory(res.data);
-      if (!selectedPhone) {
-        const phones = Object.keys(res.data);
-        if (phones.length > 0) setSelectedPhone(phones[0]);
+      const phones = Object.keys(res.data);
+      if (phones.length > 0 && !selectedPhone) {
+        setSelectedPhone(phones[0]);
       }
     }
   }, [selectedAgentId, selectedPhone]);
 
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
       await fetchStatusAndAgents();
-      setLoading(false);
-    })();
+      if (!cancelled) setLoading(false);
+    }
+    load();
+
     pollRef.current = setInterval(() => {
       fetchStatusAndAgents();
       fetchHistory();
     }, 5000);
+
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      cancelled = true;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchStatusAndAgents, fetchHistory]);
 
   useEffect(() => {
-    if (selectedAgentId) {
-      fetchHistory();
-    }
+    fetchHistory();
   }, [selectedAgentId, fetchHistory]);
 
-  async function handleToggleAgent(ag: AgentRuntimeStatus) {
+  // ── Actions ───────────────────────────────────────────────────────────────
+
+  async function handleStart(id: string) {
     setActionLoading(true);
     setError("");
-    setSuccessMsg("");
-    const res = ag.workerRunning ? await stopAgent(ag.id) : await startAgent(ag.id);
-    if (!res.ok) {
-      setError(res.error);
-    } else {
-      setSuccessMsg(`Agent "${ag.name}" ${ag.workerRunning ? "stopped" : "started"}!`);
-    }
-    await fetchStatusAndAgents();
+    const res = await startAgent(id);
     setActionLoading(false);
+    if (res.ok) {
+      setSuccessMsg("Agent started successfully.");
+      fetchStatusAndAgents();
+    } else {
+      setError(res.error);
+    }
   }
 
-  async function handleDeleteAgent(id: string, name: string) {
-    if (!confirm(`Are you sure you want to delete agent "${name}"?`)) return;
+  async function handleStop(id: string) {
+    setActionLoading(true);
+    setError("");
+    const res = await stopAgent(id);
+    setActionLoading(false);
+    if (res.ok) {
+      setSuccessMsg("Agent paused.");
+      fetchStatusAndAgents();
+    } else {
+      setError(res.error);
+    }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
     setActionLoading(true);
     setError("");
     const res = await deleteAgent(id);
-    if (!res.ok) {
-      setError(res.error);
-    } else {
-      setSuccessMsg(`Agent "${name}" deleted.`);
-      if (selectedAgentId === id) {
-        const remaining = agents.filter((a) => a.id !== id);
-        setSelectedAgentId(remaining[0]?.id || "");
-      }
-    }
-    await fetchStatusAndAgents();
     setActionLoading(false);
+    if (res.ok) {
+      setSuccessMsg(`Agent "${name}" deleted.`);
+      if (selectedAgentId === id) setSelectedAgentId("");
+      fetchStatusAndAgents();
+    } else {
+      setError(res.error);
+    }
   }
 
   async function handleTriggerBriefing() {
     setTriggerLoading("briefing");
     setError("");
-    setSuccessMsg("");
     const res = await triggerBriefingAction();
     setTriggerLoading(null);
-    if (res.ok) setSuccessMsg("☀️ Morning briefing dispatched to target WhatsApp!");
+    if (res.ok) setSuccessMsg("☀️ Morning Executive Briefing triggered!");
     else setError(res.error);
   }
 
   async function handleTriggerRenewalWatchdog() {
     setTriggerLoading("renewal");
     setError("");
-    setSuccessMsg("");
     const res = await triggerRenewalWatchdogAction();
     setTriggerLoading(null);
-    if (res.ok) setSuccessMsg("🔔 Renewal watchdog alert triggered!");
+    if (res.ok) setSuccessMsg("🔔 Customer Renewal Watchdog triggered!");
     else setError(res.error);
   }
 
   async function handleTriggerStuckOrders() {
     setTriggerLoading("stuck");
     setError("");
-    setSuccessMsg("");
     const res = await triggerStuckOrdersAction();
     setTriggerLoading(null);
-    if (res.ok) setSuccessMsg("⚠️ Stuck orders check triggered!");
+    if (res.ok) setSuccessMsg("⚠️ Stuck orders watchdog triggered!");
     else setError(res.error);
   }
 
-  function openCreateModal() {
-    setModalTab("general");
+  function openCreatePage() {
+    setConfigTab("general");
     setEditingAgent({
       name: "",
       whatsappKey: "",
@@ -271,10 +306,16 @@ export default function WhatsAppAgentClient() {
         dailyBriefingIncludeSales: true,
         dailyBriefingIncludeOrders: true,
         dailyBriefingIncludeRenewals: true,
+        dailyBriefingIncludeStock: true,
         renewalsWatchdogEnabled: true,
+        renewalsScanTime: "11:00",
         renewalsDaysAhead: 2,
+        renewalsIncludeContact: true,
+        renewalsPhone: "",
         stuckOrdersAlertEnabled: true,
         stuckOrdersHours: 4,
+        stuckOrdersCheckFrequency: "4",
+        stuckOrdersPhone: "",
         stockAlertEnabled: true,
         stockDaysAhead: 14,
         targetPhone: "",
@@ -303,11 +344,12 @@ export default function WhatsAppAgentClient() {
     setShowWaKey(false);
     setShowGemKey(false);
     setShowAnthropicKey(false);
-    setModalOpen(true);
+    setActiveView("configure");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function openEditModal(ag: AgentRuntimeStatus) {
-    setModalTab("general");
+  function openEditPage(ag: AgentRuntimeStatus, defaultTab: "general" | "reminders" | "security" | "tools" | "reports" = "general") {
+    setConfigTab(defaultTab);
     setEditingAgent({
       id: ag.id,
       name: ag.name,
@@ -319,16 +361,23 @@ export default function WhatsAppAgentClient() {
       anthropicModel: ag.anthropicModel || "claude-sonnet-4-6",
       role: ag.role,
       adminPhones: ag.adminPhonesStr || (ag.adminPhones || []).join(", "),
+      lastActiveUserId: ag.lastActiveUserId,
       reminders: ag.reminders || {
         dailyBriefingEnabled: true,
         dailyBriefingTime: "09:00",
         dailyBriefingIncludeSales: true,
         dailyBriefingIncludeOrders: true,
         dailyBriefingIncludeRenewals: true,
+        dailyBriefingIncludeStock: true,
         renewalsWatchdogEnabled: true,
+        renewalsScanTime: "11:00",
         renewalsDaysAhead: 2,
+        renewalsIncludeContact: true,
+        renewalsPhone: "",
         stuckOrdersAlertEnabled: true,
         stuckOrdersHours: 4,
+        stuckOrdersCheckFrequency: "4",
+        stuckOrdersPhone: "",
         stockAlertEnabled: true,
         stockDaysAhead: 14,
         targetPhone: "",
@@ -357,7 +406,14 @@ export default function WhatsAppAgentClient() {
     setShowWaKey(false);
     setShowGemKey(false);
     setShowAnthropicKey(false);
-    setModalOpen(true);
+    setActiveView("configure");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openRemindersPage(ag?: AgentRuntimeStatus) {
+    const target = ag || selectedAgent || agents[0];
+    if (!target) return;
+    openEditPage(target, "reminders");
   }
 
   async function handleSaveAgent(e: React.FormEvent) {
@@ -373,17 +429,28 @@ export default function WhatsAppAgentClient() {
 
     setActionLoading(true);
     setError("");
-    setSuccessMsg("");
 
-    const res = await saveAgent(editingAgent);
+    const payload: SaveAgentInput = {
+      ...editingAgent,
+      adminPhones:
+        typeof editingAgent.adminPhones === "string"
+          ? editingAgent.adminPhones
+              .split(",")
+              .map((p) => p.trim())
+              .filter(Boolean)
+          : editingAgent.adminPhones,
+    };
+
+    const res = await saveAgent(payload);
     setActionLoading(false);
 
-    if (!res.ok) {
-      setError(res.error);
+    if (res.ok) {
+      setSuccessMsg(`Agent "${editingAgent.name}" saved successfully.`);
+      setActiveView("fleet");
+      fetchStatusAndAgents();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      setSuccessMsg(`Agent "${editingAgent.name}" saved successfully with custom configurations!`);
-      setModalOpen(false);
-      await fetchStatusAndAgents();
+      setError(res.error);
     }
   }
 
@@ -394,556 +461,1513 @@ export default function WhatsAppAgentClient() {
   }
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId) || agents[0];
-  const phones = Object.keys(history);
-  const turns = selectedPhone ? history[selectedPhone] ?? [] : [];
+  const phones = selectedAgent ? Object.keys(history) : [];
+  const turns = selectedAgent && selectedPhone ? history[selectedPhone] ?? [] : [];
 
   if (loading) {
     return (
-      <div style={{ padding: "40px 28px", color: "var(--muted, #888)", display: "flex", alignItems: "center", gap: 12 }}>
-        <i className="fa-solid fa-circle-notch fa-spin" style={{ color: "#25D366" }} />
-        <span>Loading SubscribAI WhatsApp Executive Assistants…</span>
+      <div style={{ padding: "80px 32px", color: "#86868B", display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <i className="fa-solid fa-circle-notch fa-spin" style={{ color: "#30D158", fontSize: 22 }} />
+        <span style={{ fontSize: 14, fontWeight: 500, color: "#98989D" }}>Loading WhatsApp Assistants…</span>
       </div>
     );
   }
 
-  return (
-    <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 22 }}>
-      {/* Pulse keyframe animation */}
-      <style>{`
-        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.92); } }
-        .hover-card:hover { transform: translateY(-2px); border-color: rgba(37, 211, 102, 0.4) !important; transition: all 0.2s ease; }
-        .action-chip:hover { background: rgba(255, 255, 255, 0.08) !important; }
-      `}</style>
+  // ══════════════════════════════════════════════════════════════════════════
+  // ── VIEW 2: DEDICATED FULL CONFIGURATION PAGE (Apple Settings Style) ──────
+  // ══════════════════════════════════════════════════════════════════════════
 
-      {/* ── Top Header ──────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: "linear-gradient(135deg, #25D366 0%, #128C7E 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 4px 14px rgba(37, 211, 102, 0.35)",
-              }}
+  if (activeView === "configure") {
+    return (
+      <div
+        style={{
+          padding: "24px 20px 90px",
+          maxWidth: 960,
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 20,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif',
+        }}
+      >
+        <style>{`
+          @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.92); } }
+          .apple-btn:active { transform: scale(0.97) !important; }
+          .apple-pill-btn { transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1); }
+          .apple-pill-btn:hover { background: rgba(255, 255, 255, 0.12) !important; color: #FFFFFF !important; }
+          .apple-pill-btn:active { transform: scale(0.97) !important; }
+          .soft-input:focus { border-color: rgba(52, 199, 89, 0.5) !important; box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.15) !important; }
+          .apple-tab { transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1); }
+          .apple-tab:hover:not(.active) { color: #FFFFFF !important; background: rgba(255, 255, 255, 0.05) !important; }
+        `}</style>
+
+        {/* Top Navigation Row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
+          <button
+            type="button"
+            onClick={() => setActiveView("fleet")}
+            className="apple-pill-btn"
+            style={{
+              background: "rgba(255, 255, 255, 0.06)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              color: "#98989D",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "7px 16px",
+              borderRadius: 999,
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+            }}
+          >
+            <i className="fa-solid fa-arrow-left" style={{ fontSize: 11 }} /> Back to Fleet
+          </button>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setActiveView("fleet")}
+              className="apple-pill-btn"
+              style={btnSecondary}
             >
-              <i className="fa-brands fa-whatsapp" style={{ color: "#fff", fontSize: 24 }} />
-            </div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: -0.3 }}>
-                WhatsApp AI Assistants
-              </h1>
-              <p style={{ margin: "3px 0 0", fontSize: 13, color: "var(--muted, #888)" }}>
-                Autonomous store management with 28 live database tools, scheduled watchdogs, and two-step security
-              </p>
-            </div>
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSaveAgent(e as any)}
+              disabled={actionLoading}
+              className="apple-btn"
+              style={btnPrimary}
+            >
+              {actionLoading ? <><i className="fa-solid fa-circle-notch fa-spin" /> Saving…</> : <><i className="fa-solid fa-check" /> Save Changes</>}
+            </button>
           </div>
         </div>
 
-        {/* Global CTA button */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button
-            onClick={openCreateModal}
-            style={{
-              ...btnPrimary,
-              background: "linear-gradient(135deg, #25D366 0%, #10b981 100%)",
-              color: "#052e16",
-              fontWeight: 700,
-              boxShadow: "0 4px 14px rgba(37, 211, 102, 0.3)",
-              padding: "10px 18px",
-            }}
-          >
-            <i className="fa-solid fa-plus" /> Add New Agent
-          </button>
+        {/* Page Header */}
+        <div style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.07)", paddingBottom: 16 }}>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: "#F5F5F7", letterSpacing: "-0.015em" }}>
+            {editingAgent.id ? `Configure · ${editingAgent.name}` : "Create WhatsApp AI Agent"}
+          </h1>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#86868B" }}>
+            Configure model engine, automated reminder schedules, security whitelist, and operational tools
+          </p>
         </div>
-      </div>
 
-      {/* ── Alerts & Notifications ─────────────────────────────────────────── */}
-      {error && (
+        {/* Error Notification */}
+        {error && (
+          <div style={{ background: "rgba(255, 69, 58, 0.12)", border: "1px solid rgba(255, 69, 58, 0.25)", color: "#FF6961", padding: "12px 18px", borderRadius: 14, fontSize: 13, display: "flex", alignItems: "center", gap: 10 }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ color: "#FF453A" }} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Apple-Style Segmented Control (Tabs) */}
         <div
           style={{
-            ...card,
-            background: "rgba(239, 68, 68, 0.1)",
-            border: "1px solid rgba(239, 68, 68, 0.3)",
-            color: "#fca5a5",
-            fontSize: 13,
+            display: "flex",
+            background: "rgba(255, 255, 255, 0.05)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            padding: 3,
+            borderRadius: 14,
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            gap: 4,
+            overflowX: "auto",
+          }}
+        >
+          {[
+            { id: "general", label: "General & AI", icon: "fa-robot" },
+            { id: "reminders", label: "Reminders & Times", icon: "fa-clock" },
+            { id: "security", label: "Security & Whitelist", icon: "fa-shield-halved" },
+            { id: "tools", label: "Live Tools (28)", icon: "fa-wrench" },
+            { id: "reports", label: "Reports & Email", icon: "fa-file-lines" },
+          ].map((tab) => {
+            const isActive = configTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setConfigTab(tab.id as any)}
+                className={`apple-tab ${isActive ? "active" : ""}`}
+                style={{
+                  flex: 1,
+                  minWidth: 130,
+                  padding: "8px 14px",
+                  borderRadius: 10,
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: isActive ? 600 : 400,
+                  background: isActive ? "rgba(255, 255, 255, 0.12)" : "transparent",
+                  color: isActive ? "#FFFFFF" : "#98989D",
+                  boxShadow: isActive ? "0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)" : "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 7,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <i className={`fa-solid ${tab.icon}`} style={{ fontSize: 12, opacity: isActive ? 1 : 0.7 }} /> {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── TAB 1: General & AI ────────────────────────────────────────── */}
+        {configTab === "general" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={surfaceCard}>
+              <h3 style={{ margin: "0 0 14px", fontSize: 14.5, fontWeight: 600, color: "#F5F5F7", display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="fa-solid fa-id-card" style={{ color: "#64D2FF", fontSize: 13 }} /> Agent Identity &amp; Role
+              </h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", marginBottom: 6, display: "block" }}>
+                    Agent Name <span style={{ color: "#FF453A" }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editingAgent.name}
+                    onChange={(e) => setEditingAgent((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g. Primary Executive Assistant"
+                    className="soft-input"
+                    style={inputStyle}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", marginBottom: 6, display: "block" }}>
+                    Operational Role
+                  </label>
+                  <select
+                    value={editingAgent.role}
+                    onChange={(e) => setEditingAgent((prev) => ({ ...prev, role: e.target.value as any }))}
+                    className="soft-input"
+                    style={inputStyle}
+                  >
+                    <option value="admin_assistant">
+                      ⚡ Executive Business Assistant (28 live tools &amp; reports)
+                    </option>
+                    <option value="customer_support">
+                      💬 Customer Support Assistant (Product lookup &amp; orders only)
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div style={surfaceCard}>
+              <h3 style={{ margin: "0 0 14px", fontSize: 14.5, fontWeight: 600, color: "#F5F5F7", display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="fa-brands fa-whatsapp" style={{ color: "#30D158", fontSize: 14 }} /> WhatsApp Agent Key
+              </h3>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showWaKey ? "text" : "password"}
+                  value={editingAgent.whatsappKey}
+                  onChange={(e) => setEditingAgent((prev) => ({ ...prev, whatsappKey: e.target.value }))}
+                  placeholder="Paste WhatsApp Agent Bearer Key"
+                  className="soft-input"
+                  style={{ ...inputStyle, paddingRight: 44 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowWaKey((prev) => !prev)}
+                  style={{
+                    position: "absolute",
+                    right: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    color: "#86868B",
+                    cursor: "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  <i className={showWaKey ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
+                </button>
+              </div>
+              <div style={{ fontSize: 12, color: "#86868B", marginTop: 5 }}>
+                Provided by your WhatsApp Business Gateway or API broker.
+              </div>
+            </div>
+
+            <div style={surfaceCard}>
+              <h3 style={{ margin: "0 0 14px", fontSize: 14.5, fontWeight: 600, color: "#F5F5F7", display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="fa-solid fa-brain" style={{ color: "#BF5AF2", fontSize: 13 }} /> AI Engine Selection
+              </h3>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+                <div
+                  onClick={() => setEditingAgent((prev) => ({ ...prev, aiProvider: "claude" }))}
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: 14,
+                    border: editingAgent.aiProvider !== "gemini" ? "1px solid rgba(191, 90, 242, 0.45)" : "1px solid rgba(255, 255, 255, 0.08)",
+                    background: editingAgent.aiProvider !== "gemini" ? "rgba(191, 90, 242, 0.1)" : "rgba(255, 255, 255, 0.02)",
+                    boxShadow: editingAgent.aiProvider !== "gemini" ? "0 0 0 1px rgba(191, 90, 242, 0.25), 0 4px 16px rgba(191, 90, 242, 0.15)" : "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    transition: "all 0.2s cubic-bezier(0.25, 1, 0.5, 1)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontWeight: 600, fontSize: 14, color: "#DA8FFF" }}>
+                      <i className="fa-solid fa-bolt" style={{ marginRight: 6, color: "#BF5AF2" }} /> Claude (MWAPI Gateway)
+                    </span>
+                    {editingAgent.aiProvider !== "gemini" && (
+                      <i className="fa-solid fa-circle-check" style={{ color: "#BF5AF2", fontSize: 15 }} />
+                    )}
+                  </div>
+                  <span style={{ fontSize: 11.5, color: "#98989D" }}>
+                    Recommended &bull; Fast, High Accuracy Function Calling
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => setEditingAgent((prev) => ({ ...prev, aiProvider: "gemini" }))}
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: 14,
+                    border: editingAgent.aiProvider === "gemini" ? "1px solid rgba(10, 132, 255, 0.45)" : "1px solid rgba(255, 255, 255, 0.08)",
+                    background: editingAgent.aiProvider === "gemini" ? "rgba(10, 132, 255, 0.1)" : "rgba(255, 255, 255, 0.02)",
+                    boxShadow: editingAgent.aiProvider === "gemini" ? "0 0 0 1px rgba(10, 132, 255, 0.25), 0 4px 16px rgba(10, 132, 255, 0.15)" : "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    transition: "all 0.2s cubic-bezier(0.25, 1, 0.5, 1)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontWeight: 600, fontSize: 14, color: "#64D2FF" }}>
+                      <i className="fa-solid fa-sparkles" style={{ marginRight: 6, color: "#0A84FF" }} /> Google Gemini
+                    </span>
+                    {editingAgent.aiProvider === "gemini" && (
+                      <i className="fa-solid fa-circle-check" style={{ color: "#0A84FF", fontSize: 15 }} />
+                    )}
+                  </div>
+                  <span style={{ fontSize: 11.5, color: "#98989D" }}>
+                    gemini-2.5-flash &bull; Google AI Studio API Key
+                  </span>
+                </div>
+              </div>
+
+              {editingAgent.aiProvider !== "gemini" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div>
+                    <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", marginBottom: 6, display: "block" }}>
+                      Claude / MWAPI API Key
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type={showAnthropicKey ? "text" : "password"}
+                        value={editingAgent.anthropicKey || ""}
+                        onChange={(e) => setEditingAgent((prev) => ({ ...prev, anthropicKey: e.target.value }))}
+                        placeholder="sk-71a9... or leave blank for default gateway key"
+                        className="soft-input"
+                        style={{ ...inputStyle, paddingRight: 44 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAnthropicKey((prev) => !prev)}
+                        style={{
+                          position: "absolute",
+                          right: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          color: "#86868B",
+                          cursor: "pointer",
+                          fontSize: 14,
+                        }}
+                      >
+                        <i className={showAnthropicKey ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                    <div>
+                      <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", marginBottom: 6, display: "block" }}>
+                        Claude Model
+                      </label>
+                      <select
+                        value={editingAgent.anthropicModel || "claude-sonnet-4-6"}
+                        onChange={(e) => setEditingAgent((prev) => ({ ...prev, anthropicModel: e.target.value }))}
+                        className="soft-input"
+                        style={inputStyle}
+                      >
+                        <option value="claude-sonnet-4-6">claude-sonnet-4-6 (Fastest &amp; Highest Accuracy)</option>
+                        <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001 (Ultra Fast)</option>
+                        <option value="claude-opus-4-6">claude-opus-4-6 (Deep Reasoning)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", marginBottom: 6, display: "block" }}>
+                        Gateway Base URL
+                      </label>
+                      <input
+                        type="text"
+                        value={editingAgent.anthropicBaseUrl || "https://api.mwapi.dev/v1"}
+                        onChange={(e) => setEditingAgent((prev) => ({ ...prev, anthropicBaseUrl: e.target.value }))}
+                        placeholder="https://api.mwapi.dev/v1"
+                        className="soft-input"
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", marginBottom: 6, display: "block" }}>
+                    Google Gemini API Key
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showGemKey ? "text" : "password"}
+                      value={editingAgent.geminiKey || ""}
+                      onChange={(e) => setEditingAgent((prev) => ({ ...prev, geminiKey: e.target.value }))}
+                      placeholder="AIzaSy... (Gemini 2.5 Flash)"
+                      className="soft-input"
+                      style={{ ...inputStyle, paddingRight: 44 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGemKey((prev) => !prev)}
+                      style={{
+                        position: "absolute",
+                        right: 12,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        color: "#86868B",
+                        cursor: "pointer",
+                        fontSize: 14,
+                      }}
+                    >
+                      <i className={showGemKey ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={surfaceCard}>
+              <h3 style={{ margin: "0 0 14px", fontSize: 14.5, fontWeight: 600, color: "#F5F5F7", display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="fa-solid fa-comment-dots" style={{ color: "#30D158", fontSize: 13 }} /> Custom System Prompt &amp; Persona
+              </h3>
+              <textarea
+                value={editingAgent.systemPrompt || ""}
+                onChange={(e) => setEditingAgent((prev) => ({ ...prev, systemPrompt: e.target.value }))}
+                placeholder="e.g. Always address me as 'SubscribAI Boss', format currency in PKR, and highlight urgent renewals."
+                rows={4}
+                className="soft-input"
+                style={{ ...inputStyle, resize: "vertical", lineHeight: 1.55 }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 2: Reminders & Times ───────────────────────────────────── */}
+        {configTab === "reminders" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* 1. Morning Executive Briefing */}
+            <div style={surfaceCard}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <i className="fa-solid fa-sun" style={{ color: "#64D2FF", fontSize: 15 }} />
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#F5F5F7" }}>Morning Executive Briefing</h3>
+                    <span style={{ fontSize: 12, color: "#86868B" }}>Daily WhatsApp status snapshot sent every morning</span>
+                  </div>
+                </div>
+
+                <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#F5F5F7" }}>
+                  <input
+                    type="checkbox"
+                    style={{ width: 16, height: 16, accentColor: "#30D158" }}
+                    checked={editingAgent.reminders?.dailyBriefingEnabled !== false}
+                    onChange={(e) =>
+                      setEditingAgent((prev) => ({
+                        ...prev,
+                        reminders: { ...prev.reminders, dailyBriefingEnabled: e.target.checked },
+                      }))
+                    }
+                  />
+                  <span>Enabled</span>
+                </label>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", display: "block", marginBottom: 6 }}>
+                    Scheduled Run Time
+                  </label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <select
+                      value={editingAgent.reminders?.dailyBriefingTime || "09:00"}
+                      onChange={(e) =>
+                        setEditingAgent((prev) => ({
+                          ...prev,
+                          reminders: { ...prev.reminders, dailyBriefingTime: e.target.value },
+                        }))
+                      }
+                      className="soft-input"
+                      style={{ ...inputStyle, flex: 2 }}
+                    >
+                      <option value="07:00">07:00 AM</option>
+                      <option value="08:00">08:00 AM</option>
+                      <option value="08:30">08:30 AM</option>
+                      <option value="09:00">09:00 AM (Recommended)</option>
+                      <option value="09:30">09:30 AM</option>
+                      <option value="10:00">10:00 AM</option>
+                      <option value="11:00">11:00 AM</option>
+                      <option value="12:00">12:00 PM</option>
+                    </select>
+                    <input
+                      type="time"
+                      value={editingAgent.reminders?.dailyBriefingTime || "09:00"}
+                      onChange={(e) =>
+                        setEditingAgent((prev) => ({
+                          ...prev,
+                          reminders: { ...prev.reminders, dailyBriefingTime: e.target.value },
+                        }))
+                      }
+                      className="soft-input"
+                      style={{ ...inputStyle, flex: 1, minWidth: 90 }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", display: "block", marginBottom: 6 }}>
+                    Recipient Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={editingAgent.reminders?.targetPhone || ""}
+                    onChange={(e) =>
+                      setEditingAgent((prev) => ({
+                        ...prev,
+                        reminders: { ...prev.reminders, targetPhone: e.target.value },
+                      }))
+                    }
+                    placeholder="+923001234567 (blank = first admin phone)"
+                    className="soft-input"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", display: "block", marginBottom: 8 }}>
+                  Included Data Modules
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {[
+                    { key: "dailyBriefingIncludeSales", label: "📊 Yesterday Sales & Revenue" },
+                    { key: "dailyBriefingIncludeOrders", label: "📦 Store Orders Breakdown" },
+                    { key: "dailyBriefingIncludeRenewals", label: "🔔 Today Renewals Due Summary" },
+                    { key: "dailyBriefingIncludeStock", label: "🏢 Supplier Stock Expiry (<14d)" },
+                  ].map((mod) => (
+                    <label key={mod.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "#F5F5F7", cursor: "pointer", background: "rgba(255, 255, 255, 0.03)", padding: "9px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
+                      <input
+                        type="checkbox"
+                        style={{ width: 15, height: 15, accentColor: "#30D158" }}
+                        checked={(editingAgent.reminders as any)?.[mod.key] !== false}
+                        onChange={(e) =>
+                          setEditingAgent((prev) => ({
+                            ...prev,
+                            reminders: { ...prev.reminders, [mod.key]: e.target.checked },
+                          }))
+                        }
+                      />
+                      <span>{mod.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Customer Renewal Watchdog */}
+            <div style={surfaceCard}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <i className="fa-solid fa-bell" style={{ color: "#FFD60A", fontSize: 15 }} />
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#F5F5F7" }}>Customer Renewal Watchdog</h3>
+                    <span style={{ fontSize: 12, color: "#86868B" }}>Alerts on upcoming expiring customer subscriptions</span>
+                  </div>
+                </div>
+
+                <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#F5F5F7" }}>
+                  <input
+                    type="checkbox"
+                    style={{ width: 16, height: 16, accentColor: "#30D158" }}
+                    checked={editingAgent.reminders?.renewalsWatchdogEnabled !== false}
+                    onChange={(e) =>
+                      setEditingAgent((prev) => ({
+                        ...prev,
+                        reminders: { ...prev.reminders, renewalsWatchdogEnabled: e.target.checked },
+                      }))
+                    }
+                  />
+                  <span>Enabled</span>
+                </label>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", display: "block", marginBottom: 6 }}>
+                    Lookahead Window
+                  </label>
+                  <select
+                    value={editingAgent.reminders?.renewalsDaysAhead || 2}
+                    onChange={(e) =>
+                      setEditingAgent((prev) => ({
+                        ...prev,
+                        reminders: { ...prev.reminders, renewalsDaysAhead: Number(e.target.value) },
+                      }))
+                    }
+                    className="soft-input"
+                    style={inputStyle}
+                  >
+                    <option value={1}>1 Day Before Expiry (24 Hours)</option>
+                    <option value={2}>2 Days Before (48 Hours - Recommended)</option>
+                    <option value={3}>3 Days Before (72 Hours)</option>
+                    <option value={5}>5 Days Before</option>
+                    <option value={7}>7 Days Before (1 Week)</option>
+                    <option value={14}>14 Days Before (2 Weeks)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", display: "block", marginBottom: 6 }}>
+                    Scheduled Scan Time
+                  </label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <select
+                      value={editingAgent.reminders?.renewalsScanTime || "11:00"}
+                      onChange={(e) =>
+                        setEditingAgent((prev) => ({
+                          ...prev,
+                          reminders: { ...prev.reminders, renewalsScanTime: e.target.value },
+                        }))
+                      }
+                      className="soft-input"
+                      style={{ ...inputStyle, flex: 2 }}
+                    >
+                      <option value="09:00">09:00 AM</option>
+                      <option value="10:00">10:00 AM</option>
+                      <option value="11:00">11:00 AM (Default)</option>
+                      <option value="12:00">12:00 PM</option>
+                      <option value="14:00">02:00 PM</option>
+                      <option value="17:00">05:00 PM</option>
+                      <option value="20:00">08:00 PM</option>
+                    </select>
+                    <input
+                      type="time"
+                      value={editingAgent.reminders?.renewalsScanTime || "11:00"}
+                      onChange={(e) =>
+                        setEditingAgent((prev) => ({
+                          ...prev,
+                          reminders: { ...prev.reminders, renewalsScanTime: e.target.value },
+                        }))
+                      }
+                      className="soft-input"
+                      style={{ ...inputStyle, flex: 1, minWidth: 90 }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", display: "block", marginBottom: 6 }}>
+                    Alert Recipient Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={editingAgent.reminders?.renewalsPhone || ""}
+                    onChange={(e) =>
+                      setEditingAgent((prev) => ({
+                        ...prev,
+                        reminders: { ...prev.reminders, renewalsPhone: e.target.value },
+                      }))
+                    }
+                    placeholder="Defaults to admin phone"
+                    className="soft-input"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", paddingTop: 20 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "#F5F5F7", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      style={{ width: 16, height: 16, accentColor: "#30D158" }}
+                      checked={editingAgent.reminders?.renewalsIncludeContact !== false}
+                      onChange={(e) =>
+                        setEditingAgent((prev) => ({
+                          ...prev,
+                          reminders: { ...prev.reminders, renewalsIncludeContact: e.target.checked },
+                        }))
+                      }
+                    />
+                    <span>Include customer phone numbers &amp; direct 1-tap WhatsApp link</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Stuck Orders Alert */}
+            <div style={surfaceCard}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <i className="fa-solid fa-triangle-exclamation" style={{ color: "#FF6961", fontSize: 15 }} />
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#F5F5F7" }}>Stuck Orders Watchdog</h3>
+                    <span style={{ fontSize: 12, color: "#86868B" }}>Alerts when store orders remain unfulfilled beyond threshold</span>
+                  </div>
+                </div>
+
+                <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#F5F5F7" }}>
+                  <input
+                    type="checkbox"
+                    style={{ width: 16, height: 16, accentColor: "#30D158" }}
+                    checked={editingAgent.reminders?.stuckOrdersAlertEnabled !== false}
+                    onChange={(e) =>
+                      setEditingAgent((prev) => ({
+                        ...prev,
+                        reminders: { ...prev.reminders, stuckOrdersAlertEnabled: e.target.checked },
+                      }))
+                    }
+                  />
+                  <span>Enabled</span>
+                </label>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", display: "block", marginBottom: 6 }}>
+                    Pending Threshold
+                  </label>
+                  <select
+                    value={editingAgent.reminders?.stuckOrdersHours || 4}
+                    onChange={(e) =>
+                      setEditingAgent((prev) => ({
+                        ...prev,
+                        reminders: { ...prev.reminders, stuckOrdersHours: Number(e.target.value) },
+                      }))
+                    }
+                    className="soft-input"
+                    style={inputStyle}
+                  >
+                    <option value={1}>Pending &gt; 1 Hour (Urgent)</option>
+                    <option value={2}>Pending &gt; 2 Hours</option>
+                    <option value={4}>Pending &gt; 4 Hours (Recommended)</option>
+                    <option value={8}>Pending &gt; 8 Hours</option>
+                    <option value={12}>Pending &gt; 12 Hours</option>
+                    <option value={24}>Pending &gt; 24 Hours</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", display: "block", marginBottom: 6 }}>
+                    Check Frequency
+                  </label>
+                  <select
+                    value={editingAgent.reminders?.stuckOrdersCheckFrequency || "4"}
+                    onChange={(e) =>
+                      setEditingAgent((prev) => ({
+                        ...prev,
+                        reminders: { ...prev.reminders, stuckOrdersCheckFrequency: e.target.value },
+                      }))
+                    }
+                    className="soft-input"
+                    style={inputStyle}
+                  >
+                    <option value="1">Every 1 Hour</option>
+                    <option value="2">Every 2 Hours</option>
+                    <option value="4">Every 4 Hours (Standard)</option>
+                    <option value="8">Every 8 Hours</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", display: "block", marginBottom: 6 }}>
+                  Alert Recipient Phone
+                </label>
+                <input
+                  type="text"
+                  value={editingAgent.reminders?.stuckOrdersPhone || ""}
+                  onChange={(e) =>
+                    setEditingAgent((prev) => ({
+                      ...prev,
+                      reminders: { ...prev.reminders, stuckOrdersPhone: e.target.value },
+                    }))
+                  }
+                  placeholder="Defaults to admin phone"
+                  className="soft-input"
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 3: Security & Whitelist ──────────────────────────────── */}
+        {configTab === "security" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={surfaceCard}>
+              <h3 style={{ margin: "0 0 14px", fontSize: 14.5, fontWeight: 600, color: "#F5F5F7", display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="fa-solid fa-phone-volume" style={{ color: "#64D2FF", fontSize: 13 }} /> Admin Phone Whitelist
+              </h3>
+              <input
+                type="text"
+                value={typeof editingAgent.adminPhones === "string" ? editingAgent.adminPhones : (editingAgent.adminPhones || []).join(", ")}
+                onChange={(e) => setEditingAgent((prev) => ({ ...prev, adminPhones: e.target.value }))}
+                placeholder="e.g. 03039251260, +923001234567, user:114937619824772"
+                className="soft-input"
+                style={inputStyle}
+              />
+
+              {/* Detected Meta WhatsApp Participant ID */}
+              {(editingAgent.lastActiveUserId || selectedAgent?.lastActiveUserId) && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: "10px 14px",
+                    background: "rgba(52, 199, 89, 0.08)",
+                    border: "1px solid rgba(52, 199, 89, 0.22)",
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#30D158", display: "inline-block", boxShadow: "0 0 8px #30D158" }} />
+                    <div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#F5F5F7" }}>
+                        Connected WhatsApp Participant Detected
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#98989D" }}>
+                        Meta Scoped ID: <code style={{ color: "#30D158", background: "rgba(52, 199, 89, 0.14)", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>{editingAgent.lastActiveUserId || selectedAgent?.lastActiveUserId}</code>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const idToAdd = editingAgent.lastActiveUserId || selectedAgent?.lastActiveUserId || "";
+                      const current = typeof editingAgent.adminPhones === "string" 
+                        ? editingAgent.adminPhones 
+                        : (editingAgent.adminPhones || []).join(", ");
+                      if (!current.includes(idToAdd)) {
+                        const updated = current ? `${current}, ${idToAdd}` : idToAdd;
+                        setEditingAgent((prev) => ({ ...prev, adminPhones: updated }));
+                      }
+                    }}
+                    className="apple-pill-btn"
+                    style={{
+                      padding: "5px 12px",
+                      fontSize: 11.5,
+                      fontWeight: 500,
+                      background: "rgba(52, 199, 89, 0.15)",
+                      color: "#30D158",
+                      border: "1px solid rgba(52, 199, 89, 0.3)",
+                      borderRadius: 999,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    <i className="fa-solid fa-plus" style={{ fontSize: 10 }} /> Sync to Whitelist
+                  </button>
+                </div>
+              )}
+
+              <div style={{ fontSize: 12, color: "#86868B", marginTop: 10, lineHeight: 1.55, display: "flex", flexDirection: "column", gap: 5 }}>
+                <div>🔒 <strong>Security Whitelist:</strong> Only incoming WhatsApp messages from these numbers or Meta IDs are permitted to execute store management tools.</div>
+                <div style={{ color: "#64D2FF" }}>💡 <strong>Meta Cloud Privacy:</strong> Meta WhatsApp Agent uses User-Scoped IDs (like <code>user:114937619824772</code>) instead of exposing raw mobile numbers. Your phone (<code>03039251260</code>) and Meta ID are automatically paired and authorized.</div>
+              </div>
+            </div>
+
+            <div style={surfaceCard}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 600, color: "#F5F5F7" }}>
+                  Two-Step Confirmation for Destructive Actions
+                </h3>
+                <input
+                  type="checkbox"
+                  style={{ width: 16, height: 16, accentColor: "#30D158" }}
+                  checked={editingAgent.security?.requireConfirmation !== false}
+                  onChange={(e) =>
+                    setEditingAgent((prev) => ({
+                      ...prev,
+                      security: { ...prev.security, requireConfirmation: e.target.checked },
+                    }))
+                  }
+                />
+              </div>
+              <p style={{ margin: "0 0 14px", fontSize: 12.5, color: "#86868B", lineHeight: 1.5 }}>
+                Destructive operations (deleting a sale, promo creation, debt settlements) require replying: <code style={{ color: "#30D158", background: "rgba(52, 199, 89, 0.12)", padding: "2px 6px", borderRadius: 6 }}>CONFIRM ACT-XXXX</code>.
+              </p>
+
+              <div>
+                <label style={{ fontSize: 12.5, fontWeight: 500, color: "#98989D", marginBottom: 6, display: "block" }}>
+                  Code Expiration Timer (TTL)
+                </label>
+                <select
+                  value={editingAgent.security?.confirmationTtlMinutes || 5}
+                  onChange={(e) =>
+                    setEditingAgent((prev) => ({
+                      ...prev,
+                      security: { ...prev.security, confirmationTtlMinutes: Number(e.target.value) },
+                    }))
+                  }
+                  className="soft-input"
+                  style={inputStyle}
+                >
+                  <option value={3}>3 Minutes</option>
+                  <option value={5}>5 Minutes (Recommended)</option>
+                  <option value={10}>10 Minutes</option>
+                  <option value={15}>15 Minutes</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 4: Tool Access (28 Live Tools) ────────────────────────── */}
+        {configTab === "tools" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ fontSize: 13, color: "#86868B" }}>
+              Enable or disable specific database modules for this assistant.
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {[
+                { key: "salesEnabled", title: "Sales & Subscriptions", desc: "Lookup, details, delete sale (with confirmation)" },
+                { key: "ordersEnabled", title: "Store Orders", desc: "Order lookup, update status to paid/delivered" },
+                { key: "productsEnabled", title: "Products & Pricing", desc: "Browse catalog, query retail pricing" },
+                { key: "accountBookEnabled", title: "Account Book & Debts", desc: "Customer balances, record incoming payments" },
+                { key: "couponsEnabled", title: "Discount Coupons", desc: "List active coupons, create new promos" },
+                { key: "stockEnabled", title: "Supplier Inventory", desc: "Inspect expiring supplier credentials (<14d)" },
+                { key: "reportsEnabled", title: "Executive Reports", desc: "Generate formatted PDF/HTML reports" },
+              ].map((mod) => (
+                <div
+                  key={mod.key}
+                  style={{
+                    ...surfaceCard,
+                    padding: "14px 16px",
+                    borderRadius: 14,
+                  }}
+                >
+                  <label style={{ display: "flex", gap: 10, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      style={{ width: 16, height: 16, marginTop: 2, accentColor: "#30D158" }}
+                      checked={(editingAgent.tools as any)?.[mod.key] !== false}
+                      onChange={(e) =>
+                        setEditingAgent((prev) => ({
+                          ...prev,
+                          tools: { ...prev.tools, [mod.key]: e.target.checked },
+                        }))
+                      }
+                    />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#F5F5F7" }}>{mod.title}</div>
+                      <div style={{ fontSize: 12, color: "#86868B", marginTop: 2 }}>{mod.desc}</div>
+                    </div>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 5: Reports & Email ────────────────────────────────────── */}
+        {configTab === "reports" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={surfaceCard}>
+              <h3 style={{ margin: "0 0 14px", fontSize: 14.5, fontWeight: 600, color: "#F5F5F7", display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="fa-solid fa-envelope" style={{ color: "#64D2FF", fontSize: 13 }} /> Executive Reports Delivery Email
+              </h3>
+              <input
+                type="email"
+                value={editingAgent.reports?.defaultEmail || "amirmehboob921@gmail.com"}
+                onChange={(e) =>
+                  setEditingAgent((prev) => ({
+                    ...prev,
+                    reports: { ...prev.reports, defaultEmail: e.target.value },
+                  }))
+                }
+                placeholder="amirmehboob921@gmail.com"
+                className="soft-input"
+                style={inputStyle}
+              />
+              <div style={{ fontSize: 12, color: "#86868B", marginTop: 6 }}>
+                Whenever you text WhatsApp: &ldquo;Send me sales report&rdquo;, the executive report is emailed here.
+              </div>
+            </div>
+
+            <div style={surfaceCard}>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 500, color: "#F5F5F7", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  style={{ width: 16, height: 16, accentColor: "#30D158" }}
+                  checked={editingAgent.reports?.autoEmailCsv !== false}
+                  onChange={(e) =>
+                    setEditingAgent((prev) => ({
+                      ...prev,
+                      reports: { ...prev.reports, autoEmailCsv: e.target.checked },
+                    }))
+                  }
+                />
+                <span>Automatically attach downloadable CSV datasets to report emails</span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Floating Apple-Style Bottom Capsule Bar */}
+        <div
+          style={{
+            position: "sticky",
+            bottom: 24,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "12px 18px",
+            gap: 16,
+            background: "rgba(20, 20, 26, 0.82)",
+            backdropFilter: "blur(28px) saturate(190%)",
+            WebkitBackdropFilter: "blur(28px) saturate(190%)",
+            border: "1px solid rgba(255, 255, 255, 0.12)",
+            borderRadius: 999,
+            padding: "10px 22px",
+            boxShadow: "0 20px 40px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+            zIndex: 10,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <i className="fa-solid fa-circle-exclamation" style={{ color: "#ef4444" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#86868B" }}>
+            <i className="fa-solid fa-circle-check" style={{ color: "#30D158" }} />
+            <span>Ready to save <strong style={{ color: "#F5F5F7" }}>{editingAgent.name || "Agent"}</strong></span>
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setActiveView("fleet")}
+              className="apple-pill-btn"
+              style={{ ...btnSecondary, padding: "7px 16px", fontSize: 12.5 }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleSaveAgent(e as any)}
+              disabled={actionLoading}
+              className="apple-btn"
+              style={{ ...btnPrimary, padding: "8px 22px", fontSize: 13 }}
+            >
+              {actionLoading ? <><i className="fa-solid fa-circle-notch fa-spin" /> Saving…</> : <><i className="fa-solid fa-check" /> Save Configuration</>}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ── VIEW 1: FLEET OVERVIEW & AUTOMATION HUB (Apple Design) ────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+
+  return (
+    <div
+      style={{
+        padding: "24px 20px 60px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
+        maxWidth: 1200,
+        margin: "0 auto",
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif',
+      }}
+    >
+      <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.92); } }
+        .apple-card { transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1); }
+        .apple-card:hover { border-color: rgba(255, 255, 255, 0.14) !important; transform: translateY(-1px); box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important; }
+        .apple-btn:active { transform: scale(0.97) !important; }
+        .apple-pill-btn { transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1); }
+        .apple-pill-btn:hover { background: rgba(255, 255, 255, 0.12) !important; color: #FFFFFF !important; }
+        .apple-pill-btn:active { transform: scale(0.97) !important; }
+        .action-chip { transition: all 0.18s cubic-bezier(0.25, 1, 0.5, 1); }
+        .action-chip:hover { background: rgba(255, 255, 255, 0.1) !important; color: #FFFFFF !important; transform: translateY(-1px); }
+        .action-chip:active { transform: scale(0.96) !important; }
+      `}</style>
+
+      {/* ── Top Header Bar ─────────────────────────────────────────────────── */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 13,
+              background: "rgba(52, 199, 89, 0.14)",
+              border: "1px solid rgba(52, 199, 89, 0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#30D158",
+              fontSize: 22,
+              boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+            }}
+          >
+            <i className="fa-brands fa-whatsapp" />
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 21, fontWeight: 600, color: "#F5F5F7", letterSpacing: "-0.015em" }}>
+              WhatsApp AI Assistants &amp; Automation Hub
+            </h1>
+            <p style={{ margin: "3px 0 0", fontSize: 13, color: "#86868B" }}>
+              Autonomous 24/7 operations &bull; 28 live database tools &bull; Scheduled proactive watchdogs
+            </p>
+          </div>
+        </div>
+
+        <button onClick={openCreatePage} className="apple-btn" style={btnPrimary}>
+          <i className="fa-solid fa-plus" /> Add New Agent
+        </button>
+      </div>
+
+      {/* ── Notification Banners ────────────────────────────────────────────── */}
+      {error && (
+        <div style={{ background: "rgba(255, 69, 58, 0.12)", border: "1px solid rgba(255, 69, 58, 0.25)", color: "#FF6961", padding: "10px 18px", borderRadius: 14, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ color: "#FF453A" }} />
             <span>{error}</span>
           </div>
-          <button
-            onClick={() => setError("")}
-            style={{ background: "none", border: "none", color: "#fca5a5", cursor: "pointer", fontSize: 14 }}
-          >
-            &times;
-          </button>
+          <button onClick={() => setError("")} style={{ background: "none", border: "none", color: "#FF6961", cursor: "pointer", fontSize: 16 }}>&times;</button>
         </div>
       )}
 
       {successMsg && (
-        <div
-          style={{
-            ...card,
-            background: "rgba(16, 185, 129, 0.1)",
-            border: "1px solid rgba(16, 185, 129, 0.3)",
-            color: "#6ee7b7",
-            fontSize: 13,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "12px 18px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <i className="fa-solid fa-circle-check" style={{ color: "#10b981" }} />
+        <div style={{ background: "rgba(52, 199, 89, 0.12)", border: "1px solid rgba(52, 199, 89, 0.25)", color: "#30D158", padding: "10px 18px", borderRadius: 14, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <i className="fa-solid fa-circle-check" style={{ color: "#30D158" }} />
             <span>{successMsg}</span>
           </div>
-          <button
-            onClick={() => setSuccessMsg("")}
-            style={{ background: "none", border: "none", color: "#6ee7b7", cursor: "pointer", fontSize: 14 }}
-          >
-            &times;
-          </button>
+          <button onClick={() => setSuccessMsg("")} style={{ background: "none", border: "none", color: "#30D158", cursor: "pointer", fontSize: 16 }}>&times;</button>
         </div>
       )}
 
-      {/* ── Proactive Intelligence & Tools Hub ──────────────────────────────── */}
-      <div>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: "var(--muted, #888)",
-            marginBottom: 10,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <i className="fa-solid fa-bolt" style={{ color: "#f59e0b" }} /> Executive Automation Hub
+      {/* ── Apple-Style Scheduled Automations Section ──────────────────────── */}
+      <div style={surfaceCard}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <i className="fa-solid fa-bolt" style={{ color: "#30D158", fontSize: 13 }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#F5F5F7", letterSpacing: "-0.01em" }}>
+              Scheduled Watchdogs &amp; Automations
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => openRemindersPage(selectedAgent)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#64D2FF",
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              padding: 0,
+            }}
+          >
+            Customize Schedules &rarr;
+          </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
-          {/* Card 1: 9 AM Morning Briefing */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
+          {/* Item 1: Morning Briefing */}
           <div
             style={{
-              ...card,
-              padding: "16px 18px",
+              background: "rgba(255, 255, 255, 0.025)",
+              border: "1px solid rgba(255, 255, 255, 0.06)",
+              borderRadius: 14,
+              padding: "15px 16px",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
               gap: 12,
-              background: "linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)",
-              border: "1px solid rgba(56, 189, 248, 0.2)",
+              boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.05)",
             }}
           >
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#38bdf8", display: "flex", alignItems: "center", gap: 6 }}>
-                  <i className="fa-solid fa-sun" /> Morning Briefing
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: "#F5F5F7", display: "flex", alignItems: "center", gap: 7 }}>
+                  <i className="fa-solid fa-sun" style={{ color: "#64D2FF", fontSize: 13 }} /> Morning Briefing
                 </span>
-                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "rgba(56, 189, 248, 0.15)", color: "#7dd3fc" }}>
-                  Daily 9:00 AM
+                <span style={{ fontSize: 11, fontWeight: 500, color: "#64D2FF", background: "rgba(10, 132, 255, 0.12)", border: "1px solid rgba(10, 132, 255, 0.22)", padding: "2px 8px", borderRadius: 999 }}>
+                  {selectedAgent?.reminders?.dailyBriefingTime || "09:00"} AM
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: "var(--muted, #94a3b8)", lineHeight: 1.4 }}>
-                Yesterday revenue, today renewals due, and pending order counts.
+              <p style={{ margin: 0, fontSize: 12, color: "#86868B", lineHeight: 1.45 }}>
+                Yesterday revenue, store orders &amp; today renewals snapshot.
               </p>
             </div>
+
             <button
               onClick={handleTriggerBriefing}
               disabled={triggerLoading === "briefing"}
+              className="apple-pill-btn"
               style={{
-                ...btnSecondary,
-                fontSize: 11,
-                padding: "6px 12px",
+                width: "100%",
+                padding: "7px 14px",
+                fontSize: 12,
+                fontWeight: 500,
                 justifyContent: "center",
-                borderColor: "rgba(56, 189, 248, 0.3)",
-                color: "#38bdf8",
+                background: "rgba(10, 132, 255, 0.1)",
+                border: "1px solid rgba(10, 132, 255, 0.22)",
+                color: "#64D2FF",
+                borderRadius: 999,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
               {triggerLoading === "briefing" ? (
                 <><i className="fa-solid fa-circle-notch fa-spin" /> Sending…</>
               ) : (
-                <><i className="fa-solid fa-paper-plane" /> Trigger Briefing</>
+                <><i className="fa-solid fa-paper-plane" /> Trigger Briefing Now</>
               )}
             </button>
           </div>
 
-          {/* Card 2: 48h Renewal Watchdog */}
+          {/* Item 2: Renewal Watchdog */}
           <div
             style={{
-              ...card,
-              padding: "16px 18px",
+              background: "rgba(255, 255, 255, 0.025)",
+              border: "1px solid rgba(255, 255, 255, 0.06)",
+              borderRadius: 14,
+              padding: "15px 16px",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
               gap: 12,
-              background: "linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)",
-              border: "1px solid rgba(245, 158, 11, 0.2)",
+              boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.05)",
             }}
           >
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#f59e0b", display: "flex", alignItems: "center", gap: 6 }}>
-                  <i className="fa-solid fa-bell" /> Renewal Watchdog
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: "#F5F5F7", display: "flex", alignItems: "center", gap: 7 }}>
+                  <i className="fa-solid fa-bell" style={{ color: "#FFD60A", fontSize: 13 }} /> Renewal Watchdog
                 </span>
-                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "rgba(245, 158, 11, 0.15)", color: "#fcd34d" }}>
-                  Daily 11:00 AM
+                <span style={{ fontSize: 11, fontWeight: 500, color: "#FFD60A", background: "rgba(255, 159, 10, 0.12)", border: "1px solid rgba(255, 159, 10, 0.22)", padding: "2px 8px", borderRadius: 999 }}>
+                  {selectedAgent?.reminders?.renewalsScanTime || "11:00"} Daily ({selectedAgent?.reminders?.renewalsDaysAhead || 2}d)
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: "var(--muted, #94a3b8)", lineHeight: 1.4 }}>
-                Scans customer subscriptions expiring within 48h with phone numbers.
+              <p style={{ margin: 0, fontSize: 12, color: "#86868B", lineHeight: 1.45 }}>
+                Scans expiring subscriptions and alerts with customer phone numbers.
               </p>
             </div>
+
             <button
               onClick={handleTriggerRenewalWatchdog}
               disabled={triggerLoading === "renewal"}
+              className="apple-pill-btn"
               style={{
-                ...btnSecondary,
-                fontSize: 11,
-                padding: "6px 12px",
+                width: "100%",
+                padding: "7px 14px",
+                fontSize: 12,
+                fontWeight: 500,
                 justifyContent: "center",
-                borderColor: "rgba(245, 158, 11, 0.3)",
-                color: "#f59e0b",
+                background: "rgba(255, 159, 10, 0.1)",
+                border: "1px solid rgba(255, 159, 10, 0.22)",
+                color: "#FFD60A",
+                borderRadius: 999,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
               {triggerLoading === "renewal" ? (
                 <><i className="fa-solid fa-circle-notch fa-spin" /> Scanning…</>
               ) : (
-                <><i className="fa-solid fa-magnifying-glass" /> Scan Renewals</>
+                <><i className="fa-solid fa-magnifying-glass" /> Scan Renewals Now</>
               )}
             </button>
           </div>
 
-          {/* Card 3: Stuck Orders Alert */}
+          {/* Item 3: Stuck Orders Watchdog */}
           <div
             style={{
-              ...card,
-              padding: "16px 18px",
+              background: "rgba(255, 255, 255, 0.025)",
+              border: "1px solid rgba(255, 255, 255, 0.06)",
+              borderRadius: 14,
+              padding: "15px 16px",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
               gap: 12,
-              background: "linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)",
-              border: "1px solid rgba(239, 68, 68, 0.2)",
+              boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.05)",
             }}
           >
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#ef4444", display: "flex", alignItems: "center", gap: 6 }}>
-                  <i className="fa-solid fa-triangle-exclamation" /> Stuck Orders Alert
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: "#F5F5F7", display: "flex", alignItems: "center", gap: 7 }}>
+                  <i className="fa-solid fa-triangle-exclamation" style={{ color: "#FF6961", fontSize: 13 }} /> Stuck Orders
                 </span>
-                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "rgba(239, 68, 68, 0.15)", color: "#fca5a5" }}>
-                  Every 4 Hours
+                <span style={{ fontSize: 11, fontWeight: 500, color: "#FF6961", background: "rgba(255, 69, 58, 0.12)", border: "1px solid rgba(255, 69, 58, 0.22)", padding: "2px 8px", borderRadius: 999 }}>
+                  Every {selectedAgent?.reminders?.stuckOrdersCheckFrequency || "4"}h (&gt;{selectedAgent?.reminders?.stuckOrdersHours || 4}h)
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: "var(--muted, #94a3b8)", lineHeight: 1.4 }}>
-                Alerts on pending store orders waiting for fulfillment &gt; 4 hours.
+              <p style={{ margin: 0, fontSize: 12, color: "#86868B", lineHeight: 1.45 }}>
+                Alerts on pending store orders waiting for fulfillment beyond threshold.
               </p>
             </div>
+
             <button
               onClick={handleTriggerStuckOrders}
               disabled={triggerLoading === "stuck"}
+              className="apple-pill-btn"
               style={{
-                ...btnSecondary,
-                fontSize: 11,
-                padding: "6px 12px",
+                width: "100%",
+                padding: "7px 14px",
+                fontSize: 12,
+                fontWeight: 500,
                 justifyContent: "center",
-                borderColor: "rgba(239, 68, 68, 0.3)",
-                color: "#ef4444",
+                background: "rgba(255, 69, 58, 0.1)",
+                border: "1px solid rgba(255, 69, 58, 0.22)",
+                color: "#FF6961",
+                borderRadius: 999,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
               {triggerLoading === "stuck" ? (
                 <><i className="fa-solid fa-circle-notch fa-spin" /> Checking…</>
               ) : (
-                <><i className="fa-solid fa-shield-halved" /> Check Stuck Orders</>
+                <><i className="fa-solid fa-bell-concierge" /> Check Stuck Orders</>
               )}
             </button>
-          </div>
-
-          {/* Card 4: Customer Database CSV Export */}
-          <div
-            style={{
-              ...card,
-              padding: "16px 18px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 12,
-              background: "linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)",
-              border: "1px solid rgba(16, 185, 129, 0.2)",
-            }}
-          >
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#10b981", display: "flex", alignItems: "center", gap: 6 }}>
-                  <i className="fa-solid fa-file-csv" /> Customer Database
-                </span>
-                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "rgba(16, 185, 129, 0.15)", color: "#6ee7b7" }}>
-                  Live Ledger
-                </span>
-              </div>
-              <p style={{ margin: 0, fontSize: 12, color: "var(--muted, #94a3b8)", lineHeight: 1.4 }}>
-                Complete customer &amp; subscription sales ledger download.
-              </p>
-            </div>
-            <a
-              href="https://subscribai-api.onrender.com/whatsapp-agent/export-customers.csv?token=327f860297ccec31bb1df9c1a500b1815e76d7d09604534ea7aa10d5f0f5cadc"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                ...btnSecondary,
-                fontSize: 11,
-                padding: "6px 12px",
-                justifyContent: "center",
-                textDecoration: "none",
-                borderColor: "rgba(16, 185, 129, 0.3)",
-                color: "#10b981",
-              }}
-            >
-              <i className="fa-solid fa-download" /> Download CSV
-            </a>
           </div>
         </div>
       </div>
 
-      {/* ── Agents Grid ────────────────────────────────────────────────────── */}
-      <div>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: "var(--muted, #888)",
-            marginBottom: 10,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <span>Configured Agents ({agents.length})</span>
-          <span style={{ fontSize: 11, textTransform: "none", color: "var(--muted, #666)" }}>
-            Click an agent to view conversation logs
+      {/* ── Active AI Assistants Fleet ──────────────────────────────────────── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: "#F5F5F7", letterSpacing: "-0.01em", display: "flex", alignItems: "center", gap: 8 }}>
+            <i className="fa-solid fa-server" style={{ color: "#30D158", fontSize: 12 }} />
+            Active AI Assistants ({agents.length})
+          </h2>
+          <span style={{ fontSize: 12, color: "#86868B" }}>
+            Select an assistant to inspect conversation logs
           </span>
         </div>
 
         {agents.length === 0 ? (
-          <div style={{ ...card, textAlign: "center", padding: "48px 24px" }}>
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: "50%",
-                background: "rgba(37, 211, 102, 0.1)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 14,
-              }}
-            >
-              <i className="fa-solid fa-robot" style={{ fontSize: 24, color: "#25D366" }} />
+          <div style={{ ...surfaceCard, textAlign: "center", padding: "40px 20px" }}>
+            <div style={{ width: 50, height: 50, borderRadius: "50%", background: "rgba(52, 199, 89, 0.14)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+              <i className="fa-brands fa-whatsapp" style={{ color: "#30D158", fontSize: 24 }} />
             </div>
-            <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>No WhatsApp Agents Configured</h3>
-            <p style={{ margin: "0 0 18px", color: "var(--muted, #888)", fontSize: 13, maxWidth: 440, marginLeft: "auto", marginRight: "auto" }}>
-              Deploy an executive assistant on WhatsApp to automate order updates, check revenue, and dispatch customer reports.
+            <h3 style={{ margin: "0 0 6px", color: "#F5F5F7", fontSize: 16 }}>No WhatsApp AI Agents Configured</h3>
+            <p style={{ margin: "0 0 16px", color: "#86868B", fontSize: 13, maxWidth: 440, marginInline: "auto" }}>
+              Create your first WhatsApp Business Assistant to automate sales queries, renewals, and operations.
             </p>
-            <button onClick={openCreateModal} style={{ ...btnPrimary, background: "#25D366", color: "#000", fontWeight: 700 }}>
-              <i className="fa-solid fa-plus" /> Add First Agent
+            <button onClick={openCreatePage} className="apple-btn" style={btnPrimary}>
+              <i className="fa-solid fa-plus" /> Create Your First Agent
             </button>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {agents.map((ag) => {
               const isSelected = ag.id === selectedAgentId;
-              const hasWhitelist = (ag.adminPhones && ag.adminPhones.length > 0) || (ag.security?.adminPhones && ag.security.adminPhones.length > 0);
-              const whitelistCount = ag.adminPhones?.length || ag.security?.adminPhones?.length || 0;
-
               return (
                 <div
                   key={ag.id}
                   onClick={() => setSelectedAgentId(ag.id)}
+                  className="apple-card"
                   style={{
-                    ...card,
+                    background: isSelected ? "rgba(255, 255, 255, 0.045)" : "rgba(255, 255, 255, 0.025)",
+                    backdropFilter: "blur(24px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(24px) saturate(180%)",
+                    borderRadius: 20,
+                    padding: "20px 24px",
                     cursor: "pointer",
-                    border: isSelected ? "1px solid #10b981" : "1px solid rgba(255, 255, 255, 0.08)",
-                    boxShadow: isSelected ? "0 0 0 1px #10b981, 0 8px 28px rgba(16, 185, 129, 0.15)" : card.boxShadow,
+                    border: isSelected ? "1px solid rgba(52, 199, 89, 0.35)" : "1px solid rgba(255, 255, 255, 0.08)",
+                    boxShadow: isSelected
+                      ? "0 0 0 1px rgba(52, 199, 89, 0.18), 0 12px 36px -8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
+                      : "0 8px 24px -8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
                     display: "flex",
                     flexDirection: "column",
-                    justifyContent: "space-between",
-                    gap: 16,
+                    gap: 14,
                   }}
                 >
-                  <div>
-                    {/* Top Row: Name, Role & Status Badge */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 10,
-                            background:
-                              ag.aiProvider === "gemini"
-                                ? "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)"
-                                : "linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                          }}
-                        >
-                          <i
-                            className={ag.aiProvider === "gemini" ? "fa-solid fa-sparkles" : "fa-solid fa-bolt"}
-                            style={{ color: "#fff", fontSize: 16 }}
-                          />
+                  {/* Top Row: Avatar + Name & Info + Quick Actions */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 13,
+                          background: ag.aiProvider === "gemini" ? "rgba(10, 132, 255, 0.14)" : "rgba(175, 82, 222, 0.14)",
+                          border: `1px solid ${ag.aiProvider === "gemini" ? "rgba(10, 132, 255, 0.28)" : "rgba(175, 82, 222, 0.28)"}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: ag.aiProvider === "gemini" ? "#64D2FF" : "#DA8FFF",
+                          fontSize: 18,
+                          flexShrink: 0,
+                          boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+                        }}
+                      >
+                        <i className={ag.aiProvider === "gemini" ? "fa-solid fa-sparkles" : "fa-solid fa-bolt"} />
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <h3 style={{ margin: 0, fontSize: 16.5, fontWeight: 600, color: "#F5F5F7", letterSpacing: "-0.01em" }}>
+                            {ag.name}
+                          </h3>
+                          <span style={badgeStyle(ag.workerRunning)}>
+                            <span style={dotStyle(ag.workerRunning)} />
+                            {ag.workerRunning ? "Running" : "Paused"}
+                          </span>
                         </div>
-                        <div>
-                          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>{ag.name}</h3>
-                          <div style={{ fontSize: 11, color: "var(--muted, #94a3b8)", marginTop: 2 }}>
-                            {ag.role === "admin_assistant" ? (
-                              <span style={{ color: "#38bdf8" }}>⚡ Executive Business Assistant</span>
-                            ) : (
-                              <span style={{ color: "#c084fc" }}>💬 Customer Support</span>
-                            )}
-                          </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "#86868B", marginTop: 3 }}>
+                          <span>{ag.role === "admin_assistant" ? "Executive Assistant · 28 Live Tools" : "Customer Support"}</span>
+                          <span style={{ color: "#3A3A3C" }}>&bull;</span>
+                          <span style={{ color: "#D1D1D6" }}>
+                            {ag.aiProvider === "gemini" ? "Google Gemini (gemini-2.5-flash)" : `Claude (${ag.anthropicModel || "claude-sonnet-4-6"})`}
+                          </span>
                         </div>
                       </div>
-
-                      <span style={badge(ag.workerRunning)}>
-                        <span style={dot(ag.workerRunning)} />
-                        {ag.workerRunning ? "Running" : "Stopped"}
-                      </span>
                     </div>
 
-                    {/* Metadata Chips Grid */}
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 8,
-                        background: "rgba(0, 0, 0, 0.25)",
-                        padding: "10px 12px",
-                        borderRadius: 8,
-                        fontSize: 11,
-                        color: "var(--muted, #94a3b8)",
-                      }}
-                    >
-                      <div>
-                        WA Key: <span style={{ fontFamily: "monospace", color: "#10b981", fontWeight: 600 }}>{ag.maskedWhatsappKey || "None"}</span>
-                      </div>
-                      <div>
-                        Active Chats: <span style={{ color: "#e0e0e0", fontWeight: 600 }}>{ag.activeChatsCount}</span>
-                      </div>
-                      <div>
-                        AI Engine:{" "}
-                        <span
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => openEditPage(ag)}
+                        className="apple-pill-btn"
+                        style={{
+                          ...btnSecondary,
+                          padding: "7px 16px",
+                          fontSize: 12.5,
+                          fontWeight: 500,
+                        }}
+                      >
+                        <i className="fa-solid fa-sliders" style={{ color: "#64D2FF" }} /> Configure Agent
+                      </button>
+
+                      {ag.workerRunning ? (
+                        <button
+                          onClick={() => handleStop(ag.id)}
+                          disabled={actionLoading}
+                          className="apple-pill-btn"
                           style={{
-                            padding: "1px 6px",
-                            borderRadius: 4,
-                            fontWeight: 600,
-                            background: ag.aiProvider === "gemini" ? "rgba(59, 130, 246, 0.2)" : "rgba(139, 92, 246, 0.2)",
-                            color: ag.aiProvider === "gemini" ? "#60a5fa" : "#c084fc",
+                            ...btnSecondary,
+                            padding: "7px 14px",
+                            fontSize: 12.5,
+                            color: "#FF453A",
+                            background: "rgba(255, 69, 58, 0.1)",
+                            borderColor: "rgba(255, 69, 58, 0.25)",
                           }}
                         >
-                          {ag.aiProvider === "gemini" ? "Gemini 3.6" : `Claude (${ag.anthropicModel || "sonnet-4-6"})`}
-                        </span>
-                      </div>
-                      <div>
-                        Security:{" "}
-                        <span style={{ color: hasWhitelist ? "#10b981" : "#f59e0b", fontWeight: 600 }}>
-                          {hasWhitelist ? `🔒 ${whitelistCount} Admin(s)` : "🌐 Open Access"}
-                        </span>
-                      </div>
+                          <i className="fa-solid fa-pause" /> Pause
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleStart(ag.id)}
+                          disabled={actionLoading}
+                          className="apple-pill-btn"
+                          style={{
+                            ...btnSecondary,
+                            padding: "7px 14px",
+                            fontSize: 12.5,
+                            color: "#30D158",
+                            background: "rgba(52, 199, 89, 0.1)",
+                            borderColor: "rgba(52, 199, 89, 0.25)",
+                          }}
+                        >
+                          <i className="fa-solid fa-play" /> Start
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleDelete(ag.id, ag.name)}
+                        disabled={actionLoading}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#636366",
+                          padding: 6,
+                          fontSize: 13,
+                          cursor: "pointer",
+                          transition: "color 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#FF453A")}
+                        onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#636366")}
+                        title="Delete Agent"
+                      >
+                        <i className="fa-solid fa-trash" />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Actions Footer */}
+                  {/* Clean Bottom Meta Row */}
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+                      flexWrap: "wrap",
+                      gap: 12,
                       paddingTop: 12,
+                      borderTop: "1px solid rgba(255, 255, 255, 0.05)",
+                      fontSize: 12.5,
+                      color: "#86868B",
                     }}
                   >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleAgent(ag);
-                      }}
-                      disabled={actionLoading}
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: 6,
-                        border: "none",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        background: ag.workerRunning ? "#ef4444" : "#10b981",
-                        color: "#fff",
-                      }}
-                    >
-                      {ag.workerRunning ? (
-                        <><i className="fa-solid fa-stop" style={{ marginRight: 4 }} /> Stop Agent</>
-                      ) : (
-                        <><i className="fa-solid fa-play" style={{ marginRight: 4 }} /> Start Agent</>
-                      )}
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                      <span>WA Key: <code style={{ color: "#30D158", fontFamily: "monospace" }}>{ag.maskedWhatsappKey || "None"}</code></span>
+                      <span style={{ color: "#3A3A3C" }}>&bull;</span>
+                      <span>Active Chats: <strong style={{ color: "#F5F5F7" }}>{ag.activeChatsCount}</strong></span>
+                      <span style={{ color: "#3A3A3C" }}>&bull;</span>
+                      <span>Briefing: <strong style={{ color: "#64D2FF" }}>{ag.reminders?.dailyBriefingTime || "09:00"} AM</strong></span>
+                      <span style={{ color: "#3A3A3C" }}>&bull;</span>
+                      <span>Renewals: <strong style={{ color: "#FFD60A" }}>{ag.reminders?.renewalsScanTime || "11:00"} AM</strong></span>
+                    </div>
 
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditModal(ag);
-                        }}
-                        style={{
-                          padding: "6px 12px",
-                          borderRadius: 6,
-                          border: "1px solid rgba(255, 255, 255, 0.15)",
-                          background: "rgba(255, 255, 255, 0.05)",
-                          color: "#e0e0e0",
-                          fontSize: 12,
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <i className="fa-solid fa-sliders" style={{ color: "#38bdf8" }} /> Configure
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteAgent(ag.id, ag.name);
-                        }}
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 6,
-                          border: "1px solid rgba(239, 68, 68, 0.3)",
-                          background: "rgba(239, 68, 68, 0.08)",
-                          color: "#ef4444",
-                          fontSize: 12,
-                          cursor: "pointer",
-                        }}
-                        title="Delete Agent"
-                      >
-                        <i className="fa-solid fa-trash" />
-                      </button>
+                    <div style={{ fontSize: 11.5, color: "#636366" }}>
+                      Modules: Sales, Orders, Accounts, Coupons, Reports
                     </div>
                   </div>
                 </div>
@@ -955,25 +1979,25 @@ export default function WhatsAppAgentClient() {
 
       {/* ── Live WhatsApp Chat & Test Console ───────────────────────────────── */}
       {selectedAgent && (
-        <div style={card}>
+        <div style={surfaceCard}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 16,
+              marginBottom: 14,
               flexWrap: "wrap",
-              gap: 10,
-              borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+              gap: 12,
+              borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
               paddingBottom: 14,
             }}
           >
             <div>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-                <i className="fa-solid fa-comments" style={{ color: "#25D366" }} />
+              <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 600, color: "#F5F5F7", display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="fa-solid fa-comments" style={{ color: "#30D158", fontSize: 14 }} />
                 Live Conversation Feed &mdash; {selectedAgent.name}
               </h2>
-              <span style={{ fontSize: 12, color: "var(--muted, #888)" }}>
+              <span style={{ fontSize: 12, color: "#86868B" }}>
                 Auto-refreshes every 5s &bull; Direct tool execution logs &amp; customer inquiries
               </span>
             </div>
@@ -982,13 +2006,14 @@ export default function WhatsAppAgentClient() {
               <select
                 value={selectedPhone ?? ""}
                 onChange={(e) => setSelectedPhone(e.target.value)}
+                className="soft-input"
                 style={{
-                  background: "rgba(15, 15, 30, 0.8)",
-                  color: "#e0e0e0",
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
-                  borderRadius: 6,
+                  ...inputStyle,
+                  width: "auto",
                   padding: "6px 12px",
                   fontSize: 12,
+                  fontWeight: 500,
+                  borderRadius: 999,
                 }}
               >
                 {phones.map((p) => (
@@ -1004,54 +2029,22 @@ export default function WhatsAppAgentClient() {
             <div style={{ textAlign: "center", padding: "36px 16px" }}>
               <div
                 style={{
-                  width: 48,
-                  height: 48,
+                  width: 44,
+                  height: 44,
                   borderRadius: "50%",
-                  background: "rgba(37, 211, 102, 0.1)",
-                  display: "inline-flex",
+                  background: "rgba(255, 255, 255, 0.04)",
+                  display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: 12,
+                  margin: "0 auto 10px",
                 }}
               >
-                <i className="fa-solid fa-inbox" style={{ color: "#25D366", fontSize: 20 }} />
+                <i className="fa-solid fa-inbox" style={{ color: "#636366", fontSize: 20 }} />
               </div>
-              <h3 style={{ margin: "0 0 6px", fontSize: 15 }}>Ready for WhatsApp Messages</h3>
-              <p style={{ margin: "0 0 20px", color: "var(--muted, #888)", fontSize: 13, maxWidth: 500, marginLeft: "auto", marginRight: "auto" }}>
-                Send a WhatsApp message from your phone to start chatting with <strong>{selectedAgent.name}</strong>. Or click any prompt below to copy it:
+              <h4 style={{ margin: "0 0 4px", color: "#F5F5F7", fontSize: 14 }}>No Live Conversations Yet</h4>
+              <p style={{ margin: "0 0 14px", color: "#86868B", fontSize: 12, maxWidth: 420, marginInline: "auto" }}>
+                Send a WhatsApp message to this agent&apos;s phone number to start conversing and test tool execution.
               </p>
-
-              {/* Interactive prompt suggestion chips */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 720, margin: "0 auto" }}>
-                {[
-                  "How much sales revenue did we make this month?",
-                  "Send me the complete sales report with CSV",
-                  "List any pending orders in the store",
-                  "Check upcoming renewals expiring this week",
-                  "Show our account book balance (payables vs receivables)",
-                  "Create coupon SAVE20 with 20% discount",
-                ].map((promptText) => (
-                  <button
-                    key={promptText}
-                    onClick={() => handleCopyPrompt(promptText)}
-                    style={{
-                      background: copiedPrompt === promptText ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.05)",
-                      border: `1px solid ${copiedPrompt === promptText ? "#10b981" : "rgba(255, 255, 255, 0.1)"}`,
-                      color: copiedPrompt === promptText ? "#6ee7b7" : "var(--foreground, #e0e0e0)",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      fontSize: 12,
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <i className={copiedPrompt === promptText ? "fa-solid fa-check" : "fa-solid fa-copy"} style={{ fontSize: 11 }} />
-                    &ldquo;{promptText}&rdquo;
-                  </button>
-                ))}
-              </div>
             </div>
           ) : (
             <div
@@ -1059,15 +2052,15 @@ export default function WhatsAppAgentClient() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 10,
-                maxHeight: 480,
+                maxHeight: 460,
                 overflowY: "auto",
-                padding: "8px 4px",
+                padding: "6px 2px",
               }}
             >
               {turns.map((turn, i) => (
                 <div key={i} style={{ display: "flex", flexDirection: "column" }}>
                   <div style={msgBubble(turn.role === "user")}>
-                    <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4, opacity: 0.8, display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, marginBottom: 4, opacity: 0.85, display: "flex", alignItems: "center", gap: 6 }}>
                       {turn.role === "user" ? (
                         <><i className="fa-solid fa-user" /> Customer ({selectedPhone})</>
                       ) : (
@@ -1080,729 +2073,53 @@ export default function WhatsAppAgentClient() {
               ))}
             </div>
           )}
-        </div>
-      )}
 
-      {/* ── Comprehensive Modal: Add/Edit Agent with 5 Tabs ─────────────────── */}
-      {modalOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0, 0, 0, 0.75)",
-            backdropFilter: "blur(6px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: 16,
-          }}
-        >
+          {/* Quick-Prompt Testing Suggestions */}
           <div
             style={{
-              background: "#16162a",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
-              borderRadius: 16,
-              width: "100%",
-              maxWidth: 720,
-              maxHeight: "90vh",
-              overflowY: "auto",
-              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)",
+              marginTop: 16,
+              paddingTop: 14,
+              borderTop: "1px solid rgba(255, 255, 255, 0.06)",
               display: "flex",
               flexDirection: "column",
+              gap: 8,
             }}
           >
-            {/* Modal Header */}
-            <div
-              style={{
-                padding: "18px 24px",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <div>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
-                  {editingAgent.id ? `Configure Agent — ${editingAgent.name}` : "Create New WhatsApp AI Agent"}
-                </h2>
-                <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted, #888)" }}>
-                  Configure AI engine, proactive crons, security whitelist, and tool capabilities
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                style={{ background: "none", border: "none", color: "var(--muted, #888)", fontSize: 20, cursor: "pointer" }}
-              >
-                &times;
-              </button>
-            </div>
-
-            {/* Navigation Tabs */}
-            <div
-              style={{
-                display: "flex",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-                padding: "0 24px",
-                background: "rgba(0, 0, 0, 0.2)",
-                overflowX: "auto",
-              }}
-            >
+            <span style={{ fontSize: 11, fontWeight: 500, color: "#86868B", letterSpacing: 0.2 }}>
+              Try sending these commands to your WhatsApp Agent:
+            </span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {[
-                { id: "general", label: "General & AI", icon: "fa-robot" },
-                { id: "reminders", label: "Reminders (Crons)", icon: "fa-clock" },
-                { id: "security", label: "Security & Whitelist", icon: "fa-shield-halved" },
-                { id: "tools", label: "Live Tools (28)", icon: "fa-wrench" },
-                { id: "reports", label: "Reports & Email", icon: "fa-file-lines" },
-              ].map((tab) => (
+                "Show yesterday sales summary",
+                "Check upcoming renewals in 48 hours",
+                "List pending store orders",
+                "Show customer balance for Ali",
+                "Generate sales report and email me",
+                "List active coupons",
+                "Check expiring stock accounts",
+              ].map((cmd) => (
                 <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setModalTab(tab.id as any)}
+                  key={cmd}
+                  onClick={() => handleCopyPrompt(cmd)}
+                  className="action-chip"
                   style={{
-                    background: "none",
-                    border: "none",
-                    padding: "12px 14px",
-                    fontSize: 13,
-                    fontWeight: modalTab === tab.id ? 700 : 500,
-                    color: modalTab === tab.id ? "#25D366" : "var(--muted, #888)",
-                    borderBottom: modalTab === tab.id ? "2px solid #25D366" : "2px solid transparent",
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255, 255, 255, 0.09)",
+                    borderRadius: 999,
+                    padding: "6px 13px",
+                    fontSize: 12,
+                    color: "#D1D1D6",
                     cursor: "pointer",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
-                    whiteSpace: "nowrap",
                   }}
                 >
-                  <i className={`fa-solid ${tab.icon}`} /> {tab.label}
+                  <i className={copiedPrompt === cmd ? "fa-solid fa-check" : "fa-regular fa-copy"} style={{ color: copiedPrompt === cmd ? "#30D158" : "#86868B" }} />
+                  {cmd}
                 </button>
               ))}
             </div>
-
-            {/* Form Body */}
-            <form onSubmit={handleSaveAgent} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 18 }}>
-              {/* ── TAB 1: General & AI ────────────────────────────────────────── */}
-              {modalTab === "general" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  {/* Name */}
-                  <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
-                      Agent Name <span style={{ color: "#ef4444" }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={editingAgent.name}
-                      onChange={(e) => setEditingAgent((prev) => ({ ...prev, name: e.target.value }))}
-                      placeholder="e.g. Primary Executive Assistant or Support Bot"
-                      style={inputStyle}
-                      required
-                    />
-                  </div>
-
-                  {/* Role */}
-                  <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
-                      Assistant Role &amp; Access Level
-                    </label>
-                    <select
-                      value={editingAgent.role}
-                      onChange={(e) => setEditingAgent((prev) => ({ ...prev, role: e.target.value as any }))}
-                      style={inputStyle}
-                    >
-                      <option value="admin_assistant">
-                        🚀 Executive Business Assistant (Full live database tools, reports, account book)
-                      </option>
-                      <option value="customer_support">
-                        💬 Customer Support Assistant (Product pricing info &amp; order lookup only)
-                      </option>
-                    </select>
-                  </div>
-
-                  {/* WhatsApp API Key */}
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <label style={{ fontSize: 13, fontWeight: 600 }}>
-                        WhatsApp Agent API Key {!editingAgent.id && <span style={{ color: "#ef4444" }}>*</span>}
-                      </label>
-                      {editingAgent.id && editingAgent.whatsappKey && (
-                        <span style={{ fontSize: 11, color: "#10b981" }}>Key loaded (click eye to view)</span>
-                      )}
-                    </div>
-                    <div style={{ position: "relative" }}>
-                      <input
-                        type={showWaKey ? "text" : "password"}
-                        value={editingAgent.whatsappKey}
-                        onChange={(e) => setEditingAgent((prev) => ({ ...prev, whatsappKey: e.target.value }))}
-                        placeholder="Paste your WhatsApp Agent Bearer Key"
-                        style={{ ...inputStyle, paddingRight: 40 }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowWaKey((prev) => !prev)}
-                        style={{
-                          position: "absolute",
-                          right: 10,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          background: "none",
-                          border: "none",
-                          color: "var(--muted, #888)",
-                          cursor: "pointer",
-                          fontSize: 14,
-                        }}
-                      >
-                        <i className={showWaKey ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* AI Engine Selection */}
-                  <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, display: "block" }}>
-                      AI Engine
-                    </label>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                      <div
-                        onClick={() => setEditingAgent((prev) => ({ ...prev, aiProvider: "claude" }))}
-                        style={{
-                          padding: "12px 14px",
-                          borderRadius: 8,
-                          border: editingAgent.aiProvider !== "gemini" ? "2px solid #8b5cf6" : "1px solid rgba(255,255,255,0.1)",
-                          background: editingAgent.aiProvider !== "gemini" ? "rgba(139, 92, 246, 0.12)" : "transparent",
-                          cursor: "pointer",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 4,
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <span style={{ fontWeight: 700, fontSize: 13, color: "#c084fc" }}>
-                            <i className="fa-solid fa-bolt" style={{ marginRight: 6 }} /> Claude (MWAPI Gateway)
-                          </span>
-                          {editingAgent.aiProvider !== "gemini" && (
-                            <i className="fa-solid fa-circle-check" style={{ color: "#8b5cf6" }} />
-                          )}
-                        </div>
-                        <span style={{ fontSize: 11, color: "var(--muted, #888)" }}>
-                          Recommended • Quota-Free &amp; High-Speed Tool Calling
-                        </span>
-                      </div>
-
-                      <div
-                        onClick={() => setEditingAgent((prev) => ({ ...prev, aiProvider: "gemini" }))}
-                        style={{
-                          padding: "12px 14px",
-                          borderRadius: 8,
-                          border: editingAgent.aiProvider === "gemini" ? "2px solid #3b82f6" : "1px solid rgba(255,255,255,0.1)",
-                          background: editingAgent.aiProvider === "gemini" ? "rgba(59, 130, 246, 0.12)" : "transparent",
-                          cursor: "pointer",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 4,
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <span style={{ fontWeight: 700, fontSize: 13, color: "#60a5fa" }}>
-                            <i className="fa-solid fa-sparkles" style={{ marginRight: 6 }} /> Google Gemini
-                          </span>
-                          {editingAgent.aiProvider === "gemini" && (
-                            <i className="fa-solid fa-circle-check" style={{ color: "#3b82f6" }} />
-                          )}
-                        </div>
-                        <span style={{ fontSize: 11, color: "var(--muted, #888)" }}>
-                          gemini-3.6-flash • Google AI Studio
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Claude Engine Details */}
-                  {editingAgent.aiProvider !== "gemini" ? (
-                    <>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                          <label style={{ fontSize: 13, fontWeight: 600 }}>Claude / MWAPI API Key</label>
-                          {editingAgent.anthropicKey && (
-                            <span style={{ fontSize: 11, color: "#10b981" }}>Key loaded</span>
-                          )}
-                        </div>
-                        <div style={{ position: "relative" }}>
-                          <input
-                            type={showAnthropicKey ? "text" : "password"}
-                            value={editingAgent.anthropicKey || ""}
-                            onChange={(e) => setEditingAgent((prev) => ({ ...prev, anthropicKey: e.target.value }))}
-                            placeholder="sk-71a9... or leave blank for default gateway key"
-                            style={{ ...inputStyle, paddingRight: 40 }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowAnthropicKey((prev) => !prev)}
-                            style={{
-                              position: "absolute",
-                              right: 10,
-                              top: "50%",
-                              transform: "translateY(-50%)",
-                              background: "none",
-                              border: "none",
-                              color: "var(--muted, #888)",
-                              cursor: "pointer",
-                              fontSize: 14,
-                            }}
-                          >
-                            <i className={showAnthropicKey ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                        <div>
-                          <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
-                            Claude Model
-                          </label>
-                          <select
-                            value={editingAgent.anthropicModel || "claude-sonnet-4-6"}
-                            onChange={(e) => setEditingAgent((prev) => ({ ...prev, anthropicModel: e.target.value }))}
-                            style={inputStyle}
-                          >
-                            <option value="claude-sonnet-4-6">claude-sonnet-4-6 (Fastest &amp; Best Accuracy)</option>
-                            <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001 (Ultra Fast)</option>
-                            <option value="claude-opus-4-6">claude-opus-4-6 (Deep Reasoning)</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
-                            Gateway Base URL
-                          </label>
-                          <input
-                            type="text"
-                            value={editingAgent.anthropicBaseUrl || "https://api.mwapi.dev/v1"}
-                            onChange={(e) => setEditingAgent((prev) => ({ ...prev, anthropicBaseUrl: e.target.value }))}
-                            placeholder="https://api.mwapi.dev/v1"
-                            style={inputStyle}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div>
-                      <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
-                        Gemini API Key (Optional)
-                      </label>
-                      <input
-                        type={showGemKey ? "text" : "password"}
-                        value={editingAgent.geminiKey || ""}
-                        onChange={(e) => setEditingAgent((prev) => ({ ...prev, geminiKey: e.target.value }))}
-                        placeholder="Leave blank to use global GEMINI_API_KEY"
-                        style={inputStyle}
-                      />
-                    </div>
-                  )}
-
-                  {/* System Prompt */}
-                  <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
-                      Custom Persona / Instructions (Optional)
-                    </label>
-                    <textarea
-                      value={editingAgent.systemPrompt || ""}
-                      onChange={(e) => setEditingAgent((prev) => ({ ...prev, systemPrompt: e.target.value }))}
-                      placeholder="e.g. Always address me as 'SubscribAI Boss', format currency in PKR, and remind me of pending renewals."
-                      rows={3}
-                      style={{ ...inputStyle, resize: "vertical" }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* ── TAB 2: Proactive Reminders (Crons) ───────────────────────── */}
-              {modalTab === "reminders" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  <div style={{ fontSize: 13, color: "var(--muted, #888)", marginBottom: 4 }}>
-                    Configure automatic scheduled watchdogs that proactively run and notify your WhatsApp.
-                  </div>
-
-                  {/* Morning Briefing Config */}
-                  <div style={{ ...card, padding: 16, background: "rgba(255,255,255,0.02)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#38bdf8", display: "flex", alignItems: "center", gap: 8 }}>
-                        <i className="fa-solid fa-sun" /> Morning Executive Briefing
-                      </span>
-                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={editingAgent.reminders?.dailyBriefingEnabled !== false}
-                          onChange={(e) =>
-                            setEditingAgent((prev) => ({
-                              ...prev,
-                              reminders: { ...prev.reminders, dailyBriefingEnabled: e.target.checked },
-                            }))
-                          }
-                        />
-                        <span style={{ color: "#e0e0e0" }}>Enabled</span>
-                      </label>
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 12 }}>
-                      <div>
-                        <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted, #888)", display: "block", marginBottom: 4 }}>
-                          Scheduled Run Time
-                        </label>
-                        <input
-                          type="text"
-                          value={editingAgent.reminders?.dailyBriefingTime || "09:00"}
-                          onChange={(e) =>
-                            setEditingAgent((prev) => ({
-                              ...prev,
-                              reminders: { ...prev.reminders, dailyBriefingTime: e.target.value },
-                            }))
-                          }
-                          style={inputStyle}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted, #888)", display: "block", marginBottom: 4 }}>
-                          Included Data Modules
-                        </label>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
-                          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                            <input
-                              type="checkbox"
-                              checked={editingAgent.reminders?.dailyBriefingIncludeSales !== false}
-                              onChange={(e) =>
-                                setEditingAgent((prev) => ({
-                                  ...prev,
-                                  reminders: { ...prev.reminders, dailyBriefingIncludeSales: e.target.checked },
-                                }))
-                              }
-                            />
-                            <span>Yesterday Sales &amp; Revenue</span>
-                          </label>
-                          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                            <input
-                              type="checkbox"
-                              checked={editingAgent.reminders?.dailyBriefingIncludeOrders !== false}
-                              onChange={(e) =>
-                                setEditingAgent((prev) => ({
-                                  ...prev,
-                                  reminders: { ...prev.reminders, dailyBriefingIncludeOrders: e.target.checked },
-                                }))
-                              }
-                            />
-                            <span>Store Orders Status Breakdown</span>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Renewal Watchdog Config */}
-                  <div style={{ ...card, padding: 16, background: "rgba(255,255,255,0.02)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b", display: "flex", alignItems: "center", gap: 8 }}>
-                        <i className="fa-solid fa-bell" /> Customer Renewal Watchdog
-                      </span>
-                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={editingAgent.reminders?.renewalsWatchdogEnabled !== false}
-                          onChange={(e) =>
-                            setEditingAgent((prev) => ({
-                              ...prev,
-                              reminders: { ...prev.reminders, renewalsWatchdogEnabled: e.target.checked },
-                            }))
-                          }
-                        />
-                        <span style={{ color: "#e0e0e0" }}>Enabled</span>
-                      </label>
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 12 }}>
-                      <div>
-                        <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted, #888)", display: "block", marginBottom: 4 }}>
-                          Alert Threshold Window
-                        </label>
-                        <select
-                          value={editingAgent.reminders?.renewalsDaysAhead || 2}
-                          onChange={(e) =>
-                            setEditingAgent((prev) => ({
-                              ...prev,
-                              reminders: { ...prev.reminders, renewalsDaysAhead: Number(e.target.value) },
-                            }))
-                          }
-                          style={inputStyle}
-                        >
-                          <option value={1}>1 Day Before Expiry</option>
-                          <option value={2}>2 Days Before (48 Hours - Default)</option>
-                          <option value={3}>3 Days Before</option>
-                          <option value={7}>7 Days Before (1 Week)</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stuck Orders Config */}
-                  <div style={{ ...card, padding: 16, background: "rgba(255,255,255,0.02)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#ef4444", display: "flex", alignItems: "center", gap: 8 }}>
-                        <i className="fa-solid fa-triangle-exclamation" /> Stuck Orders Watchdog
-                      </span>
-                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={editingAgent.reminders?.stuckOrdersAlertEnabled !== false}
-                          onChange={(e) =>
-                            setEditingAgent((prev) => ({
-                              ...prev,
-                              reminders: { ...prev.reminders, stuckOrdersAlertEnabled: e.target.checked },
-                            }))
-                          }
-                        />
-                        <span style={{ color: "#e0e0e0" }}>Enabled</span>
-                      </label>
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 12 }}>
-                      <div>
-                        <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted, #888)", display: "block", marginBottom: 4 }}>
-                          Pending Time Threshold
-                        </label>
-                        <select
-                          value={editingAgent.reminders?.stuckOrdersHours || 4}
-                          onChange={(e) =>
-                            setEditingAgent((prev) => ({
-                              ...prev,
-                              reminders: { ...prev.reminders, stuckOrdersHours: Number(e.target.value) },
-                            }))
-                          }
-                          style={inputStyle}
-                        >
-                          <option value={2}>Pending &gt; 2 Hours</option>
-                          <option value={4}>Pending &gt; 4 Hours (Default)</option>
-                          <option value={8}>Pending &gt; 8 Hours</option>
-                          <option value={24}>Pending &gt; 24 Hours (1 Day)</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Target Phone */}
-                  <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
-                      Target WhatsApp Number for Reminders
-                    </label>
-                    <input
-                      type="text"
-                      value={editingAgent.reminders?.targetPhone || ""}
-                      onChange={(e) =>
-                        setEditingAgent((prev) => ({
-                          ...prev,
-                          reminders: { ...prev.reminders, targetPhone: e.target.value },
-                        }))
-                      }
-                      placeholder="+923001234567 (defaults to first whitelisted admin number)"
-                      style={inputStyle}
-                    />
-                    <div style={{ fontSize: 11, color: "var(--muted, #888)", marginTop: 4 }}>
-                      All morning briefings, renewal watchdog alerts, and stuck order notifications are sent to this WhatsApp number.
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── TAB 3: Security & Whitelist ──────────────────────────────── */}
-              {modalTab === "security" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  {/* Admin Phone Whitelist */}
-                  <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
-                      Admin WhatsApp Phone Whitelist (Comma-Separated)
-                    </label>
-                    <input
-                      type="text"
-                      value={typeof editingAgent.adminPhones === "string" ? editingAgent.adminPhones : (editingAgent.adminPhones || []).join(", ")}
-                      onChange={(e) => setEditingAgent((prev) => ({ ...prev, adminPhones: e.target.value }))}
-                      placeholder="e.g. +923001234567, 923123456789"
-                      style={inputStyle}
-                    />
-                    <div style={{ fontSize: 11, color: "var(--muted, #888)", marginTop: 4 }}>
-                      🔒 Security Lock: Only incoming messages from these WhatsApp numbers will be allowed to execute store management commands (sales, orders, pricing, account book). Leave blank to allow any number (Open Mode).
-                    </div>
-                  </div>
-
-                  {/* Two-Step Confirmation Settings */}
-                  <div style={{ ...card, padding: 16, background: "rgba(255,255,255,0.02)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#e0e0e0", display: "flex", alignItems: "center", gap: 6 }}>
-                        <i className="fa-solid fa-key" style={{ color: "#10b981" }} /> Two-Step Confirmation (ACT-XXXX)
-                      </span>
-                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={editingAgent.security?.requireConfirmation !== false}
-                          onChange={(e) =>
-                            setEditingAgent((prev) => ({
-                              ...prev,
-                              security: { ...prev.security, requireConfirmation: e.target.checked },
-                            }))
-                          }
-                        />
-                        <span>Enabled</span>
-                      </label>
-                    </div>
-                    <p style={{ margin: "0 0 12px", fontSize: 12, color: "var(--muted, #888)", lineHeight: 1.4 }}>
-                      Destructive operations (deleting a sale, creating coupons, toggling coupons, recording vendor/customer payments) will be staged and require the admin to reply <code>CONFIRM ACT-XXXX</code> before applying.
-                    </p>
-
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted, #888)", display: "block", marginBottom: 4 }}>
-                        Confirmation Expiration Window
-                      </label>
-                      <select
-                        value={editingAgent.security?.confirmationTtlMinutes || 5}
-                        onChange={(e) =>
-                          setEditingAgent((prev) => ({
-                            ...prev,
-                            security: { ...prev.security, confirmationTtlMinutes: Number(e.target.value) },
-                          }))
-                        }
-                        style={inputStyle}
-                      >
-                        <option value={3}>3 Minutes</option>
-                        <option value={5}>5 Minutes (Default)</option>
-                        <option value={10}>10 Minutes</option>
-                        <option value={15}>15 Minutes</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── TAB 4: Tool Capabilities ─────────────────────────────────── */}
-              {modalTab === "tools" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  <div style={{ fontSize: 13, color: "var(--muted, #888)" }}>
-                    Select which live database tool groups this assistant is authorized to use:
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 12 }}>
-                    {[
-                      { key: "salesEnabled", label: "Sales & Subscriptions", desc: "get_sales_summary, list_sales, record_sale, delete_sale, restore_sale" },
-                      { key: "ordersEnabled", label: "Orders & Fulfillment", desc: "get_orders_summary, list_orders, update_order_status" },
-                      { key: "productsEnabled", label: "Products & Pricing", desc: "list_products, update_product (price & in_stock)" },
-                      { key: "accountBookEnabled", label: "Account Book (Payables/Receivables)", desc: "vendor_payables, customer_receivables, payment records" },
-                      { key: "couponsEnabled", label: "Promo Codes & Coupons", desc: "list_coupons, create_coupon, toggle_coupon" },
-                      { key: "stockEnabled", label: "Supplier Stock & Inventory", desc: "list_stock_items, get_expiring_stock" },
-                      { key: "reportsEnabled", label: "Reports & CSV Exports", desc: "generate_report, export_customers_csv, send_email" },
-                    ].map((toolGroup) => (
-                      <div
-                        key={toolGroup.key}
-                        style={{
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
-                          borderRadius: 8,
-                          padding: "10px 12px",
-                          background: "rgba(255, 255, 255, 0.02)",
-                        }}
-                      >
-                        <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
-                          <input
-                            type="checkbox"
-                            style={{ marginTop: 2 }}
-                            checked={(editingAgent.tools as any)?.[toolGroup.key] !== false}
-                            onChange={(e) =>
-                              setEditingAgent((prev) => ({
-                                ...prev,
-                                tools: { ...prev.tools, [toolGroup.key]: e.target.checked },
-                              }))
-                            }
-                          />
-                          <div>
-                            <strong style={{ color: "#e0e0e0" }}>{toolGroup.label}</strong>
-                            <div style={{ fontSize: 10, color: "var(--muted, #888)", marginTop: 2 }}>{toolGroup.desc}</div>
-                          </div>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* ── TAB 5: Reports & Email ────────────────────────────────────── */}
-              {modalTab === "reports" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  <div>
-                    <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, display: "block" }}>
-                      Default Executive Reports Recipient Email
-                    </label>
-                    <input
-                      type="email"
-                      value={editingAgent.reports?.defaultEmail || "amirmehboob921@gmail.com"}
-                      onChange={(e) =>
-                        setEditingAgent((prev) => ({
-                          ...prev,
-                          reports: { ...prev.reports, defaultEmail: e.target.value },
-                        }))
-                      }
-                      placeholder="amirmehboob921@gmail.com"
-                      style={inputStyle}
-                    />
-                    <div style={{ fontSize: 11, color: "var(--muted, #888)", marginTop: 4 }}>
-                      Whenever you ask WhatsApp: &ldquo;Send me sales report&rdquo;, the PDF/HTML report will be emailed here.
-                    </div>
-                  </div>
-
-                  <div style={{ ...card, padding: 14, background: "rgba(255,255,255,0.02)" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={editingAgent.reports?.autoEmailCsv !== false}
-                        onChange={(e) =>
-                          setEditingAgent((prev) => ({
-                            ...prev,
-                            reports: { ...prev.reports, autoEmailCsv: e.target.checked },
-                          }))
-                        }
-                      />
-                      <span>Automatically attach downloadable CSV datasets to report emails</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {/* Modal Action Buttons */}
-              <div style={{ display: "flex", gap: 12, marginTop: 12, borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: 16 }}>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  style={{
-                    ...btnPrimary,
-                    background: "#25D366",
-                    color: "#000",
-                    fontWeight: 700,
-                    flex: 1,
-                    justifyContent: "center",
-                    padding: "10px 18px",
-                  }}
-                >
-                  {actionLoading ? <><i className="fa-solid fa-circle-notch fa-spin" /> Saving…</> : <><i className="fa-solid fa-check" /> Save Configuration</>}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  style={{
-                    padding: "10px 18px",
-                    borderRadius: 8,
-                    border: "1px solid rgba(255, 255, 255, 0.15)",
-                    background: "transparent",
-                    color: "#e0e0e0",
-                    cursor: "pointer",
-                    fontSize: 13,
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

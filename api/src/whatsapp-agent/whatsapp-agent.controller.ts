@@ -100,13 +100,13 @@ export class WhatsappAgentController {
 
   @Post('trigger-renewal-watchdog')
   async triggerRenewalWatchdog() {
-    await this.worker.runRenewalWatchdogCron();
+    await this.worker.runRenewalWatchdogCron(true);
     return { success: true, message: 'Renewal watchdog triggered.' };
   }
 
   @Post('trigger-stuck-orders')
   async triggerStuckOrders() {
-    await this.worker.runStuckOrdersAlertCron();
+    await this.worker.runStuckOrdersAlertCron(true);
     return { success: true, message: 'Stuck orders check triggered.' };
   }
 
