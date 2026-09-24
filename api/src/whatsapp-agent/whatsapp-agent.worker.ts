@@ -104,8 +104,9 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
 
         const geminiKey = this.agentService.getGeminiKeyForAgent(agent);
         if (!geminiKey) {
-          this.logger.error(`No Gemini API key available for agent "${agent.name}".`);
-          await this.sendFallback(agent, phone, msg.body, msg.id);
+          const keyErr = `Gemini API key is not configured for agent "${agent.name}". Please open SubscribAI Admin > WhatsApp Agent > Edit Agent and set your Gemini API key.`;
+          this.logger.error(keyErr);
+          await this.sendFallback(agent, phone, msg.body, msg.id, keyErr);
           continue;
         }
 
@@ -115,6 +116,8 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
 
         let finalAiText = '';
         let lastErrCode: number | null = null;
+        let lastErrMessage = '';
+        let lastException = '';
 
         // 4. Multi-model execution with automatic fallback
         for (const modelName of CANDIDATE_MODELS) {
@@ -140,7 +143,13 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
               if (!geminiRes.ok) {
                 lastErrCode = geminiRes.status;
                 const errText = await geminiRes.text();
-                this.logger.warn(`Gemini [${modelName}] error ${geminiRes.status} for "${agent.name}": ${errText}`);
+                try {
+                  const parsed = JSON.parse(errText);
+                  lastErrMessage = parsed.error?.message || errText;
+                } catch {
+                  lastErrMessage = errText;
+                }
+                this.logger.warn(`Gemini [${modelName}] error ${geminiRes.status} for "${agent.name}": ${lastErrMessage}`);
                 break; // Break inner loop to try next model in CANDIDATE_MODELS
               }
 
@@ -206,6 +215,7 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
               }
             }
           } catch (modelErr: any) {
+            lastException = modelErr.message || String(modelErr);
             this.logger.error(`Exception calling model ${modelName} for "${agent.name}": ${modelErr.message}`);
           }
 
@@ -214,12 +224,17 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
           }
         }
 
-        // 5. Fallback if AI quota was exhausted or returned empty
+        // 5. If AI returned empty, return relevant and informative error
         if (!finalAiText.trim()) {
           if (lastErrCode === 429) {
-            finalAiText = `Hello! *SubscribAI Assistant* here. I am temporarily experiencing high traffic (AI quota limit reached). Please retry in 1 minute, or contact support at support@subscribai.com.`;
+            const firstLine = lastErrMessage.split('\n')[0] || 'Quota limit reached.';
+            finalAiText = `⚠️ *SubscribAI Assistant Notice: Quota Exceeded (429)*\n${firstLine}\n\n*What to do:*\n• Please retry in 1 minute.\n• Or enter a Gemini API key with billing enabled in SubscribAI Admin > WhatsApp Agent > Edit Agent.`;
+          } else if (lastErrCode) {
+            finalAiText = `⚠️ *AI Service Error (${lastErrCode})*:\n${lastErrMessage.slice(0, 300)}\n\nPlease verify your API key and permissions in Admin > WhatsApp Agent.`;
+          } else if (lastException) {
+            finalAiText = `⚠️ *Assistant System Error*:\n${lastException.slice(0, 300)}`;
           } else {
-            finalAiText = `Hello! *SubscribAI Assistant* here. We received your message: "${msg.body.slice(0, 50)}". How can we assist you with our AI subscription services today?`;
+            finalAiText = `Hello! *SubscribAI Assistant* (${agent.name}) received: "${msg.body.slice(0, 60)}". Please try asking again in a moment.`;
           }
         }
 
@@ -251,8 +266,10 @@ ${agent.systemPrompt ? `\nSpecial Instructions: ${agent.systemPrompt}` : ''}`;
     }
   }
 
-  private async sendFallback(agent: AgentConfig, phone: string, text: string, replyToId: string) {
-    const fallback = `Hello! *SubscribAI Assistant* (${agent.name}) received: "${text.slice(0, 50)}". An agent will assist you shortly.`;
+  private async sendFallback(agent: AgentConfig, phone: string, text: string, replyToId: string, customError?: string) {
+    const fallback = customError
+      ? `⚠️ *SubscribAI Assistant (${agent.name}) Notice*:\n${customError}`
+      : `Hello! *SubscribAI Assistant* (${agent.name}) received: "${text.slice(0, 50)}". An agent will assist you shortly.`;
     await this.agentService.sendAgentReply(agent, phone, fallback, replyToId);
   }
 }
