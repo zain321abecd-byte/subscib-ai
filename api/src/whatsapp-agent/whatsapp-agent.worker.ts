@@ -111,46 +111,52 @@ If you don't know something specific about an order, ask the customer for their 
         });
 
         const geminiKey = this.agentService.getGeminiKey();
-        if (!geminiKey) {
-          this.logger.error('GEMINI_API_KEY is not set. Cannot generate reply.');
-          continue;
+        let aiText = '';
+
+        if (geminiKey) {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiKey}`;
+          try {
+            const geminiRes = await fetch(geminiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents,
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+              })
+            });
+
+            if (geminiRes.ok) {
+              const geminiData = await geminiRes.json();
+              aiText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            } else {
+              const errText = await geminiRes.text();
+              this.logger.error(`Gemini API error: ${geminiRes.status} ${errText}`);
+            }
+          } catch (geminiErr: any) {
+            this.logger.error(`Exception calling Gemini: ${geminiErr.message}`);
+          }
         }
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
-        
+        // Fallback response if Gemini fails or returns empty
+        if (!aiText.trim()) {
+          aiText = `Hello! *SubscribAI Support* here. We received your message: "${msg.body.slice(0, 50)}". How can we assist you with our AI subscription services today?`;
+        }
+
+        // Convert formatting to WhatsApp standards:
+        aiText = aiText.replace(/^#+\s*(.*)$/gm, '*$1*');
+        aiText = aiText.replace(/\*\*(.*?)\*\*/g, '*$1*');
+        aiText = aiText.replace(/#/g, '');
+
+        if (aiText.length > 4000) {
+          aiText = aiText.substring(0, 3997) + '...';
+        }
+
         try {
-          const geminiRes = await fetch(geminiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents,
-              systemInstruction: { parts: [{ text: systemPrompt }] }
-            })
-          });
-
-          if (!geminiRes.ok) {
-            const errText = await geminiRes.text();
-            this.logger.error(`Gemini API error: ${geminiRes.status} ${errText}`);
-            continue;
-          }
-
-          const geminiData = await geminiRes.json();
-          let aiText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-          aiText = aiText.replace(/\*\*/g, '*');
-          aiText = aiText.replace(/#/g, '');
-          
-          if (aiText.length > 4000) {
-            aiText = aiText.substring(0, 3997) + '...';
-          }
-
           await this.agentService.sendReply(phone, aiText, msg.id);
-
           this.appendHistory(phone, 'user', msg.body);
           this.appendHistory(phone, 'model', aiText);
-
-        } catch (geminiErr: any) {
-          this.logger.error(`Exception calling Gemini: ${geminiErr.message}`);
+        } catch (sendErr: any) {
+          this.logger.error(`Failed to send reply to ${phone}: ${sendErr.message}`);
         }
       }
     } catch (error: any) {
