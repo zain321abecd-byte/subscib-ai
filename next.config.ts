@@ -13,7 +13,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://cdnjs.cloudflare.com",
-  "connect-src 'self' http://localhost:4000 http://127.0.0.1:4000 ws://localhost:3001 ws://127.0.0.1:3001 https://subscribai-api.onrender.com https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://www.facebook.com https://vitals.vercel-insights.com",
+  "connect-src 'self' http://localhost:4000 http://127.0.0.1:4000 ws://localhost:3001 ws://127.0.0.1:3001 https://subscribai-api-production.up.railway.app https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://www.facebook.com https://vitals.vercel-insights.com",
   "frame-src https://www.googletagmanager.com",
   "object-src 'none'",
   "base-uri 'self'",
