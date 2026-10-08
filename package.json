@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:panel-security": "node --test tests/panel-security-invariants.test.mjs"
   },
   "dependencies": {
     "@icons-pack/react-simple-icons": "^13.13.0",

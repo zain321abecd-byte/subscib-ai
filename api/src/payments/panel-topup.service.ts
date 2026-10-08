@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { Interval } from "@nestjs/schedule";
 import { SupabaseService } from "../supabase/supabase.service";
 
 /**
@@ -17,6 +18,9 @@ import { SupabaseService } from "../supabase/supabase.service";
 
 /** Basket ids we own. Anything else belongs to the shop's order flow. */
 export const PANEL_BASKET_PREFIX = "PNL-";
+const TOP_UP_TIMEOUT_MS = 30_000;
+const AUTO_CANCEL_NOTE =
+  "Cancelled automatically — PayFast payment was not completed within 30 seconds.";
 
 export function isPanelBasket(basketId: string): boolean {
   return String(basketId || "").startsWith(PANEL_BASKET_PREFIX);
@@ -27,6 +31,31 @@ export class PanelTopUpService {
   private readonly logger = new Logger(PanelTopUpService.name);
 
   constructor(private readonly supabase: SupabaseService) {}
+
+  /** Keep abandoned gateway attempts out of pending totals, even off-page. */
+  @Interval("expire-pending-payfast-topups", 5_000)
+  async expirePendingPayFastTopUps(): Promise<void> {
+    const cutoff = new Date(Date.now() - TOP_UP_TIMEOUT_MS).toISOString();
+    const { data, error } = await this.supabase
+      .admin()
+      .from("panel_payment_requests")
+      .update({
+        status: "rejected",
+        admin_note: AUTO_CANCEL_NOTE,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("gateway", "payfast")
+      .eq("status", "pending")
+      .is("gateway_txn_id", null)
+      .lte("created_at", cutoff)
+      .select("id");
+
+    if (error) {
+      this.logger.error(`pending PayFast expiry sweep failed: ${error.message}`);
+    } else if (data?.length) {
+      this.logger.log(`automatically cancelled ${data.length} expired PayFast top-up(s).`);
+    }
+  }
 
   /**
    * Apply a gateway outcome to a top-up request.
@@ -47,7 +76,7 @@ export class PanelTopUpService {
 
     const { data: request, error } = await db
       .from("panel_payment_requests")
-      .select("id, user_id, amount, status, gateway")
+      .select("id, user_id, amount, status, gateway, admin_note")
       .eq("basket_id", basketId)
       .maybeSingle();
 
@@ -64,9 +93,12 @@ export class PanelTopUpService {
       return;
     }
 
-    // Already settled by the other callback. Nothing to do, and saying so at
-    // debug level keeps the log honest about why a second call did nothing.
-    if (request.status !== "pending") {
+    const customerCancelled =
+      request.status === "rejected" &&
+      (String(request.admin_note || "").startsWith("Cancelled by customer") ||
+        String(request.admin_note || "").startsWith("Cancelled automatically"));
+
+    if (request.status !== "pending" && !(customerCancelled && paymentStatus === "paid")) {
       this.logger.log(
         `panel top-up basket=${basketId} already ${request.status} — ignoring duplicate callback.`,
       );
@@ -80,22 +112,7 @@ export class PanelTopUpService {
       return;
     }
 
-    if (paymentStatus === "failed") {
-      await db
-        .from("panel_payment_requests")
-        .update({
-          status: "failed",
-          gateway_txn_id: transactionId || null,
-          gateway_err_code: errCode || null,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", request.id)
-        .eq("status", "pending");
-      this.logger.log(`panel top-up basket=${basketId} failed (err_code=${errCode}).`);
-      return;
-    }
-
-    // ── paid ──────────────────────────────────────────────────────────────
+    // ── validate amount before the atomic settlement ─────────────────────
     const expected = Number(request.amount);
     const reported = params.reportedAmount != null ? Number(params.reportedAmount) : null;
 
@@ -119,64 +136,20 @@ export class PanelTopUpService {
       return;
     }
 
-    // Compare-and-set: claim the row first. If this matches zero rows another
-    // callback got here first and already credited — we must not credit again.
-    const { data: claimed, error: claimError } = await db
-      .from("panel_payment_requests")
-      .update({
-        status: "approved",
-        gateway_txn_id: transactionId || null,
-        gateway_err_code: errCode || null,
-        paid_at: new Date().toISOString(),
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", request.id)
-      .eq("status", "pending")
-      .select("id, user_id, amount")
-      .maybeSingle();
-
-    if (claimError) {
-      this.logger.error(`panel top-up claim failed (basket=${basketId}): ${claimError.message}`);
+    // The request transition and ledger credit happen in one PostgreSQL
+    // transaction. Concurrent browser-return/IPN calls serialize on the
+    // request row, so only one can create a wallet transaction.
+    const { data: settled, error: settleError } = await db.rpc("panel_settle_payfast_topup_atomic", {
+      p_request_id: request.id,
+      p_outcome: paymentStatus,
+      p_transaction_id: transactionId || "",
+      p_err_code: errCode || "",
+    });
+    if (settleError) {
+      this.logger.error(`panel top-up settlement failed (basket=${basketId}): ${settleError.message}`);
       return;
     }
-    if (!claimed) {
-      this.logger.log(`panel top-up basket=${basketId} claimed by a concurrent callback — not crediting twice.`);
-      return;
-    }
-
-    const { data: tx, error: creditError } = await db
-      .from("panel_wallet_transactions")
-      .insert({
-        user_id: claimed.user_id,
-        type: "credit",
-        amount: claimed.amount,
-        reference: transactionId || basketId,
-        note: "Wallet top-up — PayFast",
-      })
-      .select("id")
-      .single();
-
-    if (creditError || !tx) {
-      // We claimed the row but the money never landed. Put it back to pending
-      // so the IPN (or an admin) can retry, rather than leaving it marked paid
-      // with no credit behind it.
-      this.logger.error(
-        `panel top-up basket=${basketId} credit FAILED after claim: ${creditError?.message}. Reverting to pending.`,
-      );
-      await db
-        .from("panel_payment_requests")
-        .update({ status: "pending", paid_at: null, reviewed_at: null })
-        .eq("id", claimed.id);
-      return;
-    }
-
-    await db
-      .from("panel_payment_requests")
-      .update({ transaction_id: tx.id })
-      .eq("id", claimed.id);
-
-    this.logger.log(
-      `panel top-up basket=${basketId} credited ${claimed.amount} to user=${claimed.user_id} (txn=${transactionId || "-"}).`,
-    );
+    const row = Array.isArray(settled) ? settled[0] : settled;
+    this.logger.log(`panel top-up basket=${basketId} result=${row?.result || "unknown"}.`);
   }
 }

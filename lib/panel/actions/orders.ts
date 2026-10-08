@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getPanelUser } from "@/lib/panel/auth";
-import { calculateCharge, type Order } from "@/lib/panel/types";
+import { type Order } from "@/lib/panel/types";
 
 export type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -59,55 +59,27 @@ export async function placeOrder(input: {
     };
   }
 
-  const charge = calculateCharge(service.rate_per_1000, quantity);
-
-  // Debit first. If the balance is short the trigger raises and no order is
-  // created — the alternative (order first) can leave an unpaid order behind.
-  const { error: debitError } = await db.from("panel_wallet_transactions").insert({
-    user_id: user.id,
-    type: "debit",
-    amount: charge,
-    note: `${service.name} — ${quantity.toLocaleString()}`,
+  // The RPC debits the wallet and creates the order in one database
+  // transaction. A crash can no longer leave a debit without an order.
+  const { data: placed, error: placeError } = await db.rpc("panel_place_order_atomic", {
+    p_user_id: user.id,
+    p_service_id: service.id,
+    p_link: link,
+    p_quantity: quantity,
   });
-
-  if (debitError) {
-    if (/insufficient balance/i.test(debitError.message)) {
+  if (placeError) {
+    if (/insufficient balance/i.test(placeError.message)) {
       return { ok: false, error: "Not enough balance. Add funds and try again." };
     }
-    return { ok: false, error: "Could not take payment from your wallet. Nothing was charged." };
+    return { ok: false, error: "Could not create the order. Nothing was charged." };
   }
-
-  const { data: order, error: orderError } = await db
-    .from("panel_orders")
-    .insert({
-      user_id: user.id,
-      service_id: service.id,
-      service_name: service.name,
-      rate_per_1000: service.rate_per_1000,
-      link,
-      quantity,
-      charge,
-      status: "pending",
-      provider_id: service.provider_id,
-    })
-    .select("id")
-    .single();
-
-  if (orderError || !order) {
-    // Give the money back rather than leave a debit with no order behind it.
-    await db.from("panel_wallet_transactions").insert({
-      user_id: user.id,
-      type: "credit",
-      amount: charge,
-      note: "Automatic refund — order could not be created",
-    });
-    return { ok: false, error: "Could not create the order. Your balance has been restored." };
-  }
+  const row = Array.isArray(placed) ? placed[0] : placed;
+  if (!row?.order_id) return { ok: false, error: "Could not create the order. Nothing was charged." };
 
   revalidatePath("/panel/orders");
   revalidatePath("/panel/dashboard");
   revalidatePath("/panel/transactions");
-  return { ok: true, data: { orderId: order.id, charge } };
+  return { ok: true, data: { orderId: row.order_id, charge: Number(row.charge) } };
 }
 
 /**
@@ -131,26 +103,13 @@ export async function updateOrderStatus(
 
   if (!order) return { ok: false, error: "That order no longer exists." };
 
-  const { error } = await db
-    .from("panel_orders")
-    .update({ status, note: note?.trim() || order.note })
-    .eq("id", orderId);
+  const { error } = await db.rpc("panel_update_order_and_refund_atomic", {
+    p_order_id: orderId,
+    p_status: status,
+    p_note: note?.trim() || order.note || "",
+    p_actor_id: user.id,
+  });
   if (error) return { ok: false, error: error.message };
-
-  const shouldRefund =
-    (status === "cancelled" || status === "failed") && !order.refunded_at && Number(order.charge) > 0;
-  if (shouldRefund) {
-    const { error: refundError } = await db.from("panel_wallet_transactions").insert({
-      user_id: order.user_id,
-      type: "credit",
-      amount: order.charge,
-      note: `Refund — ${order.service_name}`,
-      created_by: user.id,
-    });
-    if (!refundError) {
-      await db.from("panel_orders").update({ refunded_at: new Date().toISOString() }).eq("id", orderId);
-    }
-  }
 
   revalidatePath("/panel/admin/orders");
   revalidatePath("/panel/orders");

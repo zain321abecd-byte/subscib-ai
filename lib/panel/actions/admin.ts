@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getPanelUser } from "@/lib/panel/auth";
+import { internalApi } from "@/lib/internal-api";
 
 export type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -86,43 +87,18 @@ export async function reviewTopUp(
     };
   }
 
-  let transactionId: string | null = null;
-
-  if (decision === "approved") {
-    const { data: tx, error } = await db
-      .from("panel_wallet_transactions")
-      .insert({
-        user_id: request.user_id,
-        type: "credit",
-        amount: request.amount,
-        note: "Wallet top-up approved",
-        created_by: admin.id,
-      })
-      .select("id")
-      .single();
-    if (error || !tx) return { ok: false, error: "Could not credit the wallet. Nothing was changed." };
-    transactionId = tx.id;
-  }
-
-  const { error: updateError } = await db
-    .from("panel_payment_requests")
-    .update({
-      status: decision,
-      admin_note: adminNote?.trim().slice(0, 500) || null,
-      reviewed_by: admin.id,
-      reviewed_at: new Date().toISOString(),
-      transaction_id: transactionId,
-    })
-    .eq("id", id)
-    .eq("status", "pending");
+  const { error: updateError } = await db.rpc("panel_review_manual_topup_atomic", {
+    p_request_id: id,
+    p_decision: decision,
+    p_admin_note: adminNote?.trim().slice(0, 500) || "",
+    p_admin_id: admin.id,
+  });
 
   if (updateError) {
     return {
       ok: false,
       error:
-        decision === "approved"
-          ? "The wallet was credited but the request could not be marked approved — check before approving again."
-          : updateError.message,
+        decision === "approved" ? "Could not approve the payment. Nothing was credited." : updateError.message,
     };
   }
 
@@ -265,6 +241,109 @@ export async function deleteService(id: string): Promise<Result> {
   return { ok: true };
 }
 
+export async function deleteServices(ids: string[]): Promise<Result<{ deleted: number }>> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: "Administrators only." };
+  const unique = [...new Set(ids)].filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 500);
+  if (!unique.length) return { ok: false, error: "Select at least one service." };
+
+  const { data, error } = await getSupabaseAdmin()
+    .from("panel_services")
+    .delete()
+    .in("id", unique)
+    .select("id");
+  if (error) return { ok: false, error: `Could not delete the selected services: ${error.message}` };
+  revalidatePath("/panel/admin/services");
+  revalidatePath("/panel/services");
+  return { ok: true, data: { deleted: data?.length ?? 0 } };
+}
+
+/** Import selected live provider services. Provider data is fetched again on
+ * the server so names, limits and rates cannot be forged by the browser. */
+export async function importProviderServices(
+  selections: Array<{ providerId: string; serviceId: string }>,
+  marginPercent = 30,
+): Promise<Result<{ added: number; skipped: number }>> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: "Administrators only." };
+
+  const wanted = [...new Map(
+    selections
+      .filter((x) => x.providerId && x.serviceId)
+      .slice(0, 1000)
+      .map((x) => [`${x.providerId}:${x.serviceId}`, x]),
+  ).values()];
+  if (!wanted.length) return { ok: false, error: "Select at least one provider service." };
+  const margin = Number(marginPercent);
+  if (!Number.isFinite(margin) || margin < 1 || margin > 100) {
+    return { ok: false, error: "Margin must be between 1% and 100%." };
+  }
+
+  const providerIds = [...new Set(wanted.map((x) => x.providerId))];
+  let added = 0;
+  let skipped = 0;
+  for (const providerId of providerIds) {
+    const serviceIds = wanted.filter((x) => x.providerId === providerId).map((x) => String(x.serviceId));
+    try {
+      const result = await internalApi<{ success: true; added: number; skipped: number }>(
+        `/panel-provider-services/${encodeURIComponent(providerId)}/import`,
+        { method: "POST", body: { serviceIds, marginPercent: margin } },
+      );
+      added += result.added;
+      skipped += result.skipped;
+    } catch (error) {
+      return { ok: false, error: `Added ${added} before import stopped: ${error instanceof Error ? error.message : "unknown error"}` };
+    }
+  }
+  return { ok: true, data: { added, skipped } };
+}
+
+/** Reprice already-imported services from their stored provider cost. */
+export async function updateServiceMargins(
+  ids: string[],
+  marginPercent: number,
+): Promise<Result<{ updated: number }>> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: "Administrators only." };
+  const margin = Number(marginPercent);
+  if (!Number.isFinite(margin) || margin < 1 || margin > 100) {
+    return { ok: false, error: "Margin must be between 1% and 100%." };
+  }
+  const unique = [...new Set(ids)].filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 500);
+  if (!unique.length) return { ok: false, error: "Select at least one added service." };
+
+  const db = getSupabaseAdmin();
+  const { data: services, error } = await db
+    .from("panel_services")
+    .select("id, provider_id, provider_rate")
+    .in("id", unique);
+  if (error) return { ok: false, error: "Could not load the selected services." };
+
+  const providerIds = [...new Set((services ?? []).flatMap((service) => service.provider_id ? [service.provider_id] : []))];
+  const { data: providers } = providerIds.length
+    ? await db.from("panel_providers").select("id, currency").in("id", providerIds)
+    : { data: [] as Array<{ id: string; currency: string }> };
+  const currencies = new Map((providers ?? []).map((provider) => [provider.id, String(provider.currency || "USD").toUpperCase()]));
+
+  const updates: Array<{ id: string; rate: number }> = [];
+  for (const service of services ?? []) {
+    const providerRate = Number(service.provider_rate);
+    if (!service.provider_id || !Number.isFinite(providerRate) || providerRate < 0) continue;
+    const pkrCost = currencies.get(service.provider_id) === "PKR" ? providerRate : providerRate * 280;
+    updates.push({ id: service.id, rate: Math.max(0.01, money(pkrCost * (1 + margin / 100))) });
+  }
+  let updated = 0;
+  for (let index = 0; index < updates.length; index += 40) {
+    const results = await Promise.all(updates.slice(index, index + 40).map((item) =>
+      db.from("panel_services").update({ rate_per_1000: item.rate }).eq("id", item.id),
+    ));
+    const failed = results.find((result) => result.error);
+    if (failed?.error) return { ok: false, error: `Updated ${updated} before repricing stopped: ${failed.error.message}` };
+    updated += results.length;
+  }
+  return { ok: true, data: { updated } };
+}
+
 export async function saveCategory(name: string, platform: string, id?: string): Promise<Result> {
   const admin = await requireAdmin();
   if (!admin) return { ok: false, error: "Administrators only." };
@@ -318,45 +397,15 @@ export async function testProvider(id: string): Promise<Result<{ balance: string
   const admin = await requireAdmin();
   if (!admin) return { ok: false, error: "Administrators only." };
 
-  const db = getSupabaseAdmin();
-  const { data: provider } = await db
-    .from("panel_providers")
-    .select("api_url, api_key")
-    .eq("id", id)
-    .maybeSingle();
-  if (!provider) return { ok: false, error: "That provider no longer exists." };
-
   try {
-    const res = await fetch(provider.api_url, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ key: provider.api_key, action: "balance" }),
-      signal: AbortSignal.timeout(20_000),
-    });
-    const payload = await res.json().catch(() => ({}) as Record<string, unknown>);
-
-    if (!res.ok || payload?.error) {
-      const detail = String(payload?.error || `HTTP ${res.status}`);
-      await db.from("panel_providers").update({ last_error: detail.slice(0, 300) }).eq("id", id);
-      return { ok: false, error: detail };
-    }
-
-    const balance = String(payload?.balance ?? "0");
-    await db
-      .from("panel_providers")
-      .update({
-        balance: Number(balance) || 0,
-        currency: String(payload?.currency || "USD"),
-        last_synced_at: new Date().toISOString(),
-        last_error: null,
-      })
-      .eq("id", id);
-
+    const payload = await internalApi<{ success: true; balance: string }>(
+      `/panel-providers/${encodeURIComponent(id)}/test`,
+      { method: "POST" },
+    );
     revalidatePath("/panel/admin/providers");
-    return { ok: true, data: { balance } };
+    return { ok: true, data: { balance: payload.balance } };
   } catch (err) {
     const detail = err instanceof Error ? err.message : "unreachable";
-    await db.from("panel_providers").update({ last_error: detail.slice(0, 300) }).eq("id", id);
     return { ok: false, error: `Could not reach the provider: ${detail}` };
   }
 }

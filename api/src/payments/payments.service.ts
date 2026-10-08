@@ -124,6 +124,13 @@ export class PaymentsService {
     // but default to the env value when not supplied.
     const currency = (input.currency || config.currency || "PKR").toUpperCase();
 
+    // Never let the browser decide what an existing order/top-up costs. Bind
+    // the basket to its server-side record before asking PayFast for a token.
+    // This closes the underpayment path where a real success callback for a
+    // caller-supplied lower amount could otherwise mark a higher-value order paid.
+    const binding = await this.validatePaymentBinding({ basketId, amount, currency, customerEmail });
+    if (!binding.ok) return { status: binding.status, body: { success: false, message: binding.message } };
+
     // STEP 1 — fetch the access token.
     let token = "";
     let tokenHttp = 0;
@@ -211,6 +218,47 @@ export class PaymentsService {
     };
   }
 
+  private async validatePaymentBinding(params: {
+    basketId: string;
+    amount: string;
+    currency: string;
+    customerEmail: string;
+  }): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+    const db = this.supabase.admin();
+    if (isPanelBasket(params.basketId)) {
+      const { data } = await db
+        .from("panel_payment_requests")
+        .select("amount, status, gateway, user_id")
+        .eq("basket_id", params.basketId)
+        .maybeSingle();
+      if (!data || data.gateway !== "payfast" || data.status !== "pending") {
+        return { ok: false, status: 404, message: "Payment request is unavailable." };
+      }
+      if (params.currency !== "PKR" || Math.abs(Number(data.amount) - Number(params.amount)) > 0.01) {
+        return { ok: false, status: 409, message: "Payment amount does not match the top-up request." };
+      }
+      return { ok: true };
+    }
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.basketId);
+    const base = db.from("orders").select("subtotal_pkr, subtotal_usd, customer_email, status");
+    const { data } = await (isUuid
+      ? base.eq("id", params.basketId)
+      : base.eq("order_number", params.basketId)
+    ).maybeSingle();
+    if (!data || data.status !== "pending") {
+      return { ok: false, status: 404, message: "Order is unavailable for payment." };
+    }
+    const expected = params.currency === "USD" ? Number(data.subtotal_usd) : Number(data.subtotal_pkr);
+    if (!Number.isFinite(expected) || expected <= 0 || Math.abs(expected - Number(params.amount)) > 0.01) {
+      return { ok: false, status: 409, message: "Payment amount does not match the order total." };
+    }
+    if (String(data.customer_email || "").trim().toLowerCase() !== params.customerEmail.toLowerCase()) {
+      return { ok: false, status: 403, message: "Payment customer does not match the order." };
+    }
+    return { ok: true };
+  }
+
   // ── STEP 3 — browser return (PayFast hits SUCCESS_URL / FAILURE_URL) ───────
   /**
    * Validates the payload, syncs the order, returns where to redirect the
@@ -261,6 +309,8 @@ export class PaymentsService {
         basketId,
         paymentStatus,
         transactionId: String(payload.transaction_id || ""),
+        reportedAmount: payload.transaction_amount != null ? String(payload.transaction_amount) : undefined,
+        reportedCurrency: payload.transaction_currency != null ? String(payload.transaction_currency) : undefined,
       });
     } else if (basketId) {
       this.logger.warn(
@@ -337,7 +387,13 @@ export class PaymentsService {
   }
 
   // ── persistence ───────────────────────────────────────────────────────────
-  private async syncOrder(params: { basketId: string; paymentStatus: "paid" | "failed" | "pending"; transactionId: string }) {
+  private async syncOrder(params: {
+    basketId: string;
+    paymentStatus: "paid" | "failed" | "pending";
+    transactionId: string;
+    reportedAmount?: string;
+    reportedCurrency?: string;
+  }) {
     const { basketId, paymentStatus, transactionId } = params;
     const status =
       paymentStatus === "paid" ? "paid" :
@@ -364,16 +420,35 @@ export class PaymentsService {
         const { data, error } = await this.supabase
           .admin()
           .from("orders")
-          .update(update as never)
+          .select("id, subtotal_pkr, subtotal_usd")
           .eq(t.col, basketId)
-          .select("id")
           .maybeSingle();
         if (error) {
           this.logger.error(`order status sync (${t.col}=${basketId}) failed: ${error.message}`);
           continue;
         }
-        const id = (data as { id?: string } | null)?.id ?? null;
+        const matched = data as { id?: string; subtotal_pkr?: unknown; subtotal_usd?: unknown } | null;
+        const id = matched?.id ?? null;
         if (id) {
+          if (paymentStatus === "paid" && params.reportedAmount != null) {
+            const currency = String(params.reportedCurrency || "PKR").toUpperCase();
+            const expected = currency === "USD" ? Number(matched?.subtotal_usd) : Number(matched?.subtotal_pkr);
+            const reported = Number(params.reportedAmount);
+            if (!Number.isFinite(expected) || !Number.isFinite(reported) || Math.abs(expected - reported) > 0.01) {
+              this.logger.error(`order payment amount mismatch basket=${basketId}; refusing paid transition.`);
+              return;
+            }
+          }
+          const { data: updated, error: updateError } = await this.supabase.admin()
+            .from("orders")
+            .update(update as never)
+            .eq("id", id)
+            .select("id")
+            .maybeSingle();
+          if (updateError || !updated) {
+            this.logger.error(`order status update failed basket=${basketId}: ${updateError?.message || "no row"}`);
+            return;
+          }
           orderId = id;
           this.logger.log(`order matched on ${t.col}=${basketId} → status=${status} txn=${transactionId || "-"} orderId=${orderId}`);
           break;
