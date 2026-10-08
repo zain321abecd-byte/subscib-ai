@@ -25,12 +25,12 @@ export function middleware(req: NextRequest) {
 
   if (pathname === "/panel" || pathname.startsWith("/panel/")) {
     // The landing page and the sign-in page are the panel's public face.
-    if (pathname === "/panel" || pathname === "/panel/login") {
+    if (pathname === "/panel" || pathname === "/panel/login" || pathname === "/panel/admin/login") {
       return NextResponse.next({ request: { headers: fwdHeaders } });
     }
     if (!req.cookies.get(PANEL_COOKIE)?.value) {
       const url = req.nextUrl.clone();
-      url.pathname = "/panel/login";
+      url.pathname = pathname.startsWith("/panel/admin") ? "/panel/admin/login" : "/panel/login";
       url.search = "";
       if (pathname !== "/panel") url.searchParams.set("next", pathname);
       return NextResponse.redirect(url);

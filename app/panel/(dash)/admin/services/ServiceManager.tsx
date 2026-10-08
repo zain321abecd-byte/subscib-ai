@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deleteService, saveCategory, saveService, type ServiceInput } from "@/lib/panel/actions/admin";
+import { deleteService, deleteServices, saveCategory, saveService, type ServiceInput } from "@/lib/panel/actions/admin";
 import { Badge, EmptyState, TableWrap, Td, Th } from "@/components/panel/ui";
 import { PLATFORM_LABELS, type Platform, type Provider, type Service, type ServiceCategory } from "@/lib/panel/types";
 
@@ -33,6 +33,7 @@ export default function ServiceManager({
   const [form, setForm] = useState<ServiceInput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const [catName, setCatName] = useState("");
   const [catPlatform, setCatPlatform] = useState<Platform>("instagram");
@@ -52,6 +53,27 @@ export default function ServiceManager({
         (categoryName.get(s.category_id || "") || "").toLowerCase().includes(q),
     );
   }, [services, filter, categoryName]);
+  const allVisibleSelected = visible.length > 0 && visible.every((service) => selected.has(service.id));
+
+  function toggleAllVisible() {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (allVisibleSelected) visible.forEach((service) => next.delete(service.id));
+      else visible.forEach((service) => next.add(service.id));
+      return next;
+    });
+  }
+
+  function removeSelected() {
+    if (!window.confirm(`Delete ${selected.size} selected service${selected.size === 1 ? "" : "s"}? Existing orders keep their service snapshot.`)) return;
+    setError(null);
+    start(async () => {
+      const res = await deleteServices([...selected]);
+      if (!res.ok) { setError(res.error); return; }
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
 
   function startNew() {
     setEditing("new");
@@ -126,6 +148,9 @@ export default function ServiceManager({
         />
         <button type="button" className="panel-btn panel-btn-primary" onClick={startNew}>
           Add service
+        </button>
+        <button type="button" className="panel-btn panel-btn-ghost text-red-600 dark:text-red-400" onClick={removeSelected} disabled={pending || !selected.size}>
+          Delete selected ({selected.size})
         </button>
         <span className="text-sm text-[var(--text-muted)]">
           {visible.length} of {services.length}
@@ -255,6 +280,7 @@ export default function ServiceManager({
         <TableWrap>
           <thead>
             <tr>
+              <Th><input type="checkbox" aria-label="Select all visible panel services" checked={allVisibleSelected} onChange={toggleAllVisible} /></Th>
               <Th>Service</Th>
               <Th>Category</Th>
               <Th align="right">Rate / 1000</Th>
@@ -272,6 +298,7 @@ export default function ServiceManager({
                   : null;
               return (
                 <tr key={s.id}>
+                  <Td><input type="checkbox" aria-label={`Select ${s.name}`} checked={selected.has(s.id)} onChange={() => setSelected((current) => { const next = new Set(current); next.has(s.id) ? next.delete(s.id) : next.add(s.id); return next; })} /></Td>
                   <Td>
                     <div className="font-medium text-[var(--text)]">{s.name}</div>
                     {s.speed && <div className="text-xs text-[var(--text-muted)]">{s.speed}</div>}

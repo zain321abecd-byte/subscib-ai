@@ -54,7 +54,7 @@ export default async function TransactionsPage() {
                 <Td className="text-[var(--text)]">{t.note || t.reference || "—"}</Td>
                 <Td align="right" className="whitespace-nowrap font-semibold text-[var(--text)]">
                   {t.type === "credit" ? "+" : "−"}
-                  {Number(t.amount).toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+                  <Money value={Number(t.amount)} currency={currency} />
                 </Td>
                 <Td align="right" className="whitespace-nowrap text-[var(--text-muted)]">
                   <Money value={t.balance_after} currency={currency} />

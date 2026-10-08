@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { requirePanelUser } from "@/lib/panel/auth";
 import { PLATFORM_LABELS, type Service, type ServiceCategory } from "@/lib/panel/types";
-import { Badge, EmptyState, LinkButton, PageHeader, TableWrap, Td, Th } from "@/components/panel/ui";
+import { Badge, EmptyState, LinkButton, Money, PageHeader, TableWrap, Td, Th } from "@/components/panel/ui";
+import { PanelCurrencyNote } from "@/components/panel/PanelMoney";
 
 export const metadata: Metadata = { title: "Services" };
 export const dynamic = "force-dynamic";
@@ -19,7 +20,6 @@ export default async function ServicesPage() {
 
   const cats = (categories ?? []) as ServiceCategory[];
   const list = (services ?? []) as Service[];
-  const currency = "PKR";
 
   if (list.length === 0) {
     return (
@@ -52,6 +52,7 @@ export default async function ServicesPage() {
         subtitle={`${list.length} service${list.length === 1 ? "" : "s"} available. Rates are per 1,000 units.`}
         action={<LinkButton href="/panel/orders/new">Place an order</LinkButton>}
       />
+      <div className="mb-5"><PanelCurrencyNote /></div>
 
       <div className="grid gap-5">
         {byCategory.map(({ category, items }) => (
@@ -82,7 +83,7 @@ export default async function ServicesPage() {
                       )}
                     </Td>
                     <Td align="right" className="whitespace-nowrap font-semibold text-[var(--text)]">
-                      {Number(s.rate_per_1000).toLocaleString("en-PK", { minimumFractionDigits: 2 })} {currency}
+                      <Money value={Number(s.rate_per_1000)} />
                     </Td>
                     <Td align="right" className="whitespace-nowrap text-[var(--text-muted)]">
                       {s.min_quantity.toLocaleString()}

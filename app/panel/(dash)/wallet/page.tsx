@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { requirePanelUser } from "@/lib/panel/auth";
-import { EmptyState, Money, PageHeader, PaymentBadge, Stat, TableWrap, Td, Th } from "@/components/panel/ui";
+import { EmptyState, Money, PageHeader, Stat, TableWrap, Th } from "@/components/panel/ui";
 import type { PaymentRequest } from "@/lib/panel/types";
 import TopUpMethods from "./TopUpMethods";
+import TopUpRow from "./TopUpRow";
+import { PanelCurrencyNote } from "@/components/panel/PanelMoney";
+import AutoCancelPendingPayments from "./AutoCancelPendingPayments";
+import { PAYFAST_AUTO_CANCEL_NOTE, PAYFAST_TOPUP_TIMEOUT_MS } from "@/lib/panel/payfast-timeout";
+import TopUpCard from "./TopUpCard";
 
 export const metadata: Metadata = { title: "Add funds" };
 export const dynamic = "force-dynamic";
@@ -57,6 +62,21 @@ export default async function WalletPage({
   const user = await requirePanelUser();
   const db = getSupabaseAdmin();
 
+  // Keep the database truthful even when the customer returns after the
+  // browser timer has elapsed. The API also runs this sweep in the background.
+  await db
+    .from("panel_payment_requests")
+    .update({
+      status: "rejected",
+      admin_note: PAYFAST_AUTO_CANCEL_NOTE,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.id)
+    .eq("gateway", "payfast")
+    .eq("status", "pending")
+    .is("gateway_txn_id", null)
+    .lte("created_at", new Date(Date.now() - PAYFAST_TOPUP_TIMEOUT_MS).toISOString());
+
   const [{ data: wallet }, { data: requests }, { data: account }] = await Promise.all([
     db.from("panel_wallets").select("balance, currency").eq("user_id", user.id).maybeSingle(),
     db
@@ -72,10 +92,15 @@ export default async function WalletPage({
   const list = (requests ?? []) as PaymentRequest[];
   const pending = list.filter((r) => r.status === "pending");
   const notice = returnNotice(topup, code);
+  const payFastExpiries = pending
+    .filter((r) => r.gateway === "payfast" && !r.gateway_txn_id)
+    .map((r) => new Date(new Date(r.created_at).getTime() + PAYFAST_TOPUP_TIMEOUT_MS).toISOString());
 
   return (
     <>
+      <AutoCancelPendingPayments expiresAt={payFastExpiries} />
       <PageHeader title="Add funds" subtitle="Top up your wallet so you can place orders." />
+      <div className="mb-5"><PanelCurrencyNote /></div>
 
       {notice && (
         <p role="status" className={`mb-5 rounded-lg border px-3 py-2.5 text-sm ${TONES[notice.tone]}`}>
@@ -88,7 +113,7 @@ export default async function WalletPage({
         <Stat
           label="Awaiting confirmation"
           value={pending.length}
-          hint={pending.length ? "Bank transfers need an admin; card payments clear by themselves" : undefined}
+          hint={pending.length ? "Online payments cancel after 30 seconds unless PayFast confirms them" : undefined}
         />
         <Stat
           label="Pending value"
@@ -96,7 +121,7 @@ export default async function WalletPage({
         />
       </div>
 
-      <div className="grid gap-5 md:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         <TopUpMethods currency={currency} defaultMobile={account?.phone ?? ""} />
 
         <div>
@@ -107,43 +132,15 @@ export default async function WalletPage({
               body="Pay online and your balance updates straight away, or tell us about a bank transfer and an admin will confirm it."
             />
           ) : (
-            <TableWrap>
-              <thead>
-                <tr>
-                  <Th>Date</Th>
-                  <Th align="right">Amount</Th>
-                  <Th>Method</Th>
-                  <Th>Reference</Th>
-                  <Th>Status</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((r) => (
-                  <tr key={r.id}>
-                    <Td className="whitespace-nowrap text-[var(--text-muted)]">
-                      {new Date(r.created_at).toLocaleDateString(undefined, {
-                        day: "numeric", month: "short", year: "numeric",
-                      })}
-                    </Td>
-                    <Td align="right" className="whitespace-nowrap font-semibold text-[var(--text)]">
-                      <Money value={r.amount} currency={currency} />
-                    </Td>
-                    <Td className="text-[var(--text-muted)]">
-                      {r.gateway === "payfast" ? "PayFast" : <span className="capitalize">{r.method}</span>}
-                    </Td>
-                    <Td className="text-[var(--text-muted)]">
-                      {r.gateway === "payfast" ? r.gateway_txn_id || r.basket_id || "—" : r.reference || "—"}
-                    </Td>
-                    <Td>
-                      <PaymentBadge status={r.status} />
-                      {r.admin_note && (
-                        <div className="mt-1 max-w-[220px] text-xs text-[var(--text-muted)]">{r.admin_note}</div>
-                      )}
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </TableWrap>
+            <>
+              <div className="grid gap-3 sm:hidden">{list.map((r) => <TopUpCard key={r.id} request={r} currency={currency} />)}</div>
+              <div className="hidden sm:block">
+                <TableWrap>
+                  <thead><tr><Th>Date</Th><Th align="right">Amount</Th><Th>Method</Th><Th>Reference</Th><Th>Status</Th></tr></thead>
+                  <tbody>{list.map((r) => <TopUpRow key={r.id} request={r} currency={currency} />)}</tbody>
+                </TableWrap>
+              </div>
+            </>
           )}
         </div>
       </div>

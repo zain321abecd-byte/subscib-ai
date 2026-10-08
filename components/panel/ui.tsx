@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { OrderStatus, PaymentStatus, TicketStatus } from "@/lib/panel/types";
+import PanelMoney from "@/components/panel/PanelMoney";
 
 /**
  * Shared presentation pieces. Server-safe (no hooks), so pages can render them
@@ -15,7 +16,7 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <div className="panel-page-header mb-5 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="text-2xl font-bold text-[var(--text)]">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-[var(--text-muted)]">{subtitle}</p>}
@@ -31,9 +32,9 @@ export function Card({ children, className = "" }: { children: React.ReactNode; 
 
 export function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
-    <div className="panel-card p-4">
+    <div className="panel-card panel-stat-card min-w-0 p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</p>
-      <p className="mt-1.5 text-2xl font-bold text-[var(--text)]">{value}</p>
+      <p className="panel-stat-value mt-1.5 break-words text-2xl font-bold text-[var(--text)]">{value}</p>
       {hint && <p className="mt-1 text-xs text-[var(--text-muted)]">{hint}</p>}
     </div>
   );
@@ -111,8 +112,8 @@ export function TicketBadge({ status }: { status: TicketStatus }) {
 export function TableWrap({ children }: { children: React.ReactNode }) {
   return (
     <div className="panel-card overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">{children}</table>
+      <div className="panel-table-scroll overflow-x-auto" role="region" aria-label="Scrollable data table" tabIndex={0}>
+        <table className="panel-data-table w-full text-sm">{children}</table>
       </div>
     </div>
   );
@@ -144,11 +145,10 @@ export function Td({
 }
 
 export function Money({ value, currency = "PKR" }: { value: number | null | undefined; currency?: string }) {
-  return (
-    <>
-      {Number(value ?? 0).toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}
-    </>
-  );
+  if (currency !== "PKR") {
+    return <>{Number(value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency}</>;
+  }
+  return <PanelMoney value={value} />;
 }
 
 export function DateText({ value }: { value: string | null | undefined }) {

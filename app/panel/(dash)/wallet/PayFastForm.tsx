@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { startPayFastTopUp, type PayFastHandoff } from "@/lib/panel/actions/payfast";
+import PanelMoney from "@/components/panel/PanelMoney";
 
 const PRESETS = [500, 1000, 2500, 5000, 10000];
 const MIN = 100;
@@ -57,7 +58,7 @@ export default function PayFastForm({
       <div className="panel-card grid gap-3 p-5 text-center">
         <p className="text-sm font-semibold text-[var(--text)]">Taking you to PayFast…</p>
         <p className="text-sm text-[var(--text-muted)]">
-          Paying {Number(handoff.amount).toLocaleString("en-PK", { minimumFractionDigits: 2 })} {currency}.
+          Paying <PanelMoney value={Number(handoff.amount)} /> ({Number(handoff.amount).toLocaleString("en-PK")} PKR).
           Don&apos;t close this tab.
         </p>
 
@@ -83,7 +84,7 @@ export default function PayFastForm({
   return (
     <form onSubmit={submit} noValidate className="panel-card grid gap-4 p-5">
       <div>
-        <label className="panel-label" htmlFor="pf-amount">Amount ({currency})</label>
+        <label className="panel-label" htmlFor="pf-amount">Amount (PKR)</label>
         <input
           id="pf-amount"
           className="panel-input"
@@ -105,7 +106,7 @@ export default function PayFastForm({
           ))}
         </div>
         <p className="mt-1.5 text-xs text-[var(--text-muted)]">
-          Minimum {MIN.toLocaleString()} {currency}.
+          Minimum {MIN.toLocaleString()} PKR{valid ? <> · approximately <PanelMoney value={value} /></> : null}.
         </p>
       </div>
 

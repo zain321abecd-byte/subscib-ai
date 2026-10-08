@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
+import { FxProvider, type CurrencyMode } from "@/lib/fx";
+import { getRegion, resolveCurrency } from "@/lib/region";
+import { getSiteSettings } from "@/lib/site-settings";
 import "../panel.css";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: { default: "Panel", template: "%s · SubscribAI Panel" },
@@ -18,9 +23,15 @@ export const metadata: Metadata = {
  * `robots: noindex` because a customer dashboard has nothing to offer a search
  * engine, and the sign-in page would otherwise be indexable.
  */
-export default function PanelRootLayout({ children }: { children: React.ReactNode }) {
+export default async function PanelRootLayout({ children }: { children: React.ReactNode }) {
+  const settings = await getSiteSettings();
+  const mode = (settings.currency_mode || "auto") as CurrencyMode;
+  const [initialCurrency, region] = await Promise.all([resolveCurrency(mode), getRegion()]);
+  const fxOverride = Number(settings.fx_rate_pkr_per_usd) || undefined;
+
   return (
-    <div className="panel-scope min-h-dvh">
+    <FxProvider initialCurrency={initialCurrency} mode={mode} fxOverride={fxOverride} region={region}>
+      <div className="panel-scope min-h-dvh">
       {/*
         Applies the stored theme before first paint. Without this the page
         renders light and then flips, which is worse than no dark mode at all.
@@ -32,7 +43,8 @@ export default function PanelRootLayout({ children }: { children: React.ReactNod
           __html: `(function(){try{var t=localStorage.getItem("panel-theme");if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})();`,
         }}
       />
-      {children}
-    </div>
+        {children}
+      </div>
+    </FxProvider>
   );
 }

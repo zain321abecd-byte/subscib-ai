@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { placeOrder } from "@/lib/panel/actions/orders";
 import { calculateCharge, type Service, type ServiceCategory } from "@/lib/panel/types";
+import { formatPriceFromPKR, useFx } from "@/lib/fx";
 
 export default function NewOrderForm({
   services,
@@ -19,6 +20,8 @@ export default function NewOrderForm({
   initialServiceId?: string;
 }) {
   const router = useRouter();
+  const fx = useFx();
+  const money = (value: number) => formatPriceFromPKR(value, fx.currency, fx.usdToPkr, fx.ready, fx.usdToInr);
   const [serviceId, setServiceId] = useState(initialServiceId || services[0]?.id || "");
   const [link, setLink] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -73,7 +76,7 @@ export default function NewOrderForm({
       <form onSubmit={onSubmit} noValidate className="panel-card grid gap-4 p-5">
         {done && (
           <div role="status" className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
-            Order placed — {done.charge.toLocaleString("en-PK", { minimumFractionDigits: 2 })} {currency} taken from
+            Order placed — {money(done.charge)} taken from
             your balance. Track it under <a href="/panel/orders" className="font-semibold underline">My orders</a>.
           </div>
         )}
@@ -93,7 +96,7 @@ export default function NewOrderForm({
                 <optgroup key={c.id} label={c.name}>
                   {items.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} — {Number(s.rate_per_1000).toLocaleString("en-PK")} {currency}/1k
+                      {s.name} — {money(Number(s.rate_per_1000))}/1k
                     </option>
                   ))}
                 </optgroup>
@@ -101,7 +104,7 @@ export default function NewOrderForm({
             })}
             {services.filter((s) => !categories.some((c) => c.id === s.category_id)).map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name} — {Number(s.rate_per_1000).toLocaleString("en-PK")} {currency}/1k
+                {s.name} — {money(Number(s.rate_per_1000))}/1k
               </option>
             ))}
           </select>
@@ -156,7 +159,7 @@ export default function NewOrderForm({
 
         {!affordable && charge > 0 && (
           <p className="text-center text-xs text-[var(--text-muted)]">
-            You need {(charge - balance).toLocaleString("en-PK", { minimumFractionDigits: 2 })} {currency} more —{" "}
+            You need {money(charge - balance)} more —{" "}
             <a href="/panel/wallet" className="font-semibold text-brand-600 hover:underline dark:text-brand-400">add funds</a>.
           </p>
         )}
@@ -168,7 +171,7 @@ export default function NewOrderForm({
           <div className="flex justify-between gap-3">
             <dt className="text-[var(--text-muted)]">Rate / 1000</dt>
             <dd className="font-medium text-[var(--text)]">
-              {service ? `${Number(service.rate_per_1000).toLocaleString("en-PK", { minimumFractionDigits: 2 })} ${currency}` : "—"}
+              {service ? money(Number(service.rate_per_1000)) : "—"}
             </dd>
           </div>
           <div className="flex justify-between gap-3">
@@ -178,13 +181,13 @@ export default function NewOrderForm({
           <div className="mt-1 flex justify-between gap-3 border-t border-[var(--border)] pt-3">
             <dt className="font-semibold text-[var(--text)]">Charge</dt>
             <dd className="text-lg font-bold text-[var(--text)]">
-              {charge.toLocaleString("en-PK", { minimumFractionDigits: 2 })} {currency}
+              {money(charge)}
             </dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-[var(--text-muted)]">Balance after</dt>
             <dd className={`font-medium ${affordable ? "text-[var(--text)]" : "text-red-600 dark:text-red-400"}`}>
-              {(balance - charge).toLocaleString("en-PK", { minimumFractionDigits: 2 })} {currency}
+              {money(balance - charge)}
             </dd>
           </div>
         </dl>

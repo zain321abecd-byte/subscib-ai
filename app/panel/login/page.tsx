@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import { redirect } from "next/navigation";
 import { getPanelUser } from "@/lib/panel/auth";
 import LoginForm from "./LoginForm";
@@ -23,7 +24,7 @@ export default async function PanelLoginPage({
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-[var(--text)]">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-600 text-sm text-white">SP</span>
+            <BrandLogo size={36} />
             SubscribAI Panel
           </Link>
         </div>

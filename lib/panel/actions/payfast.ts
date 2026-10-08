@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getPanelUser } from "@/lib/panel/auth";
+import { PAYFAST_AUTO_CANCEL_NOTE, PAYFAST_TOPUP_TIMEOUT_MS } from "@/lib/panel/payfast-timeout";
 
 export type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -19,13 +20,85 @@ function newBasketId(): string {
 
 const MIN_TOPUP = 100;
 const MAX_TOPUP = 500_000;
-
 export type PayFastHandoff = {
   action: string;
   fields: Record<string, string>;
   basketId: string;
   amount: string;
 };
+
+/**
+ * Cancel a PayFast top-up the customer abandoned before paying.
+ *
+ * We retain the row for reconciliation and use the existing `rejected` DB
+ * state with an explicit customer-cancelled note. A gateway transaction id
+ * means PayFast has already responded, so that request must settle normally.
+ */
+export async function cancelPayFastTopUp(requestId: string): Promise<Result> {
+  const user = await getPanelUser();
+  if (!user) return { ok: false, error: "Please sign in again." };
+
+  const db = getSupabaseAdmin();
+  const { data: request, error: findError } = await db
+    .from("panel_payment_requests")
+    .select("id, user_id, gateway, status, gateway_txn_id")
+    .eq("id", requestId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (findError) return { ok: false, error: "Could not check that payment." };
+  if (!request) return { ok: false, error: "That payment request was not found." };
+  if (request.gateway !== "payfast") return { ok: false, error: "Only PayFast payments can be cancelled here." };
+  if (request.status !== "pending") return { ok: false, error: "This payment is no longer pending." };
+  if (request.gateway_txn_id) {
+    return { ok: false, error: "PayFast has already responded. Please wait for the final payment result." };
+  }
+
+  const { data: cancelled, error } = await db
+    .from("panel_payment_requests")
+    .update({
+      status: "rejected",
+      admin_note: "Cancelled by customer — PayFast checkout was not completed.",
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", request.id)
+    .eq("user_id", user.id)
+    .eq("status", "pending")
+    .is("gateway_txn_id", null)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: "Could not cancel that payment." };
+  if (!cancelled) return { ok: false, error: "The payment status changed. Refresh and check it again." };
+
+  revalidatePath("/panel/wallet");
+  return { ok: true };
+}
+
+/** Expire this customer's abandoned PayFast checkouts after 30 seconds. */
+export async function expirePendingPayFastTopUps(): Promise<Result<{ cancelled: number }>> {
+  const user = await getPanelUser();
+  if (!user) return { ok: false, error: "Please sign in again." };
+
+  const cutoff = new Date(Date.now() - PAYFAST_TOPUP_TIMEOUT_MS).toISOString();
+  const { data, error } = await getSupabaseAdmin()
+    .from("panel_payment_requests")
+    .update({
+      status: "rejected",
+      admin_note: PAYFAST_AUTO_CANCEL_NOTE,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.id)
+    .eq("gateway", "payfast")
+    .eq("status", "pending")
+    .is("gateway_txn_id", null)
+    .lte("created_at", cutoff)
+    .select("id");
+
+  if (error) return { ok: false, error: "Could not refresh pending payments." };
+  if (data?.length) revalidatePath("/panel/wallet");
+  return { ok: true, data: { cancelled: data?.length ?? 0 } };
+}
 
 /**
  * Start a PayFast wallet top-up.

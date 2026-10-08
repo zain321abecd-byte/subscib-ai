@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { requestTopUp } from "@/lib/panel/actions/admin";
+import PanelMoney from "@/components/panel/PanelMoney";
 
 const METHODS = [
   { value: "bank", label: "Bank transfer" },
@@ -48,7 +49,7 @@ export default function TopUpForm({ currency }: { currency: string }) {
       )}
 
       <div>
-        <label className="panel-label" htmlFor="amount">Amount ({currency})</label>
+        <label className="panel-label" htmlFor="amount">Amount (PKR)</label>
         <input
           id="amount"
           className="panel-input"
@@ -57,6 +58,7 @@ export default function TopUpForm({ currency }: { currency: string }) {
           inputMode="decimal"
           placeholder="5000"
         />
+        {valid && <p className="mt-1.5 text-xs text-[var(--text-muted)]">Approximately <PanelMoney value={value} /> at the live rate.</p>}
       </div>
 
       <div>

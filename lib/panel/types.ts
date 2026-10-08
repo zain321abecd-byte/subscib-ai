@@ -75,6 +75,20 @@ export interface Provider {
   created_at: string;
 }
 
+export interface ProviderCatalogService {
+  provider_id: string;
+  provider_name: string;
+  service: string;
+  name: string;
+  type: string;
+  category: string;
+  rate: number;
+  min: number;
+  max: number;
+  currency: string;
+  imported_service_id: string | null;
+}
+
 export interface Order {
   id: string;
   user_id: string;

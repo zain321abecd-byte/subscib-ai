@@ -27,8 +27,9 @@ export default function SignOutButton() {
       onClick={signOut}
       disabled={busy}
       className="panel-btn panel-btn-ghost !px-3 !py-2 text-sm"
+      aria-label={busy ? "Signing out" : "Sign out"}
     >
-      {busy ? "…" : "Sign out"}
+      {busy ? "…" : <><span aria-hidden="true">↗</span><span className="panel-signout-label">Sign out</span></>}
     </button>
   );
 }

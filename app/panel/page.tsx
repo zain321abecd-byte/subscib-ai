@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import { redirect } from "next/navigation";
 import { getSupabaseAdmin, hasServiceRole } from "@/lib/supabase/admin";
 import { getPanelUser } from "@/lib/panel/auth";
 import { PLATFORM_LABELS, type Platform } from "@/lib/panel/types";
 import LoginForm from "./login/LoginForm";
+import PanelMoney from "@/components/panel/PanelMoney";
 
 export const metadata: Metadata = {
   title: "SMM Panel — followers, likes and views, delivered",
@@ -122,12 +124,12 @@ export default async function PanelLandingPage() {
   const { categories, serviceCount, ordersDelivered } = await loadPreview();
 
   return (
-    <div className="bg-[var(--surface-2)]">
+    <div className="panel-landing bg-[var(--surface-2)]">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <header className="panel-landing-header sticky top-0 z-30 backdrop-blur">
+        <div className="panel-landing-nav mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link href="/panel" className="flex items-center gap-2 font-bold text-[var(--text)]">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-sm text-white">SP</span>
+            <BrandLogo size={32} />
             <span>SubscribAI Panel</span>
           </Link>
 
@@ -143,8 +145,8 @@ export default async function PanelLandingPage() {
       </header>
 
       {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <section className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[minmax(0,1fr)_minmax(0,400px)] md:items-center md:py-20">
-        <div>
+      <section className="panel-landing-hero mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[minmax(0,1fr)_minmax(0,400px)] md:items-center md:py-20">
+        <div className="panel-landing-copy">
           <span className="inline-block rounded-full bg-brand-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
             Now part of subscribai.com
           </span>
@@ -196,23 +198,20 @@ export default async function PanelLandingPage() {
 
         {/* Sign-in lives in the hero, the way every SMM panel does it — the
             visitor is usually a returning customer, not a first-timer. */}
-        <div id="signin" className="panel-card p-6 shadow-sm md:scroll-mt-24">
-          <h2 className="text-lg font-bold text-[var(--text)]">Sign in</h2>
+        <div id="signin" className="panel-card panel-signin-card p-6 shadow-sm md:scroll-mt-24">
+          <h2 className="text-lg font-bold text-[var(--text)]">Panel account</h2>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
             Same email and password as your subscribai.com account.
           </p>
           <LoginForm next="/panel/dashboard" />
-          <p className="mt-4 border-t border-[var(--border)] pt-4 text-center text-sm text-[var(--text-muted)]">
-            No account yet?{" "}
-            <Link href="/login" className="font-semibold text-brand-600 hover:underline dark:text-brand-400">
-              Create one on the shop
-            </Link>
+          <p className="mt-4 border-t border-[var(--border)] pt-4 text-center text-xs text-[var(--text-muted)]">
+            Sign up here or on the shop — the same account works in both places.
           </p>
         </div>
       </section>
 
       {/* ── Features ───────────────────────────────────────────────────── */}
-      <section className="bg-[var(--surface)] py-14 md:py-20">
+      <section className="panel-landing-features bg-[var(--surface)] py-14 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-center text-2xl font-bold text-[var(--text)] sm:text-3xl">
             Built to be boring in the right places
@@ -239,7 +238,7 @@ export default async function PanelLandingPage() {
       </section>
 
       {/* ── Services preview ───────────────────────────────────────────── */}
-      <section id="services" className="scroll-mt-20 py-14 md:py-20">
+      <section id="services" className="panel-landing-services scroll-mt-20 py-14 md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-center text-2xl font-bold text-[var(--text)] sm:text-3xl">
             What you can order
@@ -263,7 +262,7 @@ export default async function PanelLandingPage() {
                   <span className="mt-1 text-sm text-[var(--text-muted)]">
                     from{" "}
                     <strong className="text-[var(--text)]">
-                      {c.from.toLocaleString("en-PK", { minimumFractionDigits: 2 })} PKR
+                      <PanelMoney value={c.from} />
                     </strong>{" "}
                     / 1k
                   </span>
@@ -275,7 +274,7 @@ export default async function PanelLandingPage() {
       </section>
 
       {/* ── How it works ───────────────────────────────────────────────── */}
-      <section id="how" className="scroll-mt-20 bg-brand-600 py-14 text-white md:py-20">
+      <section id="how" className="panel-landing-how scroll-mt-20 py-14 text-white md:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="text-center text-2xl font-bold sm:text-3xl">Four steps, start to finish</h2>
 
@@ -286,7 +285,7 @@ export default async function PanelLandingPage() {
                   aria-hidden="true"
                   className="grid h-9 w-9 place-items-center rounded-full bg-white text-base font-bold text-brand-700"
                 >
-                  {s.n}
+                  <b className="font-black text-white">{s.n}</b>
                 </span>
                 <h3 className="mt-3.5 text-base font-bold">{s.title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-white/80">{s.body}</p>
@@ -303,7 +302,7 @@ export default async function PanelLandingPage() {
       </section>
 
       {/* ── Payments ───────────────────────────────────────────────────── */}
-      <section className="bg-[var(--surface)] py-12">
+      <section className="panel-landing-payments bg-[var(--surface)] py-12">
         <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
           <h2 className="text-sm font-bold uppercase tracking-wide text-[var(--text-muted)]">
             Ways to pay
@@ -325,7 +324,7 @@ export default async function PanelLandingPage() {
       </section>
 
       {/* ── FAQ ────────────────────────────────────────────────────────── */}
-      <section id="faq" className="scroll-mt-20 py-14 md:py-20">
+      <section id="faq" className="panel-landing-faq scroll-mt-20 py-14 md:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <h2 className="text-center text-2xl font-bold text-[var(--text)] sm:text-3xl">
             Questions people actually ask
@@ -355,23 +354,68 @@ export default async function PanelLandingPage() {
       </section>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="border-t border-[var(--border)] bg-[var(--surface)] py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 text-center sm:px-6">
-          <Link href="/panel" className="flex items-center gap-2 font-bold text-[var(--text)]">
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-xs text-white">SP</span>
-            SubscribAI Panel
-          </Link>
-          <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-[var(--text-muted)]">
-            <Link href="/" className="hover:text-[var(--text)]">Shop</Link>
-            <Link href="/contact" className="hover:text-[var(--text)]">Contact</Link>
-            <Link href="/terms" className="hover:text-[var(--text)]">Terms</Link>
-            <Link href="/privacy" className="hover:text-[var(--text)]">Privacy</Link>
-            <Link href="/refund" className="hover:text-[var(--text)]">Refunds</Link>
-          </nav>
-          <p className="max-w-xl text-xs leading-relaxed text-[var(--text-muted)]">
-            Check the link, quantity and service before you confirm an order. Invalid links, private
-            accounts and wrong formats cause failed orders. © {new Date().getFullYear()} SubscribAI.
-          </p>
+      <footer className="panel-landing-footer px-4 pb-6 pt-16 sm:px-6 sm:pt-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="panel-footer-cta mb-14 grid gap-6 rounded-[28px] border border-white/10 bg-white/[.055] p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.2em] text-orange-400">Ready when you are</p>
+              <h2 className="mt-2 !text-2xl !tracking-tight text-white sm:!text-3xl">Launch your next order in minutes.</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-stone-400">Create one account for the SubscribAI shop and panel, fund your wallet, and track every order from one clear dashboard.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <a href="#signin" className="panel-btn panel-btn-primary">Open panel</a>
+              <a href="#services" className="panel-btn border-white/15 bg-white/5 text-white hover:bg-white/10">Browse services</a>
+            </div>
+          </div>
+
+          <div className="grid gap-10 border-b border-white/10 pb-12 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+            <div>
+              <Link href="/panel" className="panel-footer-brand-link inline-flex items-center gap-3 text-lg font-black text-white">
+                <BrandLogo size={44} />
+                <span>SubscribAI Panel</span>
+              </Link>
+              <p className="mt-4 max-w-sm text-sm leading-relaxed text-stone-400">A straightforward SMM workspace for browsing services, placing orders, tracking delivery, managing funds, and getting support.</p>
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />
+                Panel systems operational
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-white">Panel</h3>
+              <nav className="mt-4 grid gap-3 text-sm text-stone-400" aria-label="Panel footer navigation">
+                <a href="#signin">Sign in or register</a>
+                <a href="#services">Browse services</a>
+                <a href="#how">How it works</a>
+                <a href="#faq">Help &amp; FAQ</a>
+              </nav>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-white">Payments &amp; support</h3>
+              <nav className="mt-4 grid gap-3 text-sm text-stone-400" aria-label="Support footer navigation">
+                <Link href="/contact">Contact support</Link>
+                <Link href="/refund">Refund policy</Link>
+                <Link href="/faq">Shop FAQ</Link>
+                <span>JazzCash · Easypaisa · Bank</span>
+              </nav>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-white">Company</h3>
+              <nav className="mt-4 grid gap-3 text-sm text-stone-400" aria-label="Company footer navigation">
+                <Link href="/">SubscribAI Shop</Link>
+                <Link href="/about">About</Link>
+                <Link href="/terms">Terms of service</Link>
+                <Link href="/privacy">Privacy policy</Link>
+              </nav>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 py-6 text-xs leading-relaxed text-stone-500 sm:flex-row sm:items-center sm:justify-between">
+            <p>© {new Date().getFullYear()} SubscribAI. All rights reserved.</p>
+            <p className="max-w-2xl sm:text-right">Always confirm the service, target link, quantity, refill terms, and delivery estimate before placing an order.</p>
+          </div>
         </div>
       </footer>
     </div>

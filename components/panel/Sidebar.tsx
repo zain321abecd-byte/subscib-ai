@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import BrandLogo from "@/components/BrandLogo";
 import { useEffect, useState } from "react";
 
 const PANEL_NAME = process.env.NEXT_PUBLIC_PANEL_NAME || "SubscribAI Panel";
@@ -48,8 +49,8 @@ function NavList({
               aria-current={active ? "page" : undefined}
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                 active
-                  ? "bg-brand-600 text-white"
-                  : "text-[var(--text)] hover:bg-[var(--surface-3)]"
+                  ? "panel-sidebar-active text-white"
+                  : "text-stone-400 hover:bg-white/10 hover:text-white"
               }`}
             >
               <span aria-hidden="true" className="w-4 text-center">{item.icon}</span>
@@ -75,9 +76,9 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   return (
     <>
       {/* Mobile bar */}
-      <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3 md:hidden">
+      <div className="panel-dashboard-mobilebar fixed inset-x-0 top-0 z-50 flex min-h-16 items-center justify-between px-3 py-3 md:hidden">
         <Link href="/panel/dashboard" className="flex items-center gap-2 font-bold text-[var(--text)]">
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-xs text-white">SP</span>
+          <BrandLogo size={28} />
           {PANEL_NAME}
         </Link>
         <button
@@ -90,16 +91,26 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
           {open ? "Close" : "Menu"}
         </button>
       </div>
+      <div aria-hidden="true" className="h-16 md:hidden" />
+
+      {open && (
+        <button
+          type="button"
+          className="panel-sidebar-backdrop fixed inset-0 z-30 bg-black/55 md:hidden"
+          aria-label="Close navigation menu"
+          onClick={() => setOpen(false)}
+        />
+      )}
 
       <aside
         id="panel-nav"
-        className={`${open ? "block" : "hidden"} border-b border-[var(--border)] bg-[var(--surface)] p-3 md:sticky md:top-0 md:block md:h-dvh md:border-b-0 md:border-r md:p-4`}
+        className={`${open ? "block" : "hidden"} panel-dashboard-sidebar fixed inset-x-0 top-16 z-40 max-h-[calc(100dvh-4rem)] overflow-y-auto p-3 shadow-2xl md:inset-y-0 md:left-0 md:right-auto md:top-0 md:block md:h-dvh md:w-[260px] md:max-h-none md:overflow-hidden md:p-4 md:shadow-none`}
       >
         <Link
           href="/panel/dashboard"
           className="mb-6 hidden items-center gap-2 px-2 font-bold text-[var(--text)] md:flex"
         >
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-sm text-white">SP</span>
+          <BrandLogo size={32} />
           {PANEL_NAME}
         </Link>
 
