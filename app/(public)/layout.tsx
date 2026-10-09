@@ -10,7 +10,7 @@ import PageProgress from "@/components/PageProgress";
 import NavigationProgress from "@/components/NavigationProgress";
 import RevealOnScroll from "@/components/RevealOnScroll";
 import TrafficCapture from "@/components/TrafficCapture";
-import { buildOrganizationSchema, buildWebsiteSchema } from "@/lib/seo";
+import { buildOrganizationSchema } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,6 @@ export default async function PublicLayout({ children }: { children: React.React
   // Entity facts (description, knowsAbout, areaServed, address) now live in
   // lib/seo.ts so every page describes the business identically.
   const orgJsonLd = buildOrganizationSchema(settings);
-  const websiteJsonLd = buildWebsiteSchema(settings.business_name?.trim() || SITE_NAME);
 
   const mode = (settings.currency_mode || "auto") as CurrencyMode;
   const [initialCurrency, region] = await Promise.all([resolveCurrency(mode), getRegion()]);
@@ -35,7 +34,6 @@ export default async function PublicLayout({ children }: { children: React.React
         <CartProvider>
           {/* JSON-LD lives in the body — Google indexes it either place. */}
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
           <PageProgress />
           <NavigationProgress />
           <RevealOnScroll />

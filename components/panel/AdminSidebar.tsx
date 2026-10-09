@@ -24,6 +24,7 @@ export default function AdminSidebar() {
       <div className="mt-auto grid gap-1 border-t border-[var(--border)] pt-4">
         <Link href="/panel/dashboard" className="panel-sidebar-link">Customer panel</Link>
         <Link href="/" className="panel-sidebar-link">Shop website</Link>
+        <Link href="/blog" className="panel-sidebar-link">Blog</Link>
       </div>
     </aside>
   );

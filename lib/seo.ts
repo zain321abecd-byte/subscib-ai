@@ -101,6 +101,7 @@ export function buildWebsiteSchema(name = "SubscribAI") {
     "@type": "WebSite",
     "@id": WEBSITE_ID,
     name,
+    alternateName: ["SubscribAI.com", "Subscrib AI"],
     url: SITE_URL,
     publisher: { "@id": ORG_ID },
     hasPart: [
@@ -113,6 +114,21 @@ export function buildWebsiteSchema(name = "SubscribAI") {
       target: { "@type": "EntryPoint", urlTemplate: `${absoluteUrl("/shop")}?q={search_term_string}` },
       "query-input": "required name=search_term_string",
     },
+  };
+}
+
+export function buildSiteNavigationSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "SubscribAI main navigation",
+    itemListElement: [
+      { "@type": "SiteNavigationElement", position: 1, name: "Shop", url: absoluteUrl("/shop") },
+      { "@type": "SiteNavigationElement", position: 2, name: "SMM Panel", url: absoluteUrl("/panel") },
+      { "@type": "SiteNavigationElement", position: 3, name: "Blog", url: absoluteUrl("/blog") },
+      { "@type": "SiteNavigationElement", position: 4, name: "Pricing", url: absoluteUrl("/prices") },
+      { "@type": "SiteNavigationElement", position: 5, name: "Contact", url: absoluteUrl("/contact") },
+    ],
   };
 }
 

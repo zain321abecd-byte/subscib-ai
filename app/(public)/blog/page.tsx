@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ArticleCard from "@/components/blog/ArticleCard";
 import { getAllPosts } from "@/lib/blog";
+import { absoluteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "Latest Tech Tricks, Tutorials & Guides",
@@ -12,6 +13,11 @@ export const metadata: Metadata = {
     description: "Explore premium tools, AI guides, subscriptions, tutorials, and digital growth methods.",
     type: "website",
     url: "/blog",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SubscribAI Blog — AI Guides, Tutorials & Comparisons",
+    description: "Practical AI subscription guides, tutorials, comparisons, and automation advice.",
   },
 };
 
@@ -46,9 +52,34 @@ export default async function BlogPage({
   });
 
   const activeFilter = search || category || tag || archive;
+  const blogJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "SubscribAI Blog",
+    description: metadata.description,
+    url: absoluteUrl("/blog"),
+    breadcrumb: {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
+        { "@type": "ListItem", position: 2, name: "Blog", item: absoluteUrl("/blog") },
+      ],
+    },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: allPosts.length,
+      itemListElement: allPosts.slice(0, 50).map((post, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: post.title,
+        url: absoluteUrl(`/blog/${post.slug}`),
+      })),
+    },
+  };
 
   return (
     <section className="nx-articles" aria-label="Blog articles">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }} />
       <div className="v2-container">
         <header className="nx-art-head">
           <span className="nx-art-pill">Articles</span>

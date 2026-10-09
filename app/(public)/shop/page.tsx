@@ -6,6 +6,17 @@ export const metadata = {
   title: "Shop — All AI Subscriptions",
   description: "Every AI tool, one cart. Filter by category, search by name, sort by price. Secure card checkout — local wallet options available where supported.",
   alternates: { canonical: "/shop" },
+  openGraph: {
+    title: "Shop Premium AI Subscriptions | SubscribAI",
+    description: "Browse premium AI subscriptions, design tools, productivity apps, automation packs, and courses with secure checkout.",
+    url: "/shop",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Shop Premium AI Subscriptions | SubscribAI",
+    description: "Browse premium AI subscriptions and digital tools with secure checkout.",
+  },
 };
 
 // Force dynamic — the public layout reads cookies() + headers() (region +
@@ -28,9 +39,24 @@ export default async function ShopPage() {
       url: absoluteUrl(`/product/${p.id}`),
     })),
   };
+  const collectionJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "SubscribAI Shop",
+    description: metadata.description,
+    url: absoluteUrl("/shop"),
+    mainEntity: itemListJsonLd,
+    breadcrumb: {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
+        { "@type": "ListItem", position: 2, name: "Shop", item: absoluteUrl("/shop") },
+      ],
+    },
+  };
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
       <ShopClient products={products} />
     </>
   );

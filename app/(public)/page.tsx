@@ -12,6 +12,7 @@ import {
   paymentFeatureTitleFor,
   paymentMethodFaqAnswerFor,
 } from "@/lib/payment-messaging";
+import { buildSiteNavigationSchema, buildWebsiteSchema } from "@/lib/seo";
 
 /**
  * Force dynamic — the public layout reads cookies() + headers() via
@@ -66,9 +67,13 @@ export default async function HomePage() {
 
   const waDigits = (settings.whatsapp_number || "").replace(/[^\d]/g, "");
   const waHref = waDigits ? `https://wa.me/${waDigits}` : "https://wa.me/";
+  const websiteJsonLd = buildWebsiteSchema(settings.business_name?.trim() || "SubscribAI");
+  const navigationJsonLd = buildSiteNavigationSchema();
 
   return (
     <div className="pl-home">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(navigationJsonLd) }} />
       <h1 className="sr-only">SubscribAI — Premium AI subscriptions and digital tools</h1>
 
       {/* POPULAR — square tile grid, like plati "Popular" */}

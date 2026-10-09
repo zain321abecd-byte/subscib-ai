@@ -7,12 +7,25 @@ import { getPanelUser } from "@/lib/panel/auth";
 import { PLATFORM_LABELS, type Platform } from "@/lib/panel/types";
 import LoginForm from "./login/LoginForm";
 import PanelMoney from "@/components/panel/PanelMoney";
+import { absoluteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "SMM Panel — followers, likes and views, delivered",
   description:
     "Order Instagram, TikTok, YouTube and Facebook growth from one wallet. Pay with card, bank, JazzCash or Easypaisa. Same SubscribAI account you already have.",
   robots: { index: true, follow: true },
+  alternates: { canonical: "/panel" },
+  openGraph: {
+    title: "SubscribAI SMM Panel — Social Media Services",
+    description: "Order Instagram, TikTok, YouTube, and Facebook services from one wallet with live tracking and automatic refunds.",
+    url: "/panel",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SubscribAI SMM Panel",
+    description: "Social media services with transparent pricing, live order tracking, and wallet payments.",
+  },
 };
 
 export const dynamic = "force-dynamic";
@@ -122,9 +135,32 @@ export default async function PanelLandingPage() {
   if (user) redirect("/panel/dashboard");
 
   const { categories, serviceCount, ordersDelivered } = await loadPreview();
+  const panelJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "SubscribAI SMM Panel",
+    description: "Order social media services for Instagram, TikTok, YouTube, and Facebook with one wallet and live order tracking.",
+    url: absoluteUrl("/panel"),
+    breadcrumb: {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
+        { "@type": "ListItem", position: 2, name: "SMM Panel", item: absoluteUrl("/panel") },
+      ],
+    },
+    mainEntity: {
+      "@type": "FAQPage",
+      mainEntity: FAQS.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      })),
+    },
+  };
 
   return (
     <div className="panel-landing bg-[var(--surface-2)]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(panelJsonLd) }} />
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="panel-landing-header sticky top-0 z-30 backdrop-blur">
         <div className="panel-landing-nav mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
@@ -138,6 +174,7 @@ export default async function PanelLandingPage() {
             <a href="#how" className="hover:text-[var(--text)]">How it works</a>
             <a href="#faq" className="hover:text-[var(--text)]">FAQ</a>
             <Link href="/" className="hover:text-[var(--text)]">Shop</Link>
+            <Link href="/blog" className="hover:text-[var(--text)]">Blog</Link>
           </nav>
 
           <a href="#signin" className="panel-btn panel-btn-primary !py-2 text-sm">Sign in</a>
@@ -406,6 +443,7 @@ export default async function PanelLandingPage() {
               <nav className="mt-4 grid gap-3 text-sm text-stone-400" aria-label="Company footer navigation">
                 <Link href="/">SubscribAI Shop</Link>
                 <Link href="/about">About</Link>
+                <Link href="/blog">Blog</Link>
                 <Link href="/terms">Terms of service</Link>
                 <Link href="/privacy">Privacy policy</Link>
               </nav>

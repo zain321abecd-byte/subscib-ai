@@ -50,6 +50,7 @@ ${catalogLines}
 - [Price list](${absoluteUrl("/prices")})
 - [FAQ](${absoluteUrl("/faq")})
 - [Blog — guides on AI subscriptions in Pakistan](${absoluteUrl("/blog")})
+- [SMM Panel — social media services](${absoluteUrl("/panel")})
 - [About](${absoluteUrl("/about")})
 - [Contact](${absoluteUrl("/contact")})
 - [Terms](${absoluteUrl("/terms")}) · [Privacy](${absoluteUrl("/privacy")}) · [Refunds](${absoluteUrl("/refund")})

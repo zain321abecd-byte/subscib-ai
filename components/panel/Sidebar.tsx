@@ -132,9 +132,14 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
 
         {/* Way back to the shop. The panel is part of the site, not a silo. */}
         <div className="mt-6 border-t border-[var(--border)] px-3 pt-4">
+          <div className="grid gap-2">
           <Link href="/" className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)]">
             ← Back to subscribai.com
           </Link>
+          <Link href="/blog" className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)]">
+            Read the SubscribAI blog
+          </Link>
+          </div>
         </div>
       </aside>
     </>

@@ -128,6 +128,7 @@ ${articleSections || "_No published articles._"}
 - Prices: ${absoluteUrl("/prices")}
 - FAQ: ${absoluteUrl("/faq")}
 - Blog: ${absoluteUrl("/blog")}
+- SMM Panel: ${absoluteUrl("/panel")}
 - About: ${absoluteUrl("/about")}
 - Contact: ${absoluteUrl("/contact")}
 - Refund policy: ${absoluteUrl("/refund")}
