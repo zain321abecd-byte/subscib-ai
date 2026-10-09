@@ -2,7 +2,7 @@ import { getContactLinks } from "@/lib/contact-links";
 
 export const metadata = {
   title: "Refund & Replacement Policy",
-  description: "Full-period replacement guarantee on every subscription. Clear rules on what's refundable and what's not.",
+  description: "Clear refund, replacement, cancellation, partial-delivery, and refill rules for AI subscriptions, digital products, and SMM panel services.",
   alternates: { canonical: "/refund" },
 };
 
@@ -19,7 +19,7 @@ export default async function RefundPage() {
           Refund &amp; replacement policy
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)", marginBottom: "var(--space-6)" }}>
-          Last updated: April 2026
+          Last updated: October 2026
         </p>
 
         <div style={{ color: "var(--text-soft)", lineHeight: 1.7, display: "grid", gap: "var(--space-5)" }}>
@@ -59,9 +59,31 @@ export default async function RefundPage() {
             </ul>
           </section>
 
+          {/* SMM panel services */}
+          <section>
+            <h2 style={H2}>3. SMM panel services</h2>
+            <p>
+              SMM orders begin processing shortly after you submit them, so their refund rules differ from subscriptions and physical goods.
+              Refunds for SMM orders are credited to your <strong>panel wallet</strong>, which lets you place another order immediately.
+            </p>
+            <ul style={UL}>
+              <li><strong>Cancelled or failed orders:</strong> the order charge is returned automatically to your panel wallet once the order reaches a cancelled or failed status. The same order cannot be refunded twice.</li>
+              <li><strong>Pending orders:</strong> contact support if an order remains pending beyond the service&rsquo;s stated start time. A pending order is not automatically refundable while the provider can still begin delivery.</li>
+              <li><strong>Cancellation requests:</strong> cancellation is not guaranteed. It is only possible when the selected service supports cancellation and the provider has not already started or completed delivery.</li>
+              <li><strong>Partially delivered orders:</strong> these are reviewed using the provider&rsquo;s final delivered quantity and service terms. Open a support ticket with the order ID if the status is partial or the delivered amount appears incorrect.</li>
+              <li><strong>Completed orders:</strong> completed services are non-refundable because delivered followers, likes, views, comments, or other engagement cannot be withdrawn from the target account.</li>
+              <li><strong>Drops and refills:</strong> a refill is available only when the service was advertised with a refill guarantee and the request falls within its stated refill period. Natural engagement loss outside that guarantee is not refundable.</li>
+              <li><strong>Incorrect, private, deleted, or restricted links:</strong> customers are responsible for submitting the correct public target. Once processing begins, an order placed against an incorrect or inaccessible target is not refundable unless the provider cancels or fails it.</li>
+              <li><strong>Processing speed:</strong> start and completion times are estimates, not guarantees. Delays alone do not qualify for a refund while the order remains active with the provider.</li>
+            </ul>
+            <p>
+              To report an SMM order problem, open a ticket inside the panel and include the panel order ID. Do not place a second order for the same target while the first order is still pending or in progress, because overlapping orders can make delivery counts impossible to verify.
+            </p>
+          </section>
+
           {/* Non-refundable */}
           <section>
-            <h2 style={H2}>3. Non-refundable items</h2>
+            <h2 style={H2}>4. Other non-refundable items</h2>
             <ul style={UL}>
               <li><strong>Digital downloads</strong> (prompt packs, automation blueprints, course videos). Once delivered, can&rsquo;t be un-delivered.</li>
               <li><strong>Subscriptions you&rsquo;ve already used</strong> for more than 7 days, unless covered by Section 1.</li>
@@ -72,7 +94,7 @@ export default async function RefundPage() {
 
           {/* Process */}
           <section>
-            <h2 style={H2}>4. How to request a refund or replacement</h2>
+            <h2 style={H2}>5. How to request a refund or replacement</h2>
             <ol style={{ ...UL, listStyle: "decimal" }}>
               <li>Message us on <a href={whatsappUrl} style={{ color: "var(--brand-300)" }}>WhatsApp</a> (fastest) or email <a href={mailtoUrl} style={{ color: "var(--brand-300)" }}>{email}</a></li>
               <li>Include your order ID (in your account dashboard) and a one-line description of what&rsquo;s wrong</li>
@@ -83,17 +105,18 @@ export default async function RefundPage() {
 
           {/* Timing */}
           <section>
-            <h2 style={H2}>5. How long refunds take</h2>
+            <h2 style={H2}>6. How long refunds take</h2>
             <ul style={UL}>
               <li><strong>Local wallet payments:</strong> 24&ndash;48 hours back to your wallet</li>
               <li><strong>Card refunds:</strong> 5&ndash;10 working days, depending on your bank</li>
               <li><strong>Replacements:</strong> usually within 1 hour, max 24 hours</li>
+              <li><strong>SMM order refunds:</strong> credited to the panel wallet automatically when an order is confirmed as cancelled or failed</li>
             </ul>
           </section>
 
           {/* Chargebacks */}
           <section>
-            <h2 style={H2}>6. Chargebacks</h2>
+            <h2 style={H2}>7. Chargebacks</h2>
             <p>If you&rsquo;re considering a chargeback against SubscribAI, please reach out first — we resolve nearly every legitimate complaint within a day. Filing a chargeback while we&rsquo;re actively trying to help slows things down for everyone. Fraudulent chargebacks (a confirmed delivery + a contested charge) are subject to Section 10 of our <a href="/terms" style={{ color: "var(--brand-300)" }}>Terms</a>.</p>
           </section>
 
