@@ -114,14 +114,26 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const avgRating = ratingPool.length > 0
     ? Math.round((ratingPool.reduce((s, r) => s + (r.rating ?? 5), 0) / ratingPool.length) * 10) / 10
     : null;
-  const priceValidUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const now = new Date();
+  const validFrom = now.toISOString().slice(0, 10);
+  const priceValidUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const toAbsoluteImageUrl = (url: string) => /^https?:\/\//i.test(url) ? url : absoluteUrl(url.startsWith("/") ? url : `/${url}`);
+  const productImages = Array.from(new Set(
+    [product.imageUrl, ...(product.gallery || [])]
+      .filter((url): url is string => Boolean(url))
+      .map(toAbsoluteImageUrl),
+  ));
+  // Google requires at least one crawlable image for merchant listings. Some
+  // older catalog entries predate product artwork, so use the original brand
+  // emblem as a deterministic fallback instead of emitting an invalid item.
+  if (productImages.length === 0) productImages.push(absoluteUrl("/assets/subscribai-symbol.png"));
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
     description: product.description || `${product.name} — premium AI subscription, delivered to your inbox in under 30 minutes.`,
     category: product.category,
-    ...(product.imageUrl ? { image: product.imageUrl } : {}),
+    image: productImages,
     brand: { "@type": "Brand", name: product.brand || product.name },
     ...(avgRating != null && ratingPool.length > 0
       ? {
@@ -147,8 +159,37 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       url: absoluteUrl(`/product/${product.id}`),
       priceCurrency: "PKR",
       price: getStartingPrice(product),
+      validFrom,
       priceValidUntil,
       availability: "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          value: 0,
+          currency: "PKR",
+        },
+        shippingDestination: {
+          "@type": "DefinedRegion",
+          addressCountry: "PK",
+        },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: {
+            "@type": "QuantitativeValue",
+            minValue: 0,
+            maxValue: 1,
+            unitCode: "DAY",
+          },
+          transitTime: {
+            "@type": "QuantitativeValue",
+            minValue: 0,
+            maxValue: 0,
+            unitCode: "DAY",
+          },
+        },
+      },
       // Reference the single Organization entity from the layout rather than
       // re-declaring a bare name, so the seller resolves to the same node the
       // rest of the site describes.
@@ -156,7 +197,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: "PK",
-        returnPolicyCategory: "https://schema.org/MerchantReturnUnspecified",
+        // Digital subscriptions cannot be physically returned. Replacement
+        // and refund eligibility remains documented at the linked policy.
+        returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
         merchantReturnLink: absoluteUrl("/refund"),
       },
     },
