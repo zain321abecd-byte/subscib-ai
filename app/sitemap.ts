@@ -37,6 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/shop"),   lastModified: productsChanged, changeFrequency: "daily",  priority: 0.9 },
     { url: absoluteUrl("/prices"), lastModified: productsChanged, changeFrequency: "weekly", priority: 0.8 },
     { url: absoluteUrl("/blog"),   lastModified: postsChanged,    changeFrequency: "weekly", priority: 0.7 },
+    { url: absoluteUrl("/panel"),                                  changeFrequency: "weekly", priority: 0.8 },
   ];
 
   // Editorial / legal pages: no reliable change date, so send none.

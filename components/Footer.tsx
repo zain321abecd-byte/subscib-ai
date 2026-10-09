@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import BrandLogo from "./BrandLogo";
 import PaymentLogo from "./PaymentLogo";
 import CookieSettingsLink from "./CookieSettingsLink";
 import { getSiteSettings, normalisePhoneDigits } from "@/lib/site-settings";
@@ -23,7 +23,10 @@ export default async function Footer() {
     <footer className="v2-footer">
       <div className="v2-container v2-footer-grid">
         <div className="v2-footer-brand">
-          <Link href="/"><Image src="/assets/subscribai-logo.png" alt="SubscribAI" width={140} height={36} /></Link>
+          <Link href="/" className="v2-footer-brand-link" aria-label="SubscribAI home">
+            <BrandLogo size={44} />
+            <span>SubscribAI</span>
+          </Link>
           <p>{footerText}</p>
           <div className="v2-pay-row" aria-label="Accepted payment methods">
             {isPK && <span className="v2-pay-chip" title="JazzCash"><PaymentLogo provider="jazzcash" height={32} /></span>}
@@ -56,6 +59,7 @@ export default async function Footer() {
           <Link href="/blog">Blog</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/prices">Pricing</Link>
+          <Link href="/panel">SMM Panel</Link>
           <Link href="/faq">FAQ</Link>
         </div>
 

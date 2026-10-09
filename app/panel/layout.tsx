@@ -8,7 +8,9 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: { default: "Panel", template: "%s · SubscribAI Panel" },
-  robots: { index: false, follow: false },
+  description: "SubscribAI SMM Panel for social media services, order tracking, payments, and support.",
+  alternates: { canonical: "/panel" },
+  robots: { index: true, follow: true },
 };
 
 /**
@@ -20,8 +22,8 @@ export const metadata: Metadata = {
  * inside this too, which is why the session check isn't here — it's in
  * (dash)/layout.tsx, one level down.
  *
- * `robots: noindex` because a customer dashboard has nothing to offer a search
- * engine, and the sign-in page would otherwise be indexable.
+ * The public /panel landing page is indexable. Private dashboard and sign-in
+ * routes override this metadata with noindex in their own route segments.
  */
 export default async function PanelRootLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSiteSettings();

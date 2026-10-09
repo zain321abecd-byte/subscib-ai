@@ -87,9 +87,12 @@ export async function generateMetadata(): Promise<Metadata> {
       ...(twitterHandle ? { creator: twitterHandle, site: twitterHandle } : {}),
     },
     icons: {
-      icon: [{ url: "/assets/favicon.png", type: "image/png" }],
-      // Served by app/apple-icon.tsx — a proper 180×180 render.
-      apple: "/apple-icon",
+      icon: [
+        { url: "/assets/favicon.png?v=4", type: "image/png", sizes: "96x96" },
+        { url: "/assets/icon-192.png?v=4", type: "image/png", sizes: "192x192" },
+      ],
+      shortcut: "/assets/favicon.png?v=4",
+      apple: [{ url: "/assets/apple-touch-icon.png?v=4", type: "image/png", sizes: "180x180" }],
     },
     manifest: "/manifest.webmanifest",
     formatDetection: { telephone: false, address: false, email: false },

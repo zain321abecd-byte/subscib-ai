@@ -68,7 +68,9 @@ export function buildOrganizationSchema(settings: OrgSettings) {
     url: SITE_URL,
     logo: {
       "@type": "ImageObject",
-      url: absoluteUrl("/assets/subscribai-logo.png"),
+      url: absoluteUrl("/assets/subscribai-symbol.png"),
+      width: 1254,
+      height: 1254,
     },
     description: ORG_DESCRIPTION,
     knowsAbout: KNOWS_ABOUT,
@@ -101,6 +103,11 @@ export function buildWebsiteSchema(name = "SubscribAI") {
     name,
     url: SITE_URL,
     publisher: { "@id": ORG_ID },
+    hasPart: [
+      { "@type": "WebPage", name: "SubscribAI Shop", url: absoluteUrl("/shop") },
+      { "@type": "WebPage", name: "SubscribAI Blog", url: absoluteUrl("/blog") },
+      { "@type": "WebPage", name: "SubscribAI SMM Panel", url: absoluteUrl("/panel") },
+    ],
     potentialAction: {
       "@type": "SearchAction",
       target: { "@type": "EntryPoint", urlTemplate: `${absoluteUrl("/shop")}?q={search_term_string}` },

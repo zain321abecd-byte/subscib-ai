@@ -17028,6 +17028,9 @@ textarea:focus {
 }
 .pl-brand { display: inline-flex; align-items: center; flex-shrink: 0; }
 .pl-brand img { height: 34px; width: auto; }
+.pl-brand-name { margin-left: 9px; color: var(--text); font-size: 20px; font-weight: 800; letter-spacing: -.025em; }
+.v2-footer-brand-link { display: inline-flex; align-items: center; gap: 10px; margin-bottom: var(--space-4); color: var(--text); font-size: 22px; font-weight: 800; }
+.v2-footer-brand-link img { margin-bottom: 0; }
 
 /* Catalog button — orange rect like plati */
 .pl-catalog-btn {

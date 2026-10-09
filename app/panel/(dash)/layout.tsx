@@ -6,8 +6,10 @@ import SignOutButton from "@/components/panel/SignOutButton";
 import { Money } from "@/components/panel/ui";
 import AdminSidebar from "@/components/panel/AdminSidebar";
 import { headers } from "next/headers";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * Shell for every signed-in panel page: sidebar, top bar, balance.

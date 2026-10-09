@@ -13,9 +13,9 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "en",
     categories: ["shopping", "business", "productivity"],
     icons: [
-      { src: "/assets/favicon.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/assets/favicon.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/assets/favicon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/assets/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/assets/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/assets/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

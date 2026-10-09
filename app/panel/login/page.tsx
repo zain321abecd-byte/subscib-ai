@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getPanelUser } from "@/lib/panel/auth";
 import LoginForm from "./LoginForm";
 
-export const metadata: Metadata = { title: "Sign in" };
+export const metadata: Metadata = { title: "Sign in", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function PanelLoginPage({

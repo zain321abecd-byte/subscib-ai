@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import BrandLogo from "@/components/BrandLogo";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
@@ -16,6 +16,7 @@ const TOP_NAV = [
   { href: "/shop", label: "Shop" },
   { href: "/prices", label: "Pricing" },
   { href: "/blog", label: "Blog" },
+  { href: "/panel", label: "SMM Panel" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -66,7 +67,8 @@ export default function Header({ mobileWhatsAppUrl = "" }: { mobileWhatsAppUrl?:
         <header className="pl-main-bar">
         <div className="v2-container pl-main-row">
           <Link className="pl-brand" href="/" aria-label="SubscribAI home">
-            <Image src="/assets/subscribai-logo.png" alt="SubscribAI" width={149} height={36} priority />
+            <BrandLogo size={36} priority />
+            <span className="pl-brand-name">SubscribAI</span>
           </Link>
 
           {/* Desktop: orange Catalog link. Mobile: same orange square opens
