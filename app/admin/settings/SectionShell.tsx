@@ -1,5 +1,7 @@
 import { saveSettings } from "./actions";
 
+import SaveButton from "./SaveButton";
+
 // Reusable wrapper for each settings sub-section. Shows a status banner from
 // query params, renders the children inside a <form>, and adds the standard
 // Save button + a hidden return-to so the action redirects here on success.
@@ -40,9 +42,7 @@ export default function SectionShell({
         <input type="hidden" name="__return_to" value={returnTo} />
         {children}
         <div className="admin-form-actions admin-form-actions-sticky">
-          <button type="submit" className="admin-btn admin-btn-primary">
-            <i className="fa-solid fa-floppy-disk"></i> Save
-          </button>
+          <SaveButton />
         </div>
       </form>
     </section>

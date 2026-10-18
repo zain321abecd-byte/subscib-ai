@@ -2,6 +2,8 @@ import { unstable_cache } from "next/cache";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { getSupabaseAdmin, hasServiceRole } from "@/lib/supabase/admin";
+import { getPortalToken } from "@/lib/admin-auth";
 import type { SiteSettingRow } from "@/lib/supabase/types";
 
 /**
@@ -159,12 +161,36 @@ const fetchAllSettings = unstable_cache(
   // Vercel's Data Cache survives deployments, so a cached settings map keeps
   // serving old FALLBACKS after a code change. Bump this suffix whenever a
   // FALLBACKS default changes, so the new build starts a fresh cache entry.
-  ["site-settings-all-v3"],
+  ["site-settings-all-v4"],
   { tags: [SETTINGS_TAG] },
 );
 
 export async function getSiteSettings(): Promise<Record<string, string>> {
   return fetchAllSettings();
+}
+
+/**
+ * Fresh (uncached) fetch of all site_settings directly from Supabase,
+ * ideal for Admin settings forms so that edits and saves are never stale.
+ */
+export async function getFreshSiteSettings(): Promise<Record<string, string>> {
+  const supabase = hasServiceRole() ? getSupabaseAdmin() : getPublicAnonClient();
+  if (!supabase) return { ...FALLBACKS };
+  try {
+    const { data, error } = await supabase.from("site_settings").select("*");
+    if (error || !data) return { ...FALLBACKS };
+    const map: Record<string, string> = { ...FALLBACKS };
+    for (const row of data as SiteSettingRow[]) {
+      const v = asString(row.value).trim();
+      if (v) map[row.key] = v;
+    }
+    for (const [alias, canonical] of Object.entries(KEY_ALIASES)) {
+      if (!map[canonical] && map[alias]) map[canonical] = map[alias];
+    }
+    return map;
+  } catch {
+    return { ...FALLBACKS };
+  }
 }
 
 export async function getSiteSetting(key: string, fallback = ""): Promise<string> {
@@ -196,6 +222,14 @@ export function stripUnsafe(v: string): string {
 
 function hasUnsafeInput(v: string): boolean {
   return /<script[\s\S]*?<\/script>/i.test(v) || /<[^>]+>/i.test(v) || /javascript:/i.test(v);
+}
+
+/** Normalise a phone / WhatsApp number: keep digits, preserving leading '+' if present. */
+export function normalisePhoneNumber(v: string): string {
+  const trimmed = v.trim();
+  const digits = trimmed.replace(/[^\d]/g, "");
+  if (!digits) return "";
+  return trimmed.startsWith("+") ? `+${digits}` : digits;
 }
 
 /** Normalise a phone / WhatsApp number: keep digits only. */
@@ -235,11 +269,11 @@ const SANITISERS: Record<string, (v: string) => SanitiseResult> = {
   },
   whatsapp_number: (v) => {
     if (hasUnsafeInput(v)) return { error: "WhatsApp number cannot contain HTML or script code." };
-    return { value: normalisePhoneDigits(v) };
+    return { value: normalisePhoneNumber(v) };
   },
   support_phone: (v) => {
     if (hasUnsafeInput(v)) return { error: "Support phone cannot contain HTML or script code." };
-    return { value: normalisePhoneDigits(v) };
+    return { value: normalisePhoneNumber(v) };
   },
 
   // Pixel + analytics + verification tokens are opaque identifier
@@ -324,6 +358,50 @@ export async function updateSiteSettings(settingsObject: Record<string, string>)
   }
 
   if (cleaned.length === 0) return;
+
+  // 1. Direct Supabase Admin (Service Role) - completely bypasses RLS
+  if (hasServiceRole()) {
+    try {
+      const admin = getSupabaseAdmin();
+      const { error } = await admin.from("site_settings").upsert(cleaned, { onConflict: "key" });
+      if (!error) {
+        revalidateSettingsSurfaces();
+        return;
+      }
+      console.warn("Direct service-role upsert failed, attempting fallback:", error.message);
+    } catch (err) {
+      console.warn("Direct service-role client error, attempting fallback:", err);
+    }
+  }
+
+  // 2. Fallback: call backend /admin/settings API with portal JWT
+  try {
+    const token = await getPortalToken();
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+    if (token && apiUrl) {
+      const res = await fetch(`${apiUrl}/admin/settings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          settings: Object.fromEntries(cleaned.map((c) => [c.key, c.value])),
+        }),
+        cache: "no-store",
+      });
+      if (res.ok) {
+        revalidateSettingsSurfaces();
+        return;
+      }
+      const errJson = await res.json().catch(() => ({}));
+      console.warn("Backend /admin/settings API returned:", errJson?.message || res.status);
+    }
+  } catch (err) {
+    console.warn("Backend /admin/settings fallback error:", err);
+  }
+
+  // 3. Fallback: standard server client (requires Supabase Auth session)
   const supabase = await getSupabaseServer();
   const { error } = await supabase.from("site_settings").upsert(cleaned, { onConflict: "key" });
   if (error) throw new Error(error.message);

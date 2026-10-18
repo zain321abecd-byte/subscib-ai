@@ -1,4 +1,4 @@
-import { getSiteSettings } from "@/lib/site-settings";
+import { getFreshSiteSettings } from "@/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -9,5 +9,5 @@ export function asString(v: unknown): string {
 }
 
 export async function loadSettings(): Promise<Record<string, string>> {
-  return getSiteSettings();
+  return getFreshSiteSettings();
 }
